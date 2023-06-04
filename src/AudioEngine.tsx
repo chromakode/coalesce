@@ -1,5 +1,7 @@
 import audioBufferToWav from 'audiobuffer-to-wav'
 import { groupBy, last, sortBy } from 'lodash-es'
+import mitt from 'mitt'
+import { AudioScheduler, AudioTask } from './AudioScheduler'
 import { Project } from './project'
 
 export interface SoundLocation {
@@ -16,13 +18,39 @@ export interface SoundLocationWithBuffer extends SoundLocation {
   buffer: AudioBuffer
 }
 
+export interface RunningAudioTask {
+  audioStartTime: number
+  clockStartTime: number
+  duration: number
+  scheduler: AudioScheduler
+  destNode: AudioNode
+  stop: () => void
+}
+
+export type AudioEngineStatus =
+  | {
+      status: 'playing'
+      startTime: number
+      playbackTime: number
+      duration: number
+    }
+  | { status: 'stopped' }
+
+export type AudioEngineEvents = {
+  status: AudioEngineStatus
+}
+
+const TICK_MS = 1000
+const SCHEDULER_BUFFER_S = 2
+
 // TODO: consider implementing backend for slicing wavs and lazy load into buffers
 export default class AudioEngine {
   ctx: AudioContext = new AudioContext()
   bufferPromises: Map<string, Promise<AudioBuffer>> = new Map()
   buffers: Map<string, AudioBuffer> = new Map()
-
-  currentlyPlaying: AudioNode | null = null
+  events = mitt<AudioEngineEvents>()
+  status: AudioEngineStatus = { status: 'stopped' }
+  currentTask: RunningAudioTask | null = null
 
   loadProject(project: Project): Promise<AudioBuffer[]> {
     return Promise.all(
@@ -85,9 +113,79 @@ export default class AudioEngine {
     return { ...loc, buffer }
   }
 
+  _emitStatus(status: AudioEngineStatus) {
+    this.status = status
+    this.events.emit('status', status)
+  }
+
+  _launchTask(task: AudioTask): RunningAudioTask {
+    const { ctx } = this
+
+    const { duration, run } = task
+
+    const destNode = ctx.createGain()
+    destNode.connect(ctx.destination)
+
+    const audioStartTime = ctx.currentTime
+    const clockStartTime = Date.now()
+
+    const scheduler = run(this, this.ctx, destNode, audioStartTime)
+    scheduler.next(0)
+
+    let timeout: ReturnType<typeof window.setTimeout>
+
+    const tick = () => {
+      const now = Date.now()
+
+      if (now >= clockStartTime + duration * 1000) {
+        this.stop()
+        return
+      }
+
+      scheduler.next(ctx.currentTime + SCHEDULER_BUFFER_S)
+
+      this._emitStatus({
+        status: 'playing',
+        startTime: clockStartTime,
+        playbackTime: Math.min(now - clockStartTime, duration * 1000),
+        duration,
+      })
+
+      const tickMS = Math.max(50, TICK_MS - (now % TICK_MS))
+      const endMS = clockStartTime + duration * 1000 - now
+      timeout = setTimeout(tick, Math.min(tickMS, endMS))
+    }
+
+    const stop = () => {
+      scheduler.return()
+      clearTimeout(timeout)
+      destNode.disconnect()
+      this._emitStatus({ status: 'stopped' })
+    }
+
+    tick()
+
+    return {
+      audioStartTime,
+      clockStartTime,
+      duration,
+      scheduler,
+      destNode,
+      stop,
+    }
+  }
+
+  start(task: AudioTask) {
+    if (this.currentTask) {
+      this.stop()
+    }
+    this.currentTask = this._launchTask(task)
+  }
+
   stop() {
-    if (this.currentlyPlaying) {
-      this.currentlyPlaying.disconnect()
+    if (this.currentTask) {
+      this.currentTask.stop()
+      this.currentTask = null
     }
   }
 }
@@ -205,119 +303,68 @@ export function getEndTime(locs: OffsetSoundLocation[]): number | null {
   return lastLoc.end + lastLoc.offset
 }
 
-export interface PlayOptions {
-  startTime?: number
-  startFudge?: number
-  endFudge?: number
-  verbose?: boolean
-  onFinish?: () => void
-}
-
-// Outside AudioEngine for hot reloading convenience
-export function playLocations(
-  engine: AudioEngine,
-  ctx: AudioContext | OfflineAudioContext,
-  locs: OffsetSoundLocation[],
-  {
-    startTime = 0,
-    startFudge = 0.05,
-    endFudge = 0.15,
-    verbose = false,
-    onFinish,
-  }: PlayOptions = {},
-) {
-  if (!locs.length) {
-    return
-  }
-
-  if (verbose) console.group('playing')
-
-  const gainNode = ctx.createGain()
-  gainNode.connect(ctx.destination)
-  engine.currentlyPlaying = gainNode
-
-  const minTime = locs[0].start
-  let lastBufNode: AudioBufferSourceNode | null = null
-
-  const { currentTime } = ctx
-
-  for (const { source, start, end, offset } of locs) {
-    const buffer = engine.getBuffer(source)
-
-    const wordGainNode = ctx.createGain()
-    wordGainNode.connect(gainNode)
-
-    const bufNode = ctx.createBufferSource()
-    bufNode.buffer = buffer
-    bufNode.connect(wordGainNode)
-
-    let duration = end - start
-    let playTime = currentTime - startTime + start + offset - minTime
-    if (playTime + duration < 0) {
-      continue
-    }
-
-    // If clip starts before startTime, truncate.
-    if (playTime < 0) {
-      playTime = 0
-      duration -= playTime
-    }
-
-    playTime += startFudge + 0.0001 // Paper over floating precision issues causing negative values
-
-    wordGainNode.gain.setValueAtTime(0, playTime - startFudge)
-    wordGainNode.gain.linearRampToValueAtTime(1, playTime)
-    wordGainNode.gain.setValueAtTime(1, playTime + duration)
-    wordGainNode.gain.linearRampToValueAtTime(0, playTime + duration + endFudge)
-    bufNode.start(
-      playTime - startFudge,
-      start - startFudge,
-      duration + startFudge + endFudge,
-    )
-
-    if (verbose) console.log(source, playTime, start, end)
-
-    lastBufNode = bufNode
-  }
-
-  if (verbose) console.groupEnd()
-
-  lastBufNode!.addEventListener('ended', () => onFinish?.())
-}
-
 // TODO: make customizable or match input
 const CHANNEL_COUNT = 1
 const SAMPLE_RATE = 48000
 
-interface ExportOptions extends PlayOptions {
-  onProgress?: (progress: number) => void
-}
-
 export async function exportWAV(
   engine: AudioEngine,
-  locs: OffsetSoundLocation[],
-  { onProgress, ...playOptions }: ExportOptions = {},
+  task: AudioTask,
+  onProgress?: (progress: number) => void,
 ) {
-  const endTime = getEndTime(locs)
-  if (endTime === null) {
-    return
-  }
+  const { duration, run } = task
+
+  // Chrome oddly seems to undercalculate the duration of the resulting audio in
+  // `OfflineAudioContext.suspend` and will throw if it thinks the output buffer
+  // is too short. Add a little time to the end to work around this.
+  const CHROME_EXTRA_SAMPLES = 32
+
   const offlineCtx = new OfflineAudioContext(
     CHANNEL_COUNT,
-    Math.floor(SAMPLE_RATE * endTime),
+    Math.ceil(SAMPLE_RATE * duration) + CHROME_EXTRA_SAMPLES,
     SAMPLE_RATE,
   )
 
-  playLocations(engine, offlineCtx, locs, playOptions)
+  const startTime = 0
+  const scheduler = run(engine, offlineCtx, offlineCtx.destination, startTime)
+  scheduler.next(0)
 
   const progressInterval = setInterval(() => {
-    const progress = 100 * (offlineCtx.currentTime / endTime)
+    const progress = 100 * (offlineCtx.currentTime / duration)
     onProgress?.(progress)
   }, 1000 / 15)
 
   let buffer: AudioBuffer
   try {
-    buffer = await offlineCtx.startRendering()
+    let bufferPromise: Promise<AudioBuffer> | null = null
+    const continueRendering = () => {
+      if (bufferPromise === null) {
+        bufferPromise = offlineCtx.startRendering()
+      } else {
+        offlineCtx.resume()
+      }
+    }
+
+    for (
+      let renderTime = SCHEDULER_BUFFER_S;
+      renderTime <= duration;
+      renderTime = Math.min(renderTime + SCHEDULER_BUFFER_S, duration)
+    ) {
+      const { done } = scheduler.next(renderTime)
+
+      if (done) {
+        continueRendering()
+        break
+      }
+
+      const finishedChunk = offlineCtx.suspend(renderTime)
+
+      continueRendering()
+
+      await finishedChunk
+    }
+
+    buffer = await bufferPromise!
   } finally {
     clearInterval(progressInterval)
   }

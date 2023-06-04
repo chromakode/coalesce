@@ -15,13 +15,14 @@ import { MdAudioFile, MdPause, MdPlayArrow } from 'react-icons/md'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import './App.css'
 import AudioEngine, {
+  AudioEngineStatus,
   exportWAV,
   OffsetSoundLocation,
   padLocation,
-  playLocations,
   SoundLocation,
-} from './audio'
-import { DisplayMS, DisplaySinceMS } from './DisplayMS'
+} from './AudioEngine'
+import { playLocations } from './AudioScheduler'
+import { DisplayMS } from './DisplayMS'
 import Editor, { EditorMetrics, EditorRef, SoundNodeData } from './Editor'
 import { ExportModal } from './ExportModal'
 import { IntroModal } from './IntroModal'
@@ -32,8 +33,25 @@ import { WaveEditor } from './WaveEditor'
 const WAVE_PADDING = 0.5
 const MAX_WAVE_NODES = 30
 
-export default function App() {
+function useEngine(): AudioEngine {
   const [engine] = useState(() => new AudioEngine())
+  return engine
+}
+
+function useEngineStatus(engine: AudioEngine): AudioEngineStatus {
+  const [state, setState] = useState(engine.status)
+  useEffect(() => {
+    engine.events.on('status', setState)
+    return () => {
+      engine.events.off('status', setState)
+    }
+  })
+  return state
+}
+
+export default function App() {
+  const engine = useEngine()
+  const engineStatus = useEngineStatus(engine)
   const editorRef = useRef<EditorRef | null>(null)
   const [selection, setSelection] = useState<{
     locs: SoundLocation[]
@@ -43,11 +61,15 @@ export default function App() {
   const [project, setProject] = useState<Project | null>(null)
   const [metrics, setMetrics] = useState<EditorMetrics>()
   const [curTimeMS, setCurTimeMS] = useState(0)
-  const [playStartMS, setPlayStartMS] = useState<number | null>(null)
   const [showExport, setShowExport] = useState(false)
   const [isExporting, setExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [showIntro, setShowIntro] = useState(false)
+
+  const playbackTime =
+    engineStatus.status === 'playing'
+      ? curTimeMS + engineStatus.playbackTime
+      : curTimeMS
 
   useEffect(() => {
     async function load() {
@@ -67,18 +89,13 @@ export default function App() {
     load()
   }, [engine])
 
-  const stop = () => {
-    setPlayStartMS(null)
-    engine.stop()
-  }
-
-  const play = (locs: OffsetSoundLocation[], startTimeMS = 0) => {
-    engine.stop()
+  const play = (locs: OffsetSoundLocation[], startOffsetMS = 0) => {
     try {
-      playLocations(engine, engine.ctx, locs, {
-        startTime: startTimeMS / 1000,
-        onFinish: stop,
-      })
+      engine.start(
+        playLocations(locs, {
+          startSeek: startOffsetMS / 1000,
+        }),
+      )
     } catch (err) {
       console.warn(err)
     }
@@ -97,13 +114,12 @@ export default function App() {
   }
 
   const handlePlayToggle = () => {
-    if (playStartMS != null) {
-      setCurTimeMS((curTime) => curTime + Date.now() - playStartMS)
-      stop()
+    if (engineStatus.status === 'playing') {
+      setCurTimeMS((curTimeMS) => curTimeMS + engineStatus.playbackTime)
+      engine.stop()
     } else {
       const editor = editorRef.current
       if (editor) {
-        setPlayStartMS(Date.now())
         play(editor.getAllSoundLocations(), curTimeMS)
       }
     }
@@ -112,8 +128,7 @@ export default function App() {
   const handleSeek = (newTimeMS: number) => {
     setCurTimeMS(newTimeMS)
     const editor = editorRef.current
-    if (playStartMS != null && editor) {
-      setPlayStartMS(Date.now())
+    if (engineStatus.status === 'playing' && editor) {
       play(editor.getAllSoundLocations(), newTimeMS)
     }
   }
@@ -126,6 +141,7 @@ export default function App() {
   }
 
   const handleClickExport = () => {
+    engine.stop()
     setShowExport(true)
   }
 
@@ -143,9 +159,11 @@ export default function App() {
     async function doExport() {
       setExporting(true)
 
-      const outputURL = await exportWAV(engine, locs, {
-        onProgress: setExportProgress,
-      })
+      const outputURL = await exportWAV(
+        engine,
+        playLocations(locs),
+        setExportProgress,
+      )
 
       if (!outputURL) {
         // TODO: toast error
@@ -277,7 +295,7 @@ export default function App() {
           fontSize="2xl"
           borderRadius="full"
           icon={
-            playStartMS != null ? (
+            engineStatus.status === 'playing' ? (
               <Icon as={MdPause} />
             ) : (
               <Icon as={MdPlayArrow} />
@@ -285,16 +303,12 @@ export default function App() {
           }
           onClick={handlePlayToggle}
         />
-        {playStartMS ? (
-          <DisplaySinceMS start={curTimeMS} since={playStartMS} />
-        ) : (
-          <DisplayMS ms={curTimeMS} />
-        )}
+        <DisplayMS ms={playbackTime} />
         <Slider
           aria-label="Playback progress"
           min={0}
           max={metrics?.durationMS}
-          value={curTimeMS}
+          value={playbackTime}
           onChange={handleSeek}
         >
           <SliderTrack>

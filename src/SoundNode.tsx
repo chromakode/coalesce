@@ -1,5 +1,5 @@
 import { EditorConfig, LexicalNode, NodeKey, TextNode } from 'lexical'
-import { SoundLocation } from './audio'
+import { SoundLocation } from './AudioEngine'
 
 export class SoundNode extends TextNode {
   __soundLoc: SoundLocation

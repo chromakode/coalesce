@@ -20,7 +20,7 @@ Features:
 Next up:
 
 - [ ] Lazy load audio data from chunks
-- [ ] Improve playback perf w/ incremental lookahead audio scheduler
+- [x] Improve playback perf w/ incremental lookahead audio scheduler
 - [ ] Highlight words as they're played
 - [ ] Collaborative editing
 - [ ] Export separate audio tracks

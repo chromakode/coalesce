@@ -26,7 +26,7 @@ import {
   OffsetSoundLocation,
   processLocations,
   SoundLocation,
-} from './audio'
+} from './AudioEngine'
 import { Project } from './project'
 import { $isSoundNode, SoundNode } from './SoundNode'
 import { initialEditorState } from './words'
