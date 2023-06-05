@@ -218,7 +218,7 @@ export default function App() {
     }
 
     return Object.entries(locsBySource).map(([lineSource, locs]) => (
-      <div key={lineSource} className="wave-row">
+      <HStack key={lineSource}>
         {locs.map((l) => {
           // FIXME: inefficient multi pass filtering
           const regions = nodes
@@ -249,7 +249,7 @@ export default function App() {
             />
           )
         })}
-      </div>
+      </HStack>
     ))
   }, [selection, deferredSelectionBuffers])
 
