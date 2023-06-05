@@ -47,7 +47,7 @@ Next up:
 
    ```sh
    cd public/project/
-   python ../../scripts/prepareAudio.py *.flac
+   python ../../scripts/prepare_audio.py *.flac
    ```
 
 4. Use [whisper-timestamped](https://github.com/linto-ai/whisper-timestamped) to transcribe your audio files. Example:
