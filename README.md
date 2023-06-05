@@ -19,7 +19,7 @@ Features:
 
 Next up:
 
-- [ ] Lazy load audio data from chunks
+- [x] Lazy load audio data from chunks
 - [x] Improve playback perf w/ incremental lookahead audio scheduler
 - [ ] Highlight words as they're played
 - [ ] Collaborative editing
@@ -29,7 +29,9 @@ Next up:
 ## How to use
 
 1. Add your audio files (flac preferred) to `public/project/`. Give each file a short name.
-2. Create a `public/project/project.json` file. Example:
+2. Create a `public/project/project.json` file.
+
+   Example:
 
    ```json
    {
@@ -41,7 +43,14 @@ Next up:
    }
    ```
 
-3. Use [whisper-timestamped](https://github.com/linto-ai/whisper-timestamped) to transcribe your audio files. Example:
+3. Split your audio into chunks:
+
+   ```sh
+   cd public/project/
+   python ../../scripts/prepareAudio.py *.flac
+   ```
+
+4. Use [whisper-timestamped](https://github.com/linto-ai/whisper-timestamped) to transcribe your audio files. Example:
 
    ```sh
    docker run whisper_timestamped -v ~/path-to-audio-files/:/audio -it --entrypoint \
@@ -57,4 +66,4 @@ Next up:
    kona.flac  kona.json  max.flac  max.json  nibz.flac  nibz.json  project.json
    ```
 
-4. `npm install` and `npm start`
+5. `npm install` and `npm start`

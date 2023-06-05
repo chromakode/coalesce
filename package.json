@@ -24,6 +24,7 @@
     "framer-motion": "^10.12.16",
     "lexical": "^0.11.1",
     "lodash-es": "^4.17.21",
+    "lru-cache": "^9.1.2",
     "mitt": "^3.0.0",
     "path-browserify": "^1.0.1",
     "pretty-ms": "^8.0.0",
@@ -31,6 +32,7 @@
     "react-dom": "^18.2.0",
     "react-icons": "^4.9.0",
     "react-scripts": "5.0.1",
+    "react-use": "^17.4.0",
     "typescript": "^4.9.5",
     "wavesurfer.js": "^7.0.0-beta.5"
   },

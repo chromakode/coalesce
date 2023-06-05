@@ -1,19 +1,28 @@
-import AudioEngine, { getEndTime, OffsetSoundLocation } from './AudioEngine'
+import {
+  getEndTime,
+  OffsetSoundLocation,
+  padLocation,
+  SoundLocation,
+  SoundLocationWithBuffer,
+} from './AudioEngine'
 
 export interface PlayOptions {
   startSeek?: number
   clipStartFudge?: number
-  endFudge?: number
+  clipEndFudge?: number
   verbose?: boolean
 }
 
-export type AudioScheduler = Generator<void, void, number>
+export type AudioScheduler = AsyncGenerator<void, void, number>
 
 export type CreateAudioScheduler = (
-  engine: AudioEngine,
   ctx: BaseAudioContext,
   destination: AudioNode,
   startTime: number,
+  getBufferForLoc: (
+    loc: SoundLocation,
+    deadline: number,
+  ) => Promise<SoundLocationWithBuffer>,
 ) => AudioScheduler
 
 export interface AudioTask {
@@ -21,14 +30,17 @@ export interface AudioTask {
   run: CreateAudioScheduler
 }
 
-const emptyScheduler: CreateAudioScheduler = function* () {}
+const emptyScheduler: CreateAudioScheduler = async function* () {}
+
+// How far to schedule ahead of the current time
+export const SCHEDULER_BUFFER_S = 2
 
 export function playLocations(
   locs: OffsetSoundLocation[],
   {
     startSeek = 0,
     clipStartFudge = 0.05,
-    endFudge = 0.15,
+    clipEndFudge = 0.15,
     verbose = false,
   }: PlayOptions = {},
 ): AudioTask {
@@ -38,65 +50,85 @@ export function playLocations(
 
   let minTime = locs[0].start
 
-  const duration = getEndTime(locs)! - minTime + clipStartFudge + endFudge
+  const duration = getEndTime(locs)! - minTime + clipStartFudge + clipEndFudge
 
-  const scheduler: CreateAudioScheduler = function* (
-    engine,
+  const scheduler: CreateAudioScheduler = async function* (
     ctx,
     destination,
     startTime,
+    getBufferForLoc,
   ) {
-    let generateUntil = yield
-    for (const { source, start, end, offset } of locs) {
-      let playTime = startTime + start + offset - minTime - startSeek
+    let currentTime = -Infinity
+    let fetches = []
+    for (const loc of locs) {
+      const { source, start, end, offset } = loc
 
-      // Pause generator until the next event.
-      while (generateUntil < playTime) {
-        generateUntil = yield
+      // Time the buffer begins playing (at start of pre-start fudge)
+      let queueTime =
+        startTime + start + offset - minTime - startSeek - clipStartFudge
+
+      // If we've generated up to the buffer threshold, wait for all pending
+      // fetches to finish and pause until generation is triggered again.
+      while (currentTime + SCHEDULER_BUFFER_S < queueTime) {
+        if (fetches.length) {
+          await Promise.all(fetches)
+        }
+        currentTime = yield
+        fetches = []
       }
 
       let clipStart = start
       let clipDuration = end - start
 
-      // If clip starts before startTime, skip or truncate.
-      if (playTime < startTime) {
-        const preStartOffset = playTime - startTime
+      // If clip starts before current time, skip or truncate.
+      if (queueTime < currentTime) {
+        const preStartOffset = queueTime - currentTime
 
         clipDuration += preStartOffset
         if (clipDuration <= 0) {
           continue
         }
 
-        playTime = startTime
+        queueTime = currentTime
         clipStart -= preStartOffset
       }
 
-      playTime += clipStartFudge + 0.0001 // Paper over floating precision issues causing negative values
+      const queueWhenLoaded = async () => {
+        const { start: bufferStart, buffer } = await getBufferForLoc(
+          padLocation(loc, clipStartFudge, clipEndFudge),
+          queueTime,
+        )
 
-      const buffer = engine.getBuffer(source)
+        // The time the true clip region starts (after start fudge)
+        // Paper over floating precision issues causing negative values
+        const clipTime = queueTime + clipStartFudge + 0.0001
 
-      const wordGainNode = ctx.createGain()
-      wordGainNode.connect(destination)
+        const wordGainNode = ctx.createGain()
+        wordGainNode.connect(destination)
 
-      const bufNode = ctx.createBufferSource()
-      bufNode.buffer = buffer
-      bufNode.connect(wordGainNode)
+        const bufNode = ctx.createBufferSource()
+        bufNode.buffer = buffer
+        bufNode.connect(wordGainNode)
 
-      wordGainNode.gain.setValueAtTime(0, playTime - clipStartFudge)
-      wordGainNode.gain.linearRampToValueAtTime(1, playTime)
-      wordGainNode.gain.setValueAtTime(1, playTime + clipDuration)
-      wordGainNode.gain.linearRampToValueAtTime(
-        0,
-        playTime + clipDuration + endFudge,
-      )
-      bufNode.start(
-        playTime - clipStartFudge,
-        clipStart - clipStartFudge,
-        clipDuration + clipStartFudge + endFudge,
-      )
+        wordGainNode.gain.setValueAtTime(0, queueTime)
+        wordGainNode.gain.linearRampToValueAtTime(1, clipTime)
+        wordGainNode.gain.setValueAtTime(1, clipTime + clipDuration)
+        wordGainNode.gain.linearRampToValueAtTime(
+          0,
+          clipTime + clipDuration + clipEndFudge,
+        )
+        bufNode.start(
+          queueTime,
+          clipStart - clipStartFudge - bufferStart,
+          clipDuration + clipStartFudge + clipEndFudge,
+        )
+      }
+      fetches.push(queueWhenLoaded())
 
-      if (verbose) console.log(source, playTime, start, end)
+      if (verbose) console.log(source, queueTime, start, end)
     }
+
+    await Promise.all(fetches)
   }
 
   return { duration, run: scheduler }

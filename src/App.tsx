@@ -10,8 +10,9 @@ import {
   SliderTrack,
 } from '@chakra-ui/react'
 import { groupBy } from 'lodash-es'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { MdAudioFile, MdPause, MdPlayArrow } from 'react-icons/md'
+import { useAsync } from 'react-use'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import './App.css'
 import AudioEngine, {
@@ -67,7 +68,7 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(false)
 
   const playbackTime =
-    engineStatus.status === 'playing'
+    engineStatus.mode === 'playing'
       ? curTimeMS + engineStatus.playbackTime
       : curTimeMS
 
@@ -82,8 +83,8 @@ export default function App() {
         setShowIntro(true)
         return
       }
+      engine.setProject(project)
       setProject(project)
-      await engine.loadProject(project)
       setLoaded(true)
     }
     load()
@@ -114,7 +115,7 @@ export default function App() {
   }
 
   const handlePlayToggle = () => {
-    if (engineStatus.status === 'playing') {
+    if (engineStatus.mode === 'playing') {
       setCurTimeMS((curTimeMS) => curTimeMS + engineStatus.playbackTime)
       engine.stop()
     } else {
@@ -128,7 +129,7 @@ export default function App() {
   const handleSeek = (newTimeMS: number) => {
     setCurTimeMS(newTimeMS)
     const editor = editorRef.current
-    if (engineStatus.status === 'playing' && editor) {
+    if (engineStatus.mode !== 'stopped' && editor) {
       play(editor.getAllSoundLocations(), newTimeMS)
     }
   }
@@ -185,17 +186,32 @@ export default function App() {
     doExport()
   }
 
-  const waves = useMemo(() => {
+  const selectionBuffers = useAsync(async () => {
     if (!selection) {
       return []
     }
 
-    const { nodes, locs } = selection
-    const locsWithBuffer = locs.map((l) =>
-      engine.getBufferForLoc(padLocation(l, WAVE_PADDING)),
+    const { locs } = selection
+    return Promise.all(
+      locs.map((l) =>
+        engine.getBufferForLoc(padLocation(l, WAVE_PADDING, WAVE_PADDING)),
+      ),
     )
+  }, [selection])
 
-    const locsBySource = groupBy(locsWithBuffer, 'source')
+  const deferredSelectionBuffers = useDeferredValue(selectionBuffers)
+  const waves = useMemo(() => {
+    if (
+      !selection ||
+      deferredSelectionBuffers.loading ||
+      deferredSelectionBuffers.error
+    ) {
+      return []
+    }
+
+    const { nodes } = selection
+
+    const locsBySource = groupBy(deferredSelectionBuffers.value, 'source')
 
     if (Object.keys(locsBySource).length > 1 || nodes.length > MAX_WAVE_NODES) {
       return []
@@ -235,7 +251,7 @@ export default function App() {
         })}
       </div>
     ))
-  }, [selection])
+  }, [selection, deferredSelectionBuffers])
 
   return (
     <Flex h="100vh" flexDir="column" bg="gray.100">
@@ -295,13 +311,14 @@ export default function App() {
           fontSize="2xl"
           borderRadius="full"
           icon={
-            engineStatus.status === 'playing' ? (
+            engineStatus.mode === 'playing' ? (
               <Icon as={MdPause} />
             ) : (
               <Icon as={MdPlayArrow} />
             )
           }
           onClick={handlePlayToggle}
+          isLoading={engineStatus.mode === 'loading'}
         />
         <DisplayMS ms={playbackTime} />
         <Slider

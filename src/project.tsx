@@ -3,12 +3,24 @@ import { Words } from './words'
 
 export interface Track {
   color: string
-  audioURL: string
-  wordsURL: string
   words: Words
+  audio: TrackChunks
 }
+
+export interface TrackChunks {
+  numberOfChannels: number
+  sampleRate: number
+  sampleCount: number
+  chunkLength: number
+  chunks: string[]
+}
+
 export interface Project {
   tracks: { [name: string]: Track }
+}
+
+export interface ChunksIndex {
+  [name: string]: TrackChunks
 }
 
 export async function loadProject(
@@ -18,14 +30,26 @@ export async function loadProject(
   const project: Project = await resp.json()
 
   const prefix = dirname(url)
-  for (const [name, track] of Object.entries(project.tracks)) {
-    track.audioURL = join(prefix, `${name}.flac`)
-    track.wordsURL = join(prefix, `${name}.json`)
 
-    const resp = await fetch(track.wordsURL)
+  const chunkIndexURL = join(prefix, 'chunks/index.json')
+  const chunkIndexResp = await fetch(chunkIndexURL)
+  const chunkIndex: ChunksIndex = await chunkIndexResp.json()
+
+  for (const [name, track] of Object.entries(project.tracks)) {
+    track.audio = {
+      ...chunkIndex[name],
+      chunks: chunkIndex[name].chunks.map((src) => join(prefix, src)),
+    }
+
+    const wordsURL = join(prefix, `${name}.json`)
+    const resp = await fetch(wordsURL)
     const data: Words = await resp.json()
     track.words = data
   }
 
   return project
+}
+
+export function emptyProject(): Project {
+  return { tracks: {} }
 }

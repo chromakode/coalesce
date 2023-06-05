@@ -24,10 +24,7 @@ export function LoadingCover() {
         justifyContent="center"
       >
         <Spinner size="xl" />
-        <Text mt="4">Loading audio...</Text>
-        <Text mt="1" fontSize="xs">
-          (this can take a while)
-        </Text>
+        <Text mt="4">Loading project...</Text>
       </ModalContent>
     </Modal>
   )
