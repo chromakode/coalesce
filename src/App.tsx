@@ -32,7 +32,7 @@ import { loadProject, Project } from './project'
 import { WaveEditor } from './WaveEditor'
 
 const WAVE_PADDING = 0.5
-const MAX_WAVE_NODES = 30
+const MAX_WAVE_NODES = 10
 
 function useEngine(): AudioEngine {
   const [engine] = useState(() => new AudioEngine())
