@@ -399,14 +399,9 @@ export async function exportWAV(
 ) {
   const { duration, run } = task
 
-  // Chrome oddly seems to undercalculate the duration of the resulting audio in
-  // `OfflineAudioContext.suspend` and will throw if it thinks the output buffer
-  // is too short. Add a little time to the end to work around this.
-  const CHROME_EXTRA_SAMPLES = 32
-
   const offlineCtx = new OfflineAudioContext(
     CHANNEL_COUNT,
-    Math.ceil(SAMPLE_RATE * duration) + CHROME_EXTRA_SAMPLES,
+    Math.ceil(SAMPLE_RATE * duration),
     SAMPLE_RATE,
   )
 
@@ -437,13 +432,12 @@ export async function exportWAV(
 
     for (
       let renderTime = 0;
-      renderTime <= duration;
+      renderTime < duration;
       renderTime = Math.min(renderTime + SCHEDULER_BUFFER_S, duration)
     ) {
       const { done } = await scheduler.next(renderTime)
 
       if (done) {
-        continueRendering()
         break
       }
 
@@ -454,6 +448,7 @@ export async function exportWAV(
       await finishedChunk
     }
 
+    continueRendering()
     buffer = await bufferPromise!
   } finally {
     clearInterval(progressInterval)
