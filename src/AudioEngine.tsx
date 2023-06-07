@@ -358,6 +358,36 @@ export function getEndTime(locs: OffsetSoundLocation[]): number | null {
   return lastLoc.end + lastLoc.offset
 }
 
+export function getNodeKeyToLoc(locs: OffsetSoundLocation[]) {
+  const nodeKeyToLoc: Record<string, OffsetSoundLocation> = {}
+  for (const loc of locs) {
+    if (loc.key) {
+      nodeKeyToLoc[loc.key] = loc
+    }
+    if (loc.children) {
+      for (const childLoc of loc.children) {
+        if (childLoc.key) {
+          nodeKeyToLoc[childLoc.key] = loc
+        }
+      }
+    }
+  }
+
+  return nodeKeyToLoc
+}
+
+export function getTimeFromNodeKey(
+  nodeKeyToLoc: Record<string, OffsetSoundLocation>,
+  key: string,
+) {
+  const loc = nodeKeyToLoc[key]
+  if (!loc) {
+    return
+  }
+  let curTime = loc.start + loc.offset
+  return curTime
+}
+
 // TODO: make customizable or match input
 const CHANNEL_COUNT = 1
 const SAMPLE_RATE = 48000

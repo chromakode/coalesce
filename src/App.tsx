@@ -18,6 +18,7 @@ import './App.css'
 import AudioEngine, {
   AudioEngineStatus,
   exportWAV,
+  getTimeFromNodeKey,
   OffsetSoundLocation,
   padLocation,
   SoundLocation,
@@ -114,12 +115,21 @@ export default function App() {
     locs: OffsetSoundLocation[],
     nodes: SoundNodeData[],
   ) => {
-    play(locs)
     setSelection({ locs, nodes })
-    // FIXME: I'd like to make the seek bar reflect the playback, but getting
-    // the time for a node is really hard. We'd need to somehow bookkeep all of
-    // the timeline transformations to know which location it got coalesced
-    // into, and where it was offset.
+
+    if (!locs.length) {
+      return
+    }
+
+    play(locs)
+
+    const locTime = getTimeFromNodeKey(
+      metrics?.nodeKeyToLoc ?? {},
+      nodes[0].key,
+    )
+    if (locTime != null) {
+      setCurTimeMS(locTime * 1000)
+    }
   }
 
   const handlePlayToggle = () => {

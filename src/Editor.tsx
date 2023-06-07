@@ -23,6 +23,7 @@ import { debounce, mapValues } from 'lodash-es'
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import {
   getEndTime,
+  getNodeKeyToLoc,
   OffsetSoundLocation,
   processLocations,
   SoundLocation,
@@ -54,6 +55,7 @@ export interface EditorRef {
 
 export interface EditorMetrics {
   durationMS: number
+  nodeKeyToLoc: Record<string, OffsetSoundLocation>
 }
 
 export interface EditorProps {
@@ -163,22 +165,20 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
     })
   }, 150)
 
-  const updateMetrics = debounce(function onChange(editorState: EditorState) {
+  const updateMetrics = debounce(function onChange() {
     const allLocs = getAllSoundLocations()
     const endTime = getEndTime(allLocs)
     if (endTime === null) {
       return
     }
-    onMetricsUpdated?.({ durationMS: endTime * 1000 })
+
+    onMetricsUpdated?.({
+      durationMS: endTime * 1000,
+      nodeKeyToLoc: getNodeKeyToLoc(allLocs),
+    })
   }, 150)
 
-  useEffect(() => {
-    const editorState = editorRef.current?.getEditorState()
-    if (!editorState) {
-      return
-    }
-    updateMetrics(editorState)
-  }, [])
+  useEffect(updateMetrics, [])
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
