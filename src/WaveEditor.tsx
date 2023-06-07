@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useRef, useState } from 'react'
+import { RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import WaveSurfer, { WaveSurferOptions } from 'wavesurfer.js'
 import RegionsPlugin, {
   Region,
@@ -37,12 +37,17 @@ export function useWavesurfer(
     }
   }, [buffer, containerRef])
 
+  const wsRegions = useMemo(
+    () => wavesurfer?.registerPlugin(RegionsPlugin.create()),
+    [wavesurfer],
+  )
+
   useEffect(() => {
-    if (!wavesurfer || !regions) {
+    if (!wsRegions || !regions) {
       return
     }
 
-    const wsRegions = wavesurfer.registerPlugin(RegionsPlugin.create())
+    wsRegions.clearRegions()
     for (const r of regions) {
       wsRegions.addRegion(r)
     }
@@ -53,7 +58,7 @@ export function useWavesurfer(
         wsRegions.un('region-updated', listener)
       }
     }
-  }, [wavesurfer, regions])
+  }, [wsRegions, regions])
 
   return wavesurfer
 }

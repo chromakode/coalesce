@@ -287,7 +287,7 @@ export default function App() {
         })}
       </HStack>
     ))
-  }, [selection, deferredSelectionBuffers])
+  }, [deferredSelectionBuffers])
 
   return (
     <Flex h="100vh" flexDir="column" bg="gray.100">
