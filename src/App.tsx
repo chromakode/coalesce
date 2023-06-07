@@ -198,7 +198,7 @@ export default function App() {
 
       const outputURL = await exportWAV(
         engine,
-        playLocations(locs, { onLocPlaying: handleLocPlaying }),
+        playLocations(locs),
         setExportProgress,
       )
 
