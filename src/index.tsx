@@ -1,5 +1,5 @@
 import { ChakraProvider } from '@chakra-ui/react'
-import '@fontsource-variable/noto-sans-display'
+import '@fontsource-variable/roboto-flex/full.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 

@@ -6,9 +6,11 @@ import { AudioScheduler, AudioTask, SCHEDULER_BUFFER_S } from './AudioScheduler'
 import { emptyProject, Project } from './project'
 
 export interface SoundLocation {
+  key?: string
   source: string
   start: number
   end: number
+  children?: SoundLocation[]
 }
 
 export interface OffsetSoundLocation extends SoundLocation {
@@ -265,7 +267,7 @@ export function offsetMovedLocations(locs: SoundLocation[]) {
 export function coalesceLocations(
   locs: OffsetSoundLocation[],
   threshold = 0.3,
-) {
+): OffsetSoundLocation[] {
   const newLocs = []
   const bySource = groupBy(locs, (l) => l.source)
 
@@ -273,20 +275,24 @@ export function coalesceLocations(
     let start = sourceLocs[0].start
     let end = sourceLocs[0].start
     let offset = sourceLocs[0].offset
+    let children: OffsetSoundLocation[] = []
 
     for (const loc of sourceLocs) {
       if (loc.offset === offset && loc.start - end < threshold) {
         end = loc.end
+        children.push(loc)
       } else {
         newLocs.push({
           source,
           start,
           end,
           offset,
+          children,
         })
         start = loc.start
         end = loc.end
         offset = loc.offset
+        children = []
       }
     }
 
@@ -295,6 +301,7 @@ export function coalesceLocations(
       start,
       end,
       offset,
+      children,
     })
   }
 

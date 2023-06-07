@@ -8,7 +8,7 @@
     "@chakra-ui/react": "^2.6.1",
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
-    "@fontsource-variable/noto-sans-display": "^5.0.2",
+    "@fontsource-variable/roboto-flex": "^5.0.2",
     "@lexical/react": "^0.11.1",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",

@@ -90,11 +90,19 @@ export default function App() {
     load()
   }, [engine])
 
+  const handleLocPlaying = (loc: SoundLocation, isPlaying: boolean) => {
+    if (!loc.key) {
+      return
+    }
+    editorRef.current?.setSoundNodePlaying(loc.key, isPlaying)
+  }
+
   const play = (locs: OffsetSoundLocation[], startOffsetMS = 0) => {
     try {
       engine.start(
         playLocations(locs, {
           startSeek: startOffsetMS / 1000,
+          onLocPlaying: handleLocPlaying,
         }),
       )
     } catch (err) {
@@ -162,7 +170,7 @@ export default function App() {
 
       const outputURL = await exportWAV(
         engine,
-        playLocations(locs),
+        playLocations(locs, { onLocPlaying: handleLocPlaying }),
         setExportProgress,
       )
 

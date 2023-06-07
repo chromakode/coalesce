@@ -48,6 +48,7 @@ export type SoundNodeData = ReturnType<SoundNode['exportJSON']> & {
 export interface EditorRef {
   getEditor: () => LexicalEditor | null
   updateSoundNode: (key: string, loc: Partial<SoundLocation>) => void
+  setSoundNodePlaying: (key: string, isPlaying: boolean) => void
   getAllSoundLocations: () => OffsetSoundLocation[]
 }
 
@@ -66,6 +67,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null)
+  const prevSelection = useRef<ReturnType<typeof $getSelection>>(null)
 
   const initialConfig: InitialConfigType = {
     namespace: 'Coalesce',
@@ -112,6 +114,19 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
             const newLoc = { ...node.getSoundLocation(), ...locUpdate }
             node.setSoundLocation(newLoc)
             console.log('updated', newLoc)
+
+            // Ensure onSelect is called with updated locs
+            prevSelection.current = null
+          })
+        },
+        setSoundNodePlaying(key, isPlaying) {
+          editorRef.current?.update(() => {
+            const node = $getNodeByKey(key)
+            if (!node) {
+              console.warn('node not found', key)
+              return
+            }
+            node.setIsPlaying(isPlaying)
           })
         },
         getAllSoundLocations,
@@ -122,6 +137,14 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   const onChange = debounce(function onChange(editorState: EditorState) {
     editorState.read(() => {
       const selection = $getSelection()
+
+      if (
+        (selection == null && prevSelection.current == null) ||
+        selection?.is(prevSelection.current)
+      ) {
+        return
+      }
+      prevSelection.current = selection
 
       if (!selection) {
         onSelect?.([], [])

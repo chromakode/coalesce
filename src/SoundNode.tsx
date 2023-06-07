@@ -1,12 +1,29 @@
 import { EditorConfig, LexicalNode, NodeKey, TextNode } from 'lexical'
 import { SoundLocation } from './AudioEngine'
 
+function isPlayingStyle(isPlaying: boolean) {
+  return isPlaying ? '"GRAD" 150, "YOPQ" 100' : ''
+}
+
+function updateStyle(
+  config: EditorConfig,
+  element: HTMLElement,
+  loc: SoundLocation,
+  isPlaying: boolean,
+) {
+  element.style.color = config.theme.sourceColors[loc.source] ?? 'black'
+  element.style.fontVariationSettings = isPlayingStyle(isPlaying)
+  element.style.textDecoration = isPlaying ? 'underline' : ''
+}
+
 export class SoundNode extends TextNode {
   __soundLoc: SoundLocation
+  __isPlaying: boolean
 
   constructor(text: string, loc: SoundLocation, key?: NodeKey) {
     super(text, key)
-    this.__soundLoc = loc
+    this.__soundLoc = { ...loc, key: this.getKey() }
+    this.__isPlaying = false
   }
 
   static getType(): string {
@@ -19,9 +36,25 @@ export class SoundNode extends TextNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = super.createDOM(config)
-    element.style.color =
-      config.theme.sourceColors[this.__soundLoc.source] ?? 'black'
+    updateStyle(config, element, this.__soundLoc, this.__isPlaying)
     return element
+  }
+
+  updateDOM(
+    prevNode: SoundNode,
+    dom: HTMLElement,
+    config: EditorConfig,
+  ): boolean {
+    if (super.updateDOM(prevNode, dom, config)) {
+      return true
+    }
+    if (
+      prevNode.__isPlaying !== this.__isPlaying ||
+      prevNode.__soundLoc !== this.__soundLoc
+    ) {
+      updateStyle(config, dom, this.__soundLoc, this.__isPlaying)
+    }
+    return false
   }
 
   getSoundLocation() {
@@ -31,7 +64,14 @@ export class SoundNode extends TextNode {
 
   setSoundLocation(loc: SoundLocation) {
     const self = this.getWritable()
-    self.__soundLoc = loc
+    self.__soundLoc = { ...loc, key: this.getKey() }
+    return self
+  }
+
+  setIsPlaying(isPlaying: boolean) {
+    const self = this.getWritable()
+    self.__isPlaying = isPlaying
+    return self
   }
 
   exportJSON() {
