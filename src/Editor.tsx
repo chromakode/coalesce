@@ -50,6 +50,7 @@ export interface EditorRef {
   getEditor: () => LexicalEditor | null
   updateSoundNode: (key: string, loc: Partial<SoundLocation>) => void
   setSoundNodePlaying: (key: string, isPlaying: boolean) => void
+  scrollToKey: (key: string) => void
   getAllSoundLocations: () => OffsetSoundLocation[]
 }
 
@@ -130,6 +131,14 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
             }
             node.setIsPlaying(isPlaying)
           })
+        },
+        scrollToKey(key: string) {
+          const el = editorRef.current?.getElementByKey(key)
+          if (!el) {
+            console.warn('unable to locate element for', key)
+            return
+          }
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         },
         getAllSoundLocations,
       } satisfies EditorRef),

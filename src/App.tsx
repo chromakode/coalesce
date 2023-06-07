@@ -9,7 +9,7 @@ import {
   SliderThumb,
   SliderTrack,
 } from '@chakra-ui/react'
-import { groupBy } from 'lodash-es'
+import { groupBy, throttle } from 'lodash-es'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { MdAudioFile, MdPause, MdPlayArrow } from 'react-icons/md'
 import { useAsync } from 'react-use'
@@ -91,11 +91,29 @@ export default function App() {
     load()
   }, [engine])
 
+  const throttledScrollToKey = useMemo(
+    () =>
+      throttle(
+        (key: string) => {
+          editorRef.current?.scrollToKey(key)
+        },
+        1000,
+        { leading: false, trailing: true },
+      ),
+    [],
+  )
+
   const handleLocPlaying = (loc: SoundLocation, isPlaying: boolean) => {
-    if (!loc.key) {
+    const { key } = loc
+    if (!key) {
       return
     }
-    editorRef.current?.setSoundNodePlaying(loc.key, isPlaying)
+
+    editorRef.current?.setSoundNodePlaying(key, isPlaying)
+
+    if (isPlaying) {
+      throttledScrollToKey(key)
+    }
   }
 
   const play = (locs: OffsetSoundLocation[], startOffsetMS = 0) => {
