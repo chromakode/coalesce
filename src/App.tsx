@@ -363,6 +363,7 @@ export default function App() {
           max={metrics?.durationMS}
           value={playbackTime}
           onChange={handleSeek}
+          focusThumbOnChange={false}
         >
           <SliderTrack>
             <SliderFilledTrack />
