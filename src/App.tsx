@@ -303,6 +303,8 @@ export default function App() {
     ))
   }, [deferredSelectionBuffers])
 
+  const bottomWavePadding = waves.length > 0 ? '10rem' : ''
+
   return (
     <Flex h="100vh" flexDir="column" bg="gray.100">
       {!isLoaded && <LoadingCover />}
@@ -315,7 +317,7 @@ export default function App() {
         />
       )}
       {showIntro && <IntroModal />}
-      <Box flex="1" overflow="auto" pb="10rem">
+      <Box flex="1" overflow="auto" pb={bottomWavePadding}>
         {project && (
           <Editor
             ref={editorRef}
