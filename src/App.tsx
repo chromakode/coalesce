@@ -332,6 +332,7 @@ export default function App() {
           left="0"
           right="0"
           m="4"
+          justifyContent="center"
           borderWidth="2px"
           borderColor="gray.400"
           borderRadius="lg"
