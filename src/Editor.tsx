@@ -200,6 +200,20 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         fontSize="xl"
         fontWeight="normal"
         borderRadius="lg"
+        sx={{
+          '& h1': {
+            fontWeight: 'bold',
+            fontSize: '1.5em',
+            marginTop: '2rem',
+            marginBottom: '.5rem',
+          },
+          '& h2': {
+            fontWeight: 'bold',
+            fontSize: '1.15em',
+            marginTop: '2rem',
+            marginBottom: '.5rem',
+          },
+        }}
       >
         <RichTextPlugin
           contentEditable={
