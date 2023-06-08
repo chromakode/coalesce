@@ -12,6 +12,7 @@ import {
 } from '@chakra-ui/react'
 import { groupBy, throttle } from 'lodash-es'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { MdAudioFile, MdPause, MdPlayArrow } from 'react-icons/md'
 import { useAsync } from 'react-use'
 import slugify from 'slugify'
@@ -174,6 +175,10 @@ export default function App() {
       }
     }
   }
+  useHotkeys('shift+space', handlePlayToggle, {
+    enableOnContentEditable: true,
+    preventDefault: true,
+  })
 
   const handleSeek = (newTimeMS: number) => {
     setCurTimeMS(newTimeMS)
