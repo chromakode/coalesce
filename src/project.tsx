@@ -1,4 +1,5 @@
 import { dirname, join } from 'path-browserify'
+import slugify from 'slugify'
 import { Words } from './words'
 
 export interface Track {
@@ -16,7 +17,8 @@ export interface TrackChunks {
 }
 
 export interface Project {
-  title?: string
+  title: string
+  name: string
   tracks: { [name: string]: Track }
 }
 
@@ -48,9 +50,13 @@ export async function loadProject(
     track.words = data
   }
 
+  project.name = slugify(project.title, {
+    remove: /[*+~.()'"!:@$]/g,
+  })
+
   return project
 }
 
 export function emptyProject(): Project {
-  return { tracks: {} }
+  return { title: 'empty', name: 'empty', tracks: {} }
 }

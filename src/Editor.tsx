@@ -191,50 +191,46 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <Box>
-        {project.title && (
-          <Heading mt="8" mx="6" fontSize="2xl">
-            {project.title}
-          </Heading>
-        )}
-        <Box
-          bg="white"
-          my="4"
-          py="4"
-          px="6"
-          fontSize="xl"
-          fontWeight="normal"
-          borderRadius="lg"
-          sx={{
-            '& h1': {
-              fontWeight: 'bold',
-              fontSize: '1.5em',
-              marginTop: '2rem',
-              marginBottom: '.5rem',
-            },
-            '& h2': {
-              fontWeight: 'bold',
-              fontSize: '1.15em',
-              marginTop: '2rem',
-              marginBottom: '.5rem',
-            },
-          }}
-        >
-          <RichTextPlugin
-            contentEditable={
-              <ContentEditable className="editor-input" spellCheck={false} />
-            }
-            placeholder={
-              <div className="editor-placeholder">Enter some plain text...</div>
-            }
-            ErrorBoundary={LexicalErrorBoundary}
-          />
-          <OnChangePlugin onChange={onChange} />
-          <OnChangePlugin onChange={updateMetrics} ignoreSelectionChange />
-          <HistoryPlugin />
-          <MarkdownShortcutPlugin transformers={[HEADING]} />
-          <RefPlugin editorRef={editorRef} />
-        </Box>
+      <Heading mt="8" mx="6" fontSize="2xl">
+        {project.title}
+      </Heading>
+      <Box
+        bg="white"
+        my="4"
+        py="4"
+        px="6"
+        fontSize="xl"
+        fontWeight="normal"
+        borderRadius="lg"
+        sx={{
+          '& h1': {
+            fontWeight: 'bold',
+            fontSize: '1.5em',
+            marginTop: '2rem',
+            marginBottom: '.5rem',
+          },
+          '& h2': {
+            fontWeight: 'bold',
+            fontSize: '1.15em',
+            marginTop: '2rem',
+            marginBottom: '.5rem',
+          },
+        }}
+      >
+        <RichTextPlugin
+          contentEditable={
+            <ContentEditable className="editor-input" spellCheck={false} />
+          }
+          placeholder={
+            <div className="editor-placeholder">Enter some plain text...</div>
+          }
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+        <OnChangePlugin onChange={onChange} />
+        <OnChangePlugin onChange={updateMetrics} ignoreSelectionChange />
+        <HistoryPlugin />
+        <MarkdownShortcutPlugin transformers={[HEADING]} />
+        <RefPlugin editorRef={editorRef} />
       </Box>
     </LexicalComposer>
   )

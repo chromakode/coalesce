@@ -15,7 +15,6 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { MdAudioFile, MdPause, MdPlayArrow } from 'react-icons/md'
 import { useAsync } from 'react-use'
-import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import './App.css'
 import AudioEngine, {
@@ -231,10 +230,7 @@ export default function App() {
 
       const a = document.createElement('a')
       a.href = outputURL
-      const name = slugify(project?.title ?? 'export', {
-        remove: /[*+~.()'"!:@$]/g,
-      })
-      a.download = `${name}.wav`
+      a.download = `${project!.name}.wav`
       a.click()
       URL.revokeObjectURL(outputURL)
 
