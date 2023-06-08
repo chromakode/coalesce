@@ -34,7 +34,7 @@ function allTaggedWords(words: Words, source: string) {
   return result
 }
 
-export function initialEditorState(project: Project) {
+export function projectToEditorState(project: Project) {
   const allWords = sortBy(
     flatten(
       Object.entries(project.tracks).map(([name, { words }]) =>

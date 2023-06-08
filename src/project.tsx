@@ -1,3 +1,4 @@
+import { SerializedEditorState } from 'lexical'
 import { dirname, join } from 'path-browserify'
 import slugify from 'slugify'
 import { Words } from './words'
@@ -17,6 +18,7 @@ export interface TrackChunks {
 }
 
 export interface Project {
+  url: string
   title: string
   name: string
   tracks: { [name: string]: Track }
@@ -50,6 +52,7 @@ export async function loadProject(
     track.words = data
   }
 
+  project.url = url
   project.name = slugify(project.title, {
     remove: /[*+~.()'"!:@$]/g,
   })
@@ -58,5 +61,35 @@ export async function loadProject(
 }
 
 export function emptyProject(): Project {
-  return { title: 'empty', name: 'empty', tracks: {} }
+  return { url: '', title: 'empty', name: 'empty', tracks: {} }
+}
+
+function storageKey(project: Project) {
+  return `${project.url}!!${project.name}`
+}
+
+export function loadProjectState(
+  project: Project,
+): SerializedEditorState | null {
+  const key = storageKey(project)
+
+  const stored = localStorage[key]
+  if (!stored) {
+    return null
+  }
+
+  const data = JSON.parse(localStorage[key])
+  if (!data?.editorState) {
+    return null
+  }
+
+  return data.editorState as SerializedEditorState
+}
+
+export function saveProjectState(
+  project: Project,
+  editorState: SerializedEditorState,
+) {
+  const key = storageKey(project)
+  localStorage[key] = JSON.stringify({ editorState })
 }

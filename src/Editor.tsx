@@ -20,7 +20,13 @@ import {
   LexicalEditor,
 } from 'lexical'
 import { debounce, mapValues } from 'lodash-es'
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from 'react'
 import {
   getEndTime,
   getNodeKeyToLoc,
@@ -28,9 +34,9 @@ import {
   processLocations,
   SoundLocation,
 } from './AudioEngine'
-import { Project } from './project'
+import { loadProjectState, Project, saveProjectState } from './project'
 import { $isSoundNode, SoundNode } from './SoundNode'
-import { initialEditorState } from './words'
+import { projectToEditorState } from './words'
 
 function onError(error: Error) {
   console.error(error)
@@ -72,19 +78,27 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   const editorRef = useRef<LexicalEditor | null>(null)
   const prevSelection = useRef<ReturnType<typeof $getSelection>>(null)
 
-  const initialConfig: InitialConfigType = {
-    namespace: 'Coalesce',
-    theme: {
-      ltr: 'ltr',
-      rtl: 'rtl',
-      placeholder: 'editor-placeholder',
-      paragraph: 'editor-paragraph',
-      sourceColors: mapValues(project.tracks, 'color'),
-    },
-    onError,
-    nodes: [SoundNode, HeadingNode],
-    editorState: initialEditorState(project),
-  }
+  const initialConfig: InitialConfigType = useMemo(() => {
+    const savedState = loadProjectState(project)
+    const editorState = savedState
+      ? (editor: LexicalEditor) =>
+          editor.setEditorState(editor.parseEditorState(savedState))
+      : projectToEditorState(project)
+
+    return {
+      namespace: 'Coalesce',
+      theme: {
+        ltr: 'ltr',
+        rtl: 'rtl',
+        placeholder: 'editor-placeholder',
+        paragraph: 'editor-paragraph',
+        sourceColors: mapValues(project.tracks, 'color'),
+      },
+      onError,
+      nodes: [SoundNode, HeadingNode],
+      editorState,
+    }
+  }, [project])
 
   function getAllSoundLocations() {
     return (
@@ -145,7 +159,9 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
     [],
   )
 
-  const onChange = debounce(function onChange(editorState: EditorState) {
+  const handleSelectionChange = debounce(function handleSelectionChange(
+    editorState: EditorState,
+  ) {
     editorState.read(() => {
       const selection = $getSelection()
 
@@ -172,9 +188,15 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         soundNodes.map((n) => ({ ...n.exportJSON(), key: n.getKey() })),
       )
     })
-  }, 150)
+  },
+  150)
 
-  const updateMetrics = debounce(function onChange() {
+  const handleChange = debounce(function handleChange() {
+    const editorState = editorRef.current?.getEditorState()
+    if (editorState) {
+      saveProjectState(project, editorState.toJSON())
+    }
+
     const allLocs = getAllSoundLocations()
     const endTime = getEndTime(allLocs)
     if (endTime === null) {
@@ -187,7 +209,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
     })
   }, 150)
 
-  useEffect(updateMetrics, [])
+  useEffect(handleChange, [])
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
@@ -226,8 +248,8 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <OnChangePlugin onChange={onChange} />
-        <OnChangePlugin onChange={updateMetrics} ignoreSelectionChange />
+        <OnChangePlugin onChange={handleSelectionChange} />
+        <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
         <HistoryPlugin />
         <MarkdownShortcutPlugin transformers={[HEADING]} />
         <RefPlugin editorRef={editorRef} />
