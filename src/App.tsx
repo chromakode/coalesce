@@ -103,7 +103,11 @@ export default function App() {
     [],
   )
 
-  const handleLocPlaying = (loc: SoundLocation, isPlaying: boolean) => {
+  const handleLocPlaying = (
+    loc: SoundLocation,
+    isPlaying: boolean,
+    scroll: boolean,
+  ) => {
     const { key } = loc
     if (!key) {
       return
@@ -111,17 +115,21 @@ export default function App() {
 
     editorRef.current?.setSoundNodePlaying(key, isPlaying)
 
-    if (isPlaying) {
+    if (scroll && isPlaying) {
       throttledScrollToKey(key)
     }
   }
 
-  const play = (locs: OffsetSoundLocation[], startOffsetMS = 0) => {
+  const play = (
+    locs: OffsetSoundLocation[],
+    { startOffsetMS = 0, scroll = false },
+  ) => {
     try {
       engine.start(
         playLocations(locs, {
           startSeek: startOffsetMS / 1000,
-          onLocPlaying: handleLocPlaying,
+          onLocPlaying: (loc: SoundLocation, isPlaying: boolean) =>
+            handleLocPlaying(loc, isPlaying, scroll),
         }),
       )
     } catch (err) {
@@ -139,7 +147,7 @@ export default function App() {
       return
     }
 
-    play(locs)
+    play(locs, { scroll: false })
 
     const locTime = getTimeFromNodeKey(
       metrics?.nodeKeyToLoc ?? {},
@@ -157,7 +165,10 @@ export default function App() {
     } else {
       const editor = editorRef.current
       if (editor) {
-        play(editor.getAllSoundLocations(), curTimeMS)
+        play(editor.getAllSoundLocations(), {
+          startOffsetMS: curTimeMS,
+          scroll: true,
+        })
       }
     }
   }
@@ -166,7 +177,10 @@ export default function App() {
     setCurTimeMS(newTimeMS)
     const editor = editorRef.current
     if (engineStatus.mode !== 'stopped' && editor) {
-      play(editor.getAllSoundLocations(), newTimeMS)
+      play(editor.getAllSoundLocations(), {
+        startOffsetMS: newTimeMS,
+        scroll: true,
+      })
     }
   }
 
