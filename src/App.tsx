@@ -1,5 +1,6 @@
 import {
   Box,
+  Container,
   Flex,
   HStack,
   Icon,
@@ -318,14 +319,16 @@ export default function App() {
       )}
       {showIntro && <IntroModal />}
       <Box flex="1" overflow="auto" pb={bottomWavePadding}>
-        {project && (
-          <Editor
-            ref={editorRef}
-            project={project}
-            onSelect={handleSelect}
-            onMetricsUpdated={setMetrics}
-          />
-        )}
+        <Container maxW="container.lg">
+          {project && (
+            <Editor
+              ref={editorRef}
+              project={project}
+              onSelect={handleSelect}
+              onMetricsUpdated={setMetrics}
+            />
+          )}
+        </Container>
       </Box>
       {waves.length > 0 && (
         <Flex

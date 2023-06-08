@@ -16,6 +16,7 @@ export interface TrackChunks {
 }
 
 export interface Project {
+  title?: string
   tracks: { [name: string]: Track }
 }
 
