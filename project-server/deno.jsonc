@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "dev": "deno run --watch main.ts"
+  },
+  "fmt": {
+    "semiColons": false
+  },
+  "imports": {
+    "@shared/": "../shared/",
+    "zod": "https://deno.land/x/zod@v3.21.4/mod.ts"
+  }
+}

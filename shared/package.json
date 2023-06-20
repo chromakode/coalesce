@@ -1,0 +1,10 @@
+{
+  "name": "coalesce-shared",
+  "description": "Coalesce shared types and definitions",
+  "version": "0.0.1",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "dependencies": {
+    "zod": "^3.21.4"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "deno.enablePaths": ["./project-server"],
+  "deno.importMap": "./project-server/deno.jsonc"
+}

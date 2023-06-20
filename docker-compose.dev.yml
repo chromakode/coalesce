@@ -1,0 +1,17 @@
+services:
+  audio-processor:
+    command: poetry run python -m watchfiles coalesce_audio_processor.worker.main --args "worker transcribe chunks"
+    volumes:
+      - ./audio-processor:/app
+
+  app:
+    command: npm start -- --port 3000 --host
+    volumes:
+      - ./app:/app/frontend
+      - ./shared:/app/shared
+
+  project-server:
+    command: run --watch --allow-net --allow-env --allow-read --allow-write main.ts
+    volumes:
+      - ./project-server:/app/project-server
+      - ./shared:/app/shared

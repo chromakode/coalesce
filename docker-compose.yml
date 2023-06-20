@@ -1,0 +1,47 @@
+services:
+  redis:
+    image: docker.io/library/redis:7
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+
+  audio-processor:
+    image: coalesce/audio-processor
+    build: ./audio-processor
+    depends_on:
+      - redis
+    volumes:
+      - data:/data
+    env_file:
+      - docker-compose.env
+
+  app:
+    image: coalesce/app
+    build:
+      context: .
+      dockerfile: ./app/Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      - VITE_PROJECT_SERVER=localhost:3001
+
+  project-server:
+    image: coalesce/project-server
+    build:
+      context: .
+      dockerfile: ./project-server/Dockerfile
+    depends_on:
+      - redis
+      - audio-processor
+    ports:
+      - '3001:3001'
+    volumes:
+      - data:/data
+    env_file:
+      - docker-compose.env
+    environment:
+      - APP_ORIGIN=http://localhost:3000
+
+volumes:
+  data:
+  redis:

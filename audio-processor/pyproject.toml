@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "coalesce-audio-processor"
+version = "0.1.0"
+description = "API server for transcription and audio pre-processing"
+authors = ["Max Goodhart <c@chromakode.com>"]
+license = "AGPL-3.0-only"
+readme = "README.md"
+packages = [{include = "coalesce_audio_processor"}]
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "torch"
+url = "https://download.pytorch.org/whl/"
+priority = "supplemental"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+whisper-timestamped = {git = "https://github.com/linto-ai/whisper-timestamped"}
+redis = "^4.5.5"
+tqdm = "^4.65.0"
+pydantic = "^1.10.9"
+pydub = "^0.25.1"
+torch = { version = "1.13.1+cpu", source="torch"}
+torchaudio = { version = "0.13.1+cpu", source="torch"}
+numpy = "^1.24.3"
+onnxruntime = "^1.15.0"
+
+[tool.poetry.scripts]
+coalesce_audio_processor = 'coalesce_audio_processor.worker:main'
+coalesce_process_audio = 'coalesce_audio_processor.audio:cli'
+
+[tool.poetry.group.dev.dependencies]
+watchfiles = "^0.19.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

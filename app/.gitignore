@@ -1,0 +1,6 @@
+/node_modules
+/build
+public/project/*.flac
+public/project/*.wav
+public/project/*.json
+public/project/chunks
