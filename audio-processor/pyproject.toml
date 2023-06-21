@@ -12,8 +12,13 @@ name = "PyPI"
 priority = "primary"
 
 [[tool.poetry.source]]
-name = "torch"
-url = "https://download.pytorch.org/whl/"
+name = "torch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "supplemental"
+
+[[tool.poetry.source]]
+name = "torch-gpu"
+url = "https://download.pytorch.org/whl/cu118"
 priority = "supplemental"
 
 [tool.poetry.dependencies]
@@ -23,17 +28,31 @@ redis = "^4.5.5"
 tqdm = "^4.65.0"
 pydantic = "^1.10.9"
 pydub = "^0.25.1"
-torch = { version = "1.13.1+cpu", source="torch"}
-torchaudio = { version = "0.13.1+cpu", source="torch"}
 numpy = "^1.24.3"
+llvmlite = "^0.40.0"
+numba = "^0.57.0"
 onnxruntime = "^1.15.0"
+
+[tool.poetry.group.cpu]
+optional = true
+
+[tool.poetry.group.cpu.dependencies]
+torch = { version = "2.0.1", source="torch-cpu"}
+torchaudio = { version = "2.0.2", source="torch-cpu"}
+
+[tool.poetry.group.gpu]
+optional = true
+
+[tool.poetry.group.gpu.dependencies]
+torch = { version = "2.0.1", source="torch-gpu"}
+torchaudio = { version = "2.0.2", source="torch-gpu"}
+
+[tool.poetry.group.dev.dependencies]
+watchfiles = "^0.19.0"
 
 [tool.poetry.scripts]
 coalesce_audio_processor = 'coalesce_audio_processor.worker:main'
 coalesce_process_audio = 'coalesce_audio_processor.audio:cli'
-
-[tool.poetry.group.dev.dependencies]
-watchfiles = "^0.19.0"
 
 [build-system]
 requires = ["poetry-core"]

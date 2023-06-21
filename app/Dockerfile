@@ -1,5 +1,7 @@
 FROM node:20
 
+ARG VITE_PROJECT_SERVER
+
 WORKDIR /app/frontend
 
 COPY ./app/package.json ./app/package-lock.json ./

@@ -73,7 +73,7 @@ def transcribe_audio(
 ):
     audio = whisper.load_audio(input_path)
 
-    model = whisper.load_model(model, device="cpu")
+    model = whisper.load_model(model)
 
     accurate_opts = dict(
         best_of=5,

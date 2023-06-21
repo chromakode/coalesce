@@ -7,7 +7,16 @@ services:
 
   audio-processor:
     image: coalesce/audio-processor
-    build: ./audio-processor
+    build:
+      context: ./audio-processor
+      dockerfile: ./Dockerfile
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     depends_on:
       - redis
     volumes:
@@ -20,10 +29,12 @@ services:
     build:
       context: .
       dockerfile: ./app/Dockerfile
+      args:
+        - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:3001}
     ports:
       - '3000:3000'
     environment:
-      - VITE_PROJECT_SERVER=localhost:3001
+      - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:3001}
 
   project-server:
     image: coalesce/project-server
@@ -32,7 +43,6 @@ services:
       dockerfile: ./project-server/Dockerfile
     depends_on:
       - redis
-      - audio-processor
     ports:
       - '3001:3001'
     volumes:
@@ -40,7 +50,7 @@ services:
     env_file:
       - docker-compose.env
     environment:
-      - APP_ORIGIN=http://localhost:3000
+      - APP_ORIGIN=${APP_ORIGIN:-http://localhost:3000}
 
 volumes:
   data:

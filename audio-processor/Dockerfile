@@ -10,7 +10,7 @@ WORKDIR /app
 
 COPY poetry.lock pyproject.toml ./
 
-RUN poetry install --no-root
+RUN poetry install --no-root --with=gpu
 
 COPY ./ ./
 

@@ -2,6 +2,7 @@
 
 import os
 import argparse
+import torch
 from typing import Dict
 from pydantic import BaseModel
 from .queue import QueueConsumer
@@ -77,6 +78,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    print("GPU available:", torch.cuda.is_available())
 
     consumer = CoalesceConsumer(
         redis_url=REDIS_URL,
