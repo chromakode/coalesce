@@ -71,7 +71,7 @@ export default function IndexList() {
           borderRadius="xl"
           boxShadow="lg"
         >
-          {projects.value?.length && (
+          {projects.value?.length > 0 && (
             <VStack
               flex="1"
               w="full"
