@@ -13,4 +13,4 @@ RUN npm run build
 
 RUN npm install serve
 
-CMD ["npx", "serve", "-s", "build"]
+CMD ["npx", "serve", "-s", "dist"]
