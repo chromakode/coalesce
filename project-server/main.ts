@@ -7,7 +7,12 @@ import {
   isHttpError,
   oakCors,
 } from './deps.ts'
-import { PROJECT_DIR, REDIS_URL, APP_ORIGIN } from './env.ts'
+import {
+  PROJECT_DIR,
+  REDIS_URL,
+  APP_ORIGIN,
+  PROJECT_SERVER_PORT,
+} from './env.ts'
 import {
   getProjectState,
   watchProject,
@@ -119,4 +124,4 @@ app.use(oakCors({ origin: APP_ORIGIN }))
 
 app.use(router.routes())
 
-app.listen({ port: 3001 })
+app.listen({ port: PROJECT_SERVER_PORT })

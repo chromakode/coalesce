@@ -38,7 +38,8 @@ The easiest way to get started is to build and launch the containers:
 
 To run all services in watch mode:
 
-`docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --profile cpu`
+1. `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --profile cpu`
+2. Browse to https://localhost:4000
 
 Tailing logs:
 
