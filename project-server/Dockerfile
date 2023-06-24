@@ -11,4 +11,4 @@ COPY ./shared ../shared/
 
 RUN deno cache main.ts
 
-CMD ["run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "main.ts"]
+CMD ["run", "--allow-net", "--allow-env", "--allow-read=$PROJECT_DIR", "--allow-write=$PROJECT_DIR", "main.ts"]
