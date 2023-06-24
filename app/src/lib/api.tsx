@@ -6,7 +6,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 export const server = import.meta.env.VITE_PROJECT_SERVER
 
 export function projectSocket(projectId: string): ReconnectingWebSocket {
-  const proto = window.location.protocol === 'https' ? 'wss' : 'ws'
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   return new ReconnectingWebSocket(
     `${proto}://${server}/project/${projectId}/ws`,
   )
@@ -96,7 +96,7 @@ export function chunkURL(
   chunkName: string,
 ) {
   return (
-    `http://${server}/` +
+    `//${server}/` +
     join('project', projectId, 'track', trackId, chunkName)
   )
 }
