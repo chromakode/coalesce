@@ -1,7 +1,5 @@
 FROM node:20
 
-ARG VITE_PROJECT_SERVER
-
 WORKDIR /app/frontend
 
 COPY ./app/package.json ./app/package-lock.json ./
@@ -10,6 +8,8 @@ RUN npm install
 
 COPY ./app ./
 COPY ./shared ../shared/
+
+ARG VITE_PROJECT_SERVER
 
 RUN npm run build
 
