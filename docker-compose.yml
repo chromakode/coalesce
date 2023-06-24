@@ -6,6 +6,20 @@ services:
       - redis:/data
 
   audio-processor:
+    profiles: ['cpu']
+    image: coalesce/audio-processor
+    build:
+      context: ./audio-processor
+      dockerfile: ./Dockerfile
+    depends_on:
+      - redis
+    volumes:
+      - data:/data
+    env_file:
+      - docker-compose.env
+
+  audio-processor-gpu:
+    profiles: ['gpu']
     image: coalesce/audio-processor
     build:
       context: ./audio-processor
