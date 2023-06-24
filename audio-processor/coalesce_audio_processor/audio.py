@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 import json
+import functools
 import whisper_timestamped as whisper
 import numpy as np
 from math import ceil
@@ -68,12 +69,17 @@ def split_audio(input_path: str, output_dir: str, progress_callback=None):
         json.dump(index_data, index_file)
 
 
+@functools.cache
+def get_whisper_model(model_name):
+    return whisper.load_model(model_name)
+
+
 def transcribe_audio(
     input_path: str, output_dir: str, model_name="small", progress_callback=None
 ):
     audio = whisper.load_audio(input_path)
 
-    model = whisper.load_model(model_name)
+    model = get_whisper_model(model_name)
 
     accurate_opts = dict(
         best_of=5,
