@@ -69,7 +69,7 @@ def split_audio(input_path: str, output_dir: str, progress_callback=None):
 
 
 def transcribe_audio(
-    input_path: str, output_dir: str, model_name="tiny", progress_callback=None
+    input_path: str, output_dir: str, model_name="small", progress_callback=None
 ):
     audio = whisper.load_audio(input_path)
 
