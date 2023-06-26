@@ -331,7 +331,9 @@ export async function createTrack(
 ): Promise<string> {
   const trackId = generateId()
   const uploadPath = storePath.trackUploadPath(projectId, trackId)
-  await minioClient.putObject(uploadPath, fileData.value)
+  await minioClient.putObject(uploadPath, fileData.value, {
+    partSize: 16 * 1024 * 1024,
+  })
 
   const inputURI = await minioClient.getPresignedUrl('GET', uploadPath)
 
