@@ -100,7 +100,6 @@ export function chunkURL(
   chunkName: string,
 ) {
   return (
-    `//${server}/` +
-    join('project', projectId, 'track', trackId, chunkName)
+    `//${server}/` + join('project', projectId, 'track', trackId, chunkName)
   )
 }
