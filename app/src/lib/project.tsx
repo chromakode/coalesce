@@ -7,6 +7,7 @@ export function emptyProject(): Project {
     id: '???',
     title: 'empty',
     name: 'empty',
+    hidden: false,
     tracks: {},
     jobs: {},
   }
