@@ -50,7 +50,11 @@ export function uploadTrack(
           reject(xhr)
         }
       })
-      xhr.open('POST', `//${server}/project/${projectId}/track`, true)
+      xhr.open(
+        'POST',
+        `//${server}/project/${projectId}/track?name=${file.name}`,
+        true,
+      )
       xhr.setRequestHeader('Content-Type', file.type)
       xhr.send(file)
     }),

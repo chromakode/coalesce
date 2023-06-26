@@ -56,7 +56,11 @@ const projectRouter = new Router()
   })
   .post(`/track`, async (ctx) => {
     const fileData = ctx.request.body({ type: 'stream' })
-    const trackId = await createTrack(ctx.state.project, fileData)
+    const trackId = await createTrack(
+      ctx.state.project,
+      fileData,
+      ctx.request.url.searchParams.get('name'),
+    )
     ctx.response.body = { id: trackId }
   })
   .get(`/track/:track(\\w+)/:chunk(\\d+\.flac)`, async (ctx) => {
