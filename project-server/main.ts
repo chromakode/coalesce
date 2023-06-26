@@ -59,7 +59,7 @@ const projectRouter = new Router()
     const trackId = await createTrack(
       ctx.state.project,
       fileData,
-      ctx.request.url.searchParams.get('name'),
+      ctx.request.url.searchParams.get('name') ?? 'unknown',
     )
     ctx.response.body = { id: trackId }
   })
