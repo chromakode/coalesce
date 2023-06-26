@@ -215,7 +215,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
 
   const saveEditorState = debounce(function saveEditorState() {
     const editorState = editorRef.current?.getEditorState()
-    if (editorState) {
+    if (editorState && !editorState.isEmpty()) {
       saveProjectEditorState(project.id, editorState.toJSON())
     }
   }, 1000)
