@@ -15,6 +15,7 @@ import { debounce, groupBy, partition, sortBy } from 'lodash-es'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { MdAudioFile, MdClose } from 'react-icons/md'
+import { useBeforeUnload } from 'react-use'
 import { deleteTrack, updateTrack, uploadTrack } from '../lib/api'
 import { COLOR_ORDER } from './Editor'
 
@@ -115,8 +116,12 @@ function TrackUpload({
         name: nameRef.current,
         originalFilename: file.name,
       })
+      uploadRef.current = undefined
     })
   }, [file])
+
+  const isUploading = useCallback(() => uploadRef.current != null, [])
+  useBeforeUnload(isUploading, `Cancel upload of ${file?.name}?`)
 
   const handleRemove = useCallback(() => {
     uploadRef.current?.abort()
