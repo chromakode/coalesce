@@ -1,5 +1,6 @@
 /node_modules
 /build
+.vite
 public/project/*.flac
 public/project/*.wav
 public/project/*.json
