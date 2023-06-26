@@ -7,6 +7,7 @@ services:
 
   minio:
     image: quay.io/minio/minio
+    restart: unless-stopped
     command: server /data
     volumes:
       - minio:/data
@@ -18,6 +19,7 @@ services:
   audio-processor:
     profiles: ['cpu']
     image: coalesce/audio-processor
+    restart: unless-stopped
     build:
       context: ./audio-processor
       dockerfile: ./Dockerfile
@@ -30,6 +32,7 @@ services:
   audio-processor-gpu:
     profiles: ['gpu']
     image: coalesce/audio-processor
+    restart: unless-stopped
     build:
       context: ./audio-processor
       dockerfile: ./Dockerfile
@@ -48,6 +51,7 @@ services:
 
   app:
     image: coalesce/app
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ./app/Dockerfile
@@ -60,6 +64,7 @@ services:
 
   project-server:
     image: coalesce/project-server
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ./project-server/Dockerfile
