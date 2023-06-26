@@ -5,6 +5,16 @@ services:
     volumes:
       - redis:/data
 
+  minio:
+    image: quay.io/minio/minio
+    command: server /data
+    volumes:
+      - minio:/data
+    ports:
+      - '9000:9000'
+    env_file:
+      - docker-compose.env
+
   audio-processor:
     profiles: ['cpu']
     image: coalesce/audio-processor
@@ -13,8 +23,7 @@ services:
       dockerfile: ./Dockerfile
     depends_on:
       - redis
-    volumes:
-      - data:/data
+      - minio
     env_file:
       - docker-compose.env
 
@@ -33,8 +42,7 @@ services:
               capabilities: [gpu]
     depends_on:
       - redis
-    volumes:
-      - data:/data
+      - minio
     env_file:
       - docker-compose.env
 
@@ -57,15 +65,14 @@ services:
       dockerfile: ./project-server/Dockerfile
     depends_on:
       - redis
+      - minio
     ports:
       - '3001:3001'
-    volumes:
-      - data:/data
     env_file:
       - docker-compose.env
     environment:
       - APP_ORIGIN=${APP_ORIGIN:-http://localhost:3000}
 
 volumes:
-  data:
+  minio:
   redis:

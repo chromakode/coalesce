@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import io
 import argparse
+import tempfile
+import asyncio
+import aiohttp
 import torch
 from typing import Dict
 from pydantic import BaseModel
@@ -19,8 +23,9 @@ class ProcessJob(BaseModel):
     project: str
     track: str
     task: str
-    inputFile: str
-    outputDir: str
+    inputURI: str
+    outputURI: str
+    outputFormData: Dict[str, str]
 
 
 class InvalidJobError(Exception):
@@ -32,7 +37,7 @@ class CoalesceConsumer(QueueConsumer):
         super().__init__(redis_url, queue_name, processing_queue_name)
         self.roles = roles
 
-    def process_item(self, item_data, publish_progress):
+    async def process_item(self, item_data, publish_progress):
         job = ProcessJob(**item_data)
 
         if job.task not in self.roles:
@@ -43,20 +48,34 @@ class CoalesceConsumer(QueueConsumer):
 
         publish_progress({"progress": 0})
 
-        if job.task == "transcribe":
-            transcribe_audio(
-                job.inputFile,
-                job.outputDir,
-                progress_callback=progress_callback,
-            )
-        elif job.task == "chunks":
-            split_audio(
-                job.inputFile,
-                job.outputDir,
-                progress_callback=progress_callback,
-            )
-        else:
-            raise InvalidJobError()
+        with tempfile.NamedTemporaryFile() as input_file:
+            async with (
+                aiohttp.ClientSession(raise_for_status=True) as session,
+                session.get(job.inputURI) as resp,
+                asyncio.TaskGroup() as group,
+            ):
+                async for chunk in resp.content.iter_chunked(1024):
+                    input_file.write(chunk)
+
+                def output_sink(name, output_data, close=False):
+                    form_data = aiohttp.FormData(job.outputFormData)
+                    form_data.add_field("file", output_data, filename=name)
+                    group.create_task(session.post(job.outputURI, data=form_data))
+
+                if job.task == "transcribe":
+                    transcribe_audio(
+                        input_file.name,
+                        output_sink=output_sink,
+                        progress_callback=progress_callback,
+                    )
+                elif job.task == "chunks":
+                    split_audio(
+                        input_file.name,
+                        output_sink=output_sink,
+                        progress_callback=progress_callback,
+                    )
+                else:
+                    raise InvalidJobError()
 
 
 def main():
@@ -89,7 +108,7 @@ def main():
     )
 
     if args.command == "worker":
-        consumer.consume()
+        asyncio.run(consumer.consume())
     elif args.command == "empty":
         consumer.empty()
 

@@ -4,6 +4,7 @@ export {
   Application,
   Router,
   isHttpError,
+  createHttpError,
 } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 export type { BodyStream } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 export * as redis from 'https://deno.land/x/redis@v0.30.0/mod.ts'
@@ -14,6 +15,13 @@ export type {
   ZodTypeAny,
   output as ZodOutput,
 } from 'https://deno.land/x/zod@v3.21.4/index.ts'
+
+export {
+  S3Client,
+  S3Errors,
+} from 'https://raw.githubusercontent.com/chromakode/deno-s3-lite-client/ce4883f0d834c01da56b33655a40cfe9501d3e08/mod.ts'
+
+export * as Minio from 'npm:minio@^7.1.1'
 
 // @deno-types="npm:@types/lodash@^4.14.195"
 export { pick } from 'npm:lodash-es@^4.17.21'

@@ -1,18 +1,5 @@
-import {
-  path,
-  fs,
-  Application,
-  Router,
-  redis,
-  isHttpError,
-  oakCors,
-} from './deps.ts'
-import {
-  PROJECT_DIR,
-  REDIS_URL,
-  APP_ORIGIN,
-  PROJECT_SERVER_PORT,
-} from './env.ts'
+import { Application, Router, oakCors } from './deps.ts'
+import { APP_ORIGIN, PROJECT_SERVER_PORT } from './env.ts'
 import {
   getProjectState,
   watchProject,
@@ -21,13 +8,16 @@ import {
   updateProject,
   updateTrack,
   createTrack,
-  createProject,
   deleteTrack,
-  storePath,
+  generateId,
+  projectExists,
+  streamTrackChunk,
 } from './store.ts'
 import { ProjectParams, TrackParams } from '../shared/schema.ts'
+import { initMinio, initRedis } from './service.ts'
 
-export const redisClient = await redis.connect(redis.parseURL(REDIS_URL))
+export const redisClient = await initRedis()
+export const minioClient = await initMinio()
 
 const app = new Application()
 
@@ -69,19 +59,11 @@ const projectRouter = new Router()
     const trackId = await createTrack(ctx.state.project, fileData)
     ctx.response.body = { id: trackId }
   })
-  .get(`/track/:track(\\w+)/:file(\\d+\.flac)`, async (ctx) => {
-    const { track, file } = ctx.params as { track: string; file: string }
+  .get(`/track/:track(\\w+)/:chunk(\\d+\.flac)`, async (ctx) => {
+    const { track, chunk } = ctx.params
 
-    const trackDir = storePath.trackDir(ctx.state.project, track)
-
-    try {
-      await ctx.send({ root: trackDir, path: file })
-    } catch (err) {
-      if (isHttpError(err) && err.status === 404) {
-        return
-      }
-      throw err
-    }
+    const resp = await streamTrackChunk(ctx.state.project, track, chunk)
+    ctx.response.body = resp
   })
 
 const router = new Router()
@@ -90,7 +72,7 @@ const router = new Router()
     ctx.response.body = projects
   })
   .post('/project', async (ctx) => {
-    const projectId = await createProject()
+    const projectId = generateId()
 
     const body = await ctx.request.body({ type: 'json' }).value
     const params = ProjectParams.parse(body)
@@ -104,10 +86,9 @@ const router = new Router()
     '/project/:project(\\w+)',
     async (ctx, next) => {
       const project = ctx.params.project
-      const projectDir = path.join(PROJECT_DIR, project)
 
-      const dirExists = await fs.exists(projectDir, { isDirectory: true })
-      if (!dirExists) {
+      const exists = await projectExists(project)
+      if (!exists) {
         ctx.response.status = 404
         return
       }

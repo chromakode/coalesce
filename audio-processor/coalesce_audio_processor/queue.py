@@ -12,10 +12,10 @@ class QueueConsumer:
 
         self.redis_client = redis.from_url(self.redis_url)
 
-    def process_item(self, item: Dict[str, Any], publish_status: Dict[str, Any]):
+    async def process_item(self, item: Dict[str, Any], publish_status: Dict[str, Any]):
         pass
 
-    def consume(self):
+    async def consume(self):
         print(f'Processing jobs from queue "{self.queue_name}"...', flush=True)
 
         while True:
@@ -46,17 +46,18 @@ class QueueConsumer:
                 update_status({"status": "running", **status})
 
             try:
-                self.process_item(item_data, publish_progress)
+                await self.process_item(item_data, publish_progress)
 
                 # If processing is successful, remove the message from the processing queue
                 self.redis_client.lrem(self.processing_queue_name, 0, raw_item)
 
                 update_status({"status": "complete"})
 
-            except Exception as e:
-                # If an error occurred during processing, the message will remain in the processing queue
-                print(f"An error occurred: {e}", flush=True)
+            except* Exception as eg:
+                for e in eg.exceptions:
+                    print(f"An error occurred: {e}", flush=True)
 
+                # If an error occurred during processing, the message will remain in the processing queue
                 update_status({"status": "failed", "error": str(e)})
 
     def empty(self):

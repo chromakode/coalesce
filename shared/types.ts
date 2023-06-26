@@ -63,8 +63,9 @@ export interface Job {
   project: string
   track: string
   task: 'transcribe' | 'chunks'
-  inputFile: string
-  outputDir: string
+  inputURI: string
+  outputURI: string
+  outputFormData: Record<string, string>
 }
 
 export interface JobState extends Job {

@@ -7,8 +7,10 @@ import {
   ZodTypeAny,
   ZodOutput,
   BodyStream,
+  S3Errors,
+  createHttpError,
 } from './deps.ts'
-import { REDIS_URL, QUEUE_NAME, PROJECT_DIR } from './env.ts'
+import { REDIS_URL, QUEUE_NAME } from './env.ts'
 import {
   Job,
   ProjectInfo,
@@ -18,10 +20,9 @@ import {
   JobState,
   JobInfo,
 } from '@shared/types.ts'
-import { redisClient } from './main.ts'
+import { redisClient, minioClient } from './main.ts'
 import { ProjectParams, TrackParams } from '../shared/schema.ts'
-
-// For now, a quick'n'dirty flat files data layout!
+import { bucket, initMinioJS } from './service.ts'
 
 export const generateId = nanoidCustom(
   '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz',
@@ -30,9 +31,10 @@ export const generateId = nanoidCustom(
 
 async function readJSON(path: string) {
   try {
-    return JSON.parse(await Deno.readTextFile(path))
+    const resp = await minioClient.getObject(path)
+    return await resp.json()
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
+    if (err instanceof S3Errors.ServerError && err.code === 'NoSuchKey') {
       return null
     } else {
       throw err
@@ -48,22 +50,32 @@ async function readJSONSchema<T extends ZodTypeAny>(
   return schema.parse(data ?? {})
 }
 
+async function* listDir(path: string) {
+  for await (const entry of minioClient.listObjectsGrouped({
+    prefix: path,
+    delimiter: '/',
+  })) {
+    if (entry.type === 'CommonPrefix') {
+      yield entry.prefix.substring(path.length).split('/')[0]
+    }
+  }
+}
+
 export const storePath = {
-  projectDir: (projectId: string) => path.join(PROJECT_DIR, projectId),
-  projectUploadDir: (projectId: string) =>
-    path.join(PROJECT_DIR, projectId, 'upload'),
-  projectIndex: (projectId: string) =>
-    path.join(PROJECT_DIR, projectId, 'index.json'),
-  projectTrackDir: (projectId: string) =>
-    path.join(PROJECT_DIR, projectId, 'track'),
+  projectIndex: (projectId: string) => path.join(projectId, 'index.json'),
+  projectTracksDir: (projectId: string) => path.join(projectId, 'track') + '/',
   trackDir: (projectId: string, trackId: string) =>
-    path.join(PROJECT_DIR, projectId, 'track', trackId),
+    path.join(projectId, 'track', trackId) + '/',
+  trackUploadPath: (projectId: string, trackId: string) =>
+    path.join(projectId, 'upload', trackId),
   trackIndex: (projectId: string, trackId: string) =>
-    path.join(PROJECT_DIR, projectId, 'track', trackId, 'index.json'),
+    path.join(projectId, 'track', trackId, 'index.json'),
   trackWords: (projectId: string, trackId: string) =>
-    path.join(PROJECT_DIR, projectId, 'track', trackId, 'words.json'),
+    path.join(projectId, 'track', trackId, 'words.json'),
   trackChunks: (projectId: string, trackId: string) =>
-    path.join(PROJECT_DIR, projectId, 'track', trackId, 'chunks.json'),
+    path.join(projectId, 'track', trackId, 'chunks.json'),
+  trackChunkFile: (projectId: string, trackId: string, chunkName: string) =>
+    path.join(projectId, 'track', trackId, chunkName),
 }
 
 export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
@@ -196,19 +208,10 @@ export async function getProjectInfo(projectId: string): Promise<ProjectInfo> {
     ProjectParams,
   )
 
-  const trackDir = storePath.projectTrackDir(projectId)
+  const tracksDir = storePath.projectTracksDir(projectId)
   const tracks: TrackInfo[] = []
-
-  try {
-    for await (const { name: trackId } of Deno.readDir(trackDir)) {
-      tracks.push(await getTrackInfo(projectId, trackId))
-    }
-  } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
-      // No tracks
-    } else {
-      throw err
-    }
+  for await (const trackId of listDir(tracksDir)) {
+    tracks.push(await getTrackInfo(projectId, trackId))
   }
 
   return {
@@ -252,11 +255,15 @@ export async function getProjectState(projectId: string): Promise<Project> {
   return state
 }
 
+export async function projectExists(projectId: string) {
+  return await minioClient.exists(storePath.projectIndex(projectId))
+}
+
 export async function listProjects() {
   const projects: ProjectInfo[] = []
 
-  for await (const dirEntry of Deno.readDir(PROJECT_DIR)) {
-    const info = await getProjectInfo(dirEntry.name)
+  for await (const name of listDir('')) {
+    const info = await getProjectInfo(name)
 
     projects.push(info)
   }
@@ -264,18 +271,11 @@ export async function listProjects() {
   return projects
 }
 
-export async function createProject(): Promise<string> {
-  const projectId = generateId()
-  const projectDir = storePath.projectDir(projectId)
-  await Deno.mkdir(projectDir, { recursive: true })
-  return projectId
-}
-
 export async function updateProject(
   projectId: string,
   params: Partial<ProjectParams>,
 ) {
-  await Deno.writeTextFile(
+  await minioClient.putObject(
     storePath.projectIndex(projectId),
     JSON.stringify(params),
   )
@@ -295,9 +295,8 @@ export async function updateTrack(
   trackId: string,
   params: Partial<TrackParams>,
 ) {
-  const trackDir = storePath.trackDir(projectId, trackId)
-  await Deno.writeTextFile(
-    path.join(trackDir, 'index.json'),
+  await minioClient.putObject(
+    storePath.trackIndex(projectId, trackId),
     JSON.stringify(params),
   )
 
@@ -311,40 +310,53 @@ export async function updateTrack(
   )
 }
 
+async function makeUploadURL(prefix: string) {
+  // Deno-S3-Lite doesn't support post policies, so using MinioJS for this
+  const minioJS = initMinioJS()
+  const policy = minioJS.newPostPolicy()
+
+  policy.setKeyStartsWith(prefix)
+  policy.setBucket(bucket)
+
+  const expires = new Date()
+  expires.setSeconds(24 * 60 * 60) // 1 day
+  policy.setExpires(expires)
+
+  return await minioJS.presignedPostPolicy(policy)
+}
+
 export async function createTrack(
   projectId: string,
   fileData: BodyStream,
 ): Promise<string> {
-  const uploadDir = storePath.projectUploadDir(projectId)
-  await Deno.mkdir(uploadDir, { recursive: true })
-
   const trackId = generateId()
-  const uploadPath = path.join(uploadDir, trackId)
-  const destFile = await Deno.open(uploadPath, {
-    create: true,
-    write: true,
-    truncate: true,
-  })
+  const uploadPath = storePath.trackUploadPath(projectId, trackId)
+  await minioClient.putObject(uploadPath, fileData.value)
 
-  await fileData.value.pipeTo(destFile.writable)
+  const inputURI = await minioClient.getPresignedUrl('GET', uploadPath)
 
   const trackDir = storePath.trackDir(projectId, trackId)
-  await Deno.mkdir(trackDir, { recursive: true })
+  const { postURL: outputURI, formData: outputFormData } = await makeUploadURL(
+    trackDir,
+  )
+  outputFormData['key'] = path.join(trackDir, '${filename}')
 
   await queueProcessingJob({
     task: 'chunks',
     project: projectId,
     track: trackId,
-    inputFile: uploadPath,
-    outputDir: trackDir,
+    inputURI,
+    outputURI,
+    outputFormData,
   })
 
   await queueProcessingJob({
     task: 'transcribe',
     project: projectId,
     track: trackId,
-    inputFile: uploadPath,
-    outputDir: trackDir,
+    inputURI,
+    outputURI,
+    outputFormData,
   })
 
   return trackId
@@ -355,7 +367,9 @@ export async function deleteTrack(
   trackId: string,
 ): Promise<void> {
   const trackDir = storePath.trackDir(projectId, trackId)
-  await Deno.remove(trackDir, { recursive: true })
+  for await (const entry of minioClient.listObjects({ prefix: trackDir })) {
+    await minioClient.deleteObject(entry.key)
+  }
 
   await redisClient.publish(
     `project:${projectId}`,
@@ -364,4 +378,25 @@ export async function deleteTrack(
       id: trackId,
     }),
   )
+}
+
+export async function streamTrackChunk(
+  projectId: string,
+  trackId: string,
+  chunkName: string,
+): Promise<ReadableStream> {
+  const chunkKey = storePath.trackChunkFile(projectId, trackId, chunkName)
+  try {
+    const resp = await minioClient.getObject(chunkKey)
+    if (resp.body == null) {
+      throw createHttpError(500)
+    }
+    return resp.body
+  } catch (err) {
+    if (err instanceof S3Errors.ServerError && err.code === 'NoSuchKey') {
+      throw createHttpError(404)
+    } else {
+      throw err
+    }
+  }
 }
