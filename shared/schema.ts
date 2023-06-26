@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const ProjectParams = z.object({
   title: z.string().optional().default('Untitled'),
+  hidden: z.boolean().optional().default(false),
 })
 
 export type ProjectParams = z.infer<typeof ProjectParams>

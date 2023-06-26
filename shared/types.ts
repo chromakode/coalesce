@@ -39,13 +39,14 @@ export interface Project {
   id: string
   title: string
   name: string
+  hidden: boolean
   tracks: Record<string, Track>
   jobs: Record<string, JobInfo>
 }
 
 export type TrackInfo = Pick<Track, 'id' | 'name' | 'originalFilename'>
 
-export type ProjectInfo = Pick<Project, 'id' | 'title' | 'name'> & {
+export type ProjectInfo = Pick<Project, 'id' | 'title' | 'name' | 'hidden'> & {
   tracks: TrackInfo[]
 }
 

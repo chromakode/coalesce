@@ -203,7 +203,7 @@ export async function getTrackInfo(
 }
 
 export async function getProjectInfo(projectId: string): Promise<ProjectInfo> {
-  const { title } = await readJSONSchema(
+  const { title, hidden } = await readJSONSchema(
     storePath.projectIndex(projectId),
     ProjectParams,
   )
@@ -220,6 +220,7 @@ export async function getProjectInfo(projectId: string): Promise<ProjectInfo> {
       remove: /[*+~.()'"!:@$]/g,
     }),
     title,
+    hidden,
     tracks,
   }
 }
@@ -264,6 +265,9 @@ export async function listProjects() {
 
   for await (const name of listDir('')) {
     const info = await getProjectInfo(name)
+    if (info.hidden) {
+      continue
+    }
 
     projects.push(info)
   }
