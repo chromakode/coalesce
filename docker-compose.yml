@@ -11,7 +11,7 @@ services:
     volumes:
       - minio:/data
     ports:
-      - '9000:9000'
+      - '127.0.0.1:9000:9000'
     env_file:
       - docker-compose.env
 
@@ -54,7 +54,7 @@ services:
       args:
         - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:3001}
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3000:3000'
     environment:
       - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:3001}
 
@@ -67,7 +67,7 @@ services:
       - redis
       - minio
     ports:
-      - '3001:3001'
+      - '127.0.0.1:3001:3001'
     env_file:
       - docker-compose.env
     environment:
