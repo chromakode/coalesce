@@ -52,7 +52,7 @@ export function uploadTrack(
       })
       xhr.open(
         'POST',
-        `//${server}/project/${projectId}/track?name=${file.name}`,
+        `//${server}/project/${projectId}/track?filename=${file.name}`,
         true,
       )
       xhr.setRequestHeader('Content-Type', file.type)
