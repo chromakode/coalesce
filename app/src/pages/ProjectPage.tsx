@@ -314,7 +314,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
 
       const a = document.createElement('a')
       a.href = outputURL
-      a.download = `${project!.name}.wav`
+      a.download = `${project!.slug}.wav`
       a.click()
       URL.revokeObjectURL(outputURL)
 

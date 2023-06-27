@@ -216,7 +216,7 @@ export async function getProjectInfo(projectId: string): Promise<ProjectInfo> {
 
   return {
     id: projectId,
-    name: slug(title, {
+    slug: slug(title, {
       remove: /[*+~.()'"!:@$]/g,
     }),
     title,

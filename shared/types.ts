@@ -38,7 +38,7 @@ export interface TrackChunks {
 export interface Project {
   id: string
   title: string
-  name: string
+  slug: string
   hidden: boolean
   tracks: Record<string, Track>
   jobs: Record<string, JobInfo>
@@ -46,7 +46,7 @@ export interface Project {
 
 export type TrackInfo = Pick<Track, 'id' | 'name' | 'originalFilename'>
 
-export type ProjectInfo = Pick<Project, 'id' | 'title' | 'name' | 'hidden'> & {
+export type ProjectInfo = Pick<Project, 'id' | 'title' | 'slug' | 'hidden'> & {
   tracks: TrackInfo[]
 }
 
