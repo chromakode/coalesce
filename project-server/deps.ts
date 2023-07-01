@@ -19,7 +19,7 @@ export type {
 export {
   S3Client,
   S3Errors,
-} from 'https://raw.githubusercontent.com/chromakode/deno-s3-lite-client/ce4883f0d834c01da56b33655a40cfe9501d3e08/mod.ts'
+} from 'https://deno.land/x/s3_lite_client@0.6.1/mod.ts'
 
 export * as Minio from 'npm:minio@^7.1.1'
 
