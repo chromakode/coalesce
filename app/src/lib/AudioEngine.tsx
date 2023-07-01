@@ -1,6 +1,6 @@
-import { Project, Track } from '@shared/types'
+import { Project } from '@shared/types'
 import audioBufferToWav from 'audiobuffer-to-wav'
-import { groupBy, keyBy, last, sortBy } from 'lodash-es'
+import { groupBy, last, sortBy } from 'lodash-es'
 import { LRUCache } from 'lru-cache'
 import mitt from 'mitt'
 import { AudioScheduler, AudioTask, SCHEDULER_BUFFER_S } from './AudioScheduler'
@@ -54,7 +54,6 @@ const TICK_MS = 1000
 export default class AudioEngine {
   ctx: AudioContext = new AudioContext()
   project: Project = emptyProject()
-  trackIndex: Record<string, Track> = {}
   chunkCache = new LRUCache<string, Promise<AudioBuffer>>({
     max: MAX_CHUNKS_LOADED,
   })
@@ -65,11 +64,10 @@ export default class AudioEngine {
   // TODO: preload on initial load?
   constructor(project: Project) {
     this.project = project
-    this.trackIndex = keyBy(project.tracks, 'id')
   }
 
   getTrackInfo(trackId: string) {
-    const trackInfo = this.trackIndex[trackId]
+    const trackInfo = this.project.tracks[trackId]
     if (!trackInfo) {
       throw new Error(`Unknown track "${trackId}"`)
     }
@@ -78,7 +76,11 @@ export default class AudioEngine {
 
   getChunkURL(trackId: string, idx: number): string {
     const trackInfo = this.getTrackInfo(trackId)
-    return chunkURL(this.project.id, trackId, trackInfo.audio.chunks[idx])
+    return chunkURL(
+      this.project.projectId,
+      trackId,
+      trackInfo.audio.chunks[idx],
+    )
   }
 
   async getChunk(trackId: string, idx: number): Promise<AudioBuffer> {

@@ -2,13 +2,11 @@ import {
   path,
   pick,
   redis,
-  slug,
   nanoidCustom,
-  ZodTypeAny,
-  ZodOutput,
   BodyStream,
   S3Errors,
   createHttpError,
+  sql,
 } from './deps.ts'
 import { REDIS_URL, QUEUE_NAME } from './env.ts'
 import {
@@ -19,15 +17,14 @@ import {
   TrackInfo,
   JobState,
   JobInfo,
-} from '@shared/types.ts'
-import { redisClient, minioClient } from './main.ts'
-import { ProjectParams, TrackParams } from '../shared/schema.ts'
+} from '@shared/types'
+import { ProjectFields, TrackFields } from '@shared/schema'
+import { db, redisClient, minioClient } from './main.ts'
 import { bucket, initMinioJS } from './service.ts'
 
-export const generateId = nanoidCustom(
-  '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz',
-  10,
-)
+const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
+export const generateId = nanoidCustom(nanoidAlphabet, 20)
+export const generateShortId = nanoidCustom(nanoidAlphabet, 10)
 
 async function readJSON(path: string) {
   try {
@@ -42,40 +39,13 @@ async function readJSON(path: string) {
   }
 }
 
-async function readJSONSchema<T extends ZodTypeAny>(
-  path: string,
-  schema: T,
-): Promise<ZodOutput<T>> {
-  const data = await readJSON(path)
-  return schema.parse(data ?? {})
-}
-
-async function* listDir(path: string) {
-  for await (const entry of minioClient.listObjectsGrouped({
-    prefix: path,
-    delimiter: '/',
-  })) {
-    if (entry.type === 'CommonPrefix') {
-      yield entry.prefix.substring(path.length).split('/')[0]
-    }
-  }
-}
-
 export const storePath = {
-  projectIndex: (projectId: string) => path.join(projectId, 'index.json'),
-  projectTracksDir: (projectId: string) => path.join(projectId, 'track') + '/',
-  trackDir: (projectId: string, trackId: string) =>
-    path.join(projectId, 'track', trackId) + '/',
-  trackUploadPath: (projectId: string, trackId: string) =>
-    path.join(projectId, 'upload', trackId),
-  trackIndex: (projectId: string, trackId: string) =>
-    path.join(projectId, 'track', trackId, 'index.json'),
-  trackWords: (projectId: string, trackId: string) =>
-    path.join(projectId, 'track', trackId, 'words.json'),
-  trackChunks: (projectId: string, trackId: string) =>
-    path.join(projectId, 'track', trackId, 'chunks.json'),
-  trackChunkFile: (projectId: string, trackId: string, chunkName: string) =>
-    path.join(projectId, 'track', trackId, chunkName),
+  trackUploadPath: (trackId: string) => path.join(trackId, 'upload'),
+  trackDir: (trackId: string) => path.join('track', trackId) + '/',
+  trackWords: (trackId: string) => path.join('track', trackId, 'words.json'),
+  trackChunks: (trackId: string) => path.join('track', trackId, 'chunks.json'),
+  trackChunkFile: (trackId: string, chunkName: string) =>
+    path.join('track', trackId, chunkName),
 }
 
 export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
@@ -127,7 +97,7 @@ export async function* watchProject(projectId: string) {
         yield JSON.stringify({
           type: 'project:update',
           path: `tracks.${msg.track}`,
-          data: await getTrackState(projectId, msg.track),
+          data: await getTrackState(msg.track),
         })
       }
     } else if (msg.type === 'job-created') {
@@ -144,8 +114,8 @@ export async function* watchProject(projectId: string) {
     } else if (msg.type === 'track-updated') {
       yield JSON.stringify({
         type: 'project:update',
-        path: `tracks.${msg.id}`,
-        data: { id: msg.id, ...msg.update },
+        path: `tracks.${msg.trackId}`,
+        data: { trackId: msg.trackId, ...msg.update },
       })
     } else if (msg.type === 'track-deleted') {
       deletedTracks.add(msg.id)
@@ -191,47 +161,52 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
   return jobs
 }
 
-export async function getTrackInfo(
-  projectId: string,
-  trackId: string,
-): Promise<TrackInfo> {
-  const { name, originalFilename } = await readJSONSchema(
-    storePath.trackIndex(projectId, trackId),
-    TrackParams,
-  )
-  return { id: trackId, name, originalFilename }
+export async function getTrackInfo(trackId: string): Promise<TrackInfo> {
+  return await db
+    .selectFrom('track')
+    .where('trackId', '=', trackId)
+    .select(['trackId', 'createdAt', 'label', 'originalFilename'])
+    .executeTakeFirstOrThrow()
+}
+
+function projectQuery() {
+  return db.selectFrom('project').select(({ selectFrom }) => [
+    'projectId',
+    'createdAt',
+    'title',
+    'hidden',
+    sql<Record<string, TrackInfo>>`(select coalesce(json_object_agg(
+      ${sql.id('info', 'trackId')}, row_to_json(info)
+    ), '{}') from ${selectFrom('track')
+      .innerJoin('projectTracks', (join) =>
+        join
+          .onRef('track.trackId', '=', 'projectTracks.trackId')
+          .onRef('project.projectId', '=', 'projectTracks.projectId'),
+      )
+      .select([
+        'track.trackId',
+        'track.createdAt',
+        'track.label',
+        'track.originalFilename',
+      ])
+      .as('info')})`.as('tracks'),
+  ])
 }
 
 export async function getProjectInfo(projectId: string): Promise<ProjectInfo> {
-  const { title, hidden } = await readJSONSchema(
-    storePath.projectIndex(projectId),
-    ProjectParams,
-  )
-
-  const tracksDir = storePath.projectTracksDir(projectId)
-  const tracks: TrackInfo[] = []
-  for await (const trackId of listDir(tracksDir)) {
-    tracks.push(await getTrackInfo(projectId, trackId))
-  }
-
-  return {
-    id: projectId,
-    slug: slug(title, {
-      remove: /[*+~.()'"!:@$]/g,
-    }),
-    title,
-    hidden,
-    tracks,
-  }
+  return await projectQuery()
+    .where('projectId', '=', projectId)
+    .executeTakeFirstOrThrow()
 }
 
-export async function getTrackState(
-  projectId: string,
-  trackId: string,
-): Promise<Track> {
-  const trackInfo = await getTrackInfo(projectId, trackId)
-  const words = await readJSON(storePath.trackWords(projectId, trackId))
-  const audio = await readJSON(storePath.trackChunks(projectId, trackId))
+export async function listProjects(): Promise<ProjectInfo[]> {
+  return await projectQuery().execute()
+}
+
+export async function getTrackState(trackId: string): Promise<Track> {
+  const trackInfo = await getTrackInfo(trackId)
+  const words = await readJSON(storePath.trackWords(trackId))
+  const audio = await readJSON(storePath.trackChunks(trackId))
   return { ...trackInfo, words, audio }
 }
 
@@ -242,9 +217,10 @@ export async function getProjectState(projectId: string): Promise<Project> {
   ])
 
   const tracks: Record<string, Track> = {}
-  for (const { id } of info.tracks) {
-    // FIXME: re-reads the track index an extra time
-    tracks[id] = await getTrackState(projectId, id)
+  for (const [trackId, trackInfo] of Object.entries(info.tracks)) {
+    const words = await readJSON(storePath.trackWords(trackId))
+    const audio = await readJSON(storePath.trackChunks(trackId))
+    tracks[trackId] = { ...trackInfo, words, audio }
   }
 
   const state: Project = {
@@ -257,59 +233,62 @@ export async function getProjectState(projectId: string): Promise<Project> {
 }
 
 export async function projectExists(projectId: string) {
-  return await minioClient.exists(storePath.projectIndex(projectId))
-}
-
-export async function listProjects() {
-  const projects: ProjectInfo[] = []
-
-  for await (const name of listDir('')) {
-    const info = await getProjectInfo(name)
-    if (info.hidden) {
-      continue
-    }
-
-    projects.push(info)
-  }
-
-  return projects
+  const { count } = await db
+    .selectFrom('project')
+    .where('projectId', '=', projectId)
+    .select(db.fn.countAll<number>().as('count'))
+    .executeTakeFirstOrThrow()
+  return count > 0
 }
 
 export async function updateProject(
   projectId: string,
-  params: Partial<ProjectParams>,
+  update: Partial<ProjectFields>,
 ) {
-  await minioClient.putObject(
-    storePath.projectIndex(projectId),
-    JSON.stringify(params),
-  )
+  await db
+    .updateTable('project')
+    .set(update)
+    .where('projectId', '=', projectId)
+    .executeTakeFirst()
 
   await redisClient.publish(
     `project:${projectId}`,
     JSON.stringify({
       type: 'project-updated',
-      id: projectId,
-      update: params,
+      projectId,
+      update,
     }),
   )
+}
+
+export async function createProject(fields: ProjectFields): Promise<string> {
+  const projectId = generateShortId()
+
+  await db
+    .insertInto('project')
+    .values({ ...fields, projectId })
+    .executeTakeFirst()
+
+  return projectId
 }
 
 export async function updateTrack(
   projectId: string,
   trackId: string,
-  params: Partial<TrackParams>,
+  update: Partial<TrackFields>,
 ) {
-  await minioClient.putObject(
-    storePath.trackIndex(projectId, trackId),
-    JSON.stringify(params),
-  )
+  await db
+    .updateTable('track')
+    .set(update)
+    .where('trackId', '=', trackId)
+    .executeTakeFirst()
 
   await redisClient.publish(
     `project:${projectId}`,
     JSON.stringify({
       type: 'track-updated',
-      id: trackId,
-      update: params,
+      trackId,
+      update,
     }),
   )
 }
@@ -332,19 +311,36 @@ async function makeUploadURL(prefix: string) {
 export async function createTrack(
   projectId: string,
   fileData: BodyStream,
-  filename: string,
+  originalFilename: string,
 ): Promise<string> {
   const trackId = generateId()
-  const uploadPath = storePath.trackUploadPath(projectId, trackId)
+  const uploadPath = storePath.trackUploadPath(trackId)
   await minioClient.putObject(uploadPath, fileData.value, {
     partSize: 16 * 1024 * 1024,
   })
 
-  await updateTrack(projectId, trackId, { originalFilename: filename })
+  await db
+    .insertInto('track')
+    .values({ trackId, originalFilename })
+    .executeTakeFirst()
+
+  await db
+    .insertInto('projectTracks')
+    .values({ projectId, trackId })
+    .executeTakeFirst()
+
+  await redisClient.publish(
+    `project:${projectId}`,
+    JSON.stringify({
+      type: 'track-updated',
+      trackId,
+      update: { originalFilename },
+    }),
+  )
 
   const inputURI = await minioClient.getPresignedUrl('GET', uploadPath)
 
-  const trackDir = storePath.trackDir(projectId, trackId)
+  const trackDir = storePath.trackDir(trackId)
   const { postURL: outputURI, formData: outputFormData } = await makeUploadURL(
     trackDir,
   )
@@ -375,10 +371,17 @@ export async function deleteTrack(
   projectId: string,
   trackId: string,
 ): Promise<void> {
-  const trackDir = storePath.trackDir(projectId, trackId)
+  const trackDir = storePath.trackDir(trackId)
   for await (const entry of minioClient.listObjects({ prefix: trackDir })) {
     await minioClient.deleteObject(entry.key)
   }
+
+  await db.deleteFrom('track').where('trackId', '=', trackId).execute()
+  await db
+    .deleteFrom('projectTracks')
+    .where('projectId', '=', projectId)
+    .where('trackId', '=', trackId)
+    .execute()
 
   await redisClient.publish(
     `project:${projectId}`,
@@ -390,11 +393,10 @@ export async function deleteTrack(
 }
 
 export async function streamTrackChunk(
-  projectId: string,
   trackId: string,
   chunkName: string,
 ): Promise<ReadableStream> {
-  const chunkKey = storePath.trackChunkFile(projectId, trackId, chunkName)
+  const chunkKey = storePath.trackChunkFile(trackId, chunkName)
   try {
     const resp = await minioClient.getObject(chunkKey)
     if (resp.body == null) {

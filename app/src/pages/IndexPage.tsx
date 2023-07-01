@@ -17,25 +17,26 @@ import { COLOR_ORDER } from '../components/Editor'
 import { createProject, listProjects } from '../lib/api'
 
 function ProjectItem({
-  project: { id, title, tracks },
+  project: { projectId, title, tracks },
 }: {
   project: ProjectInfo
 }) {
   const colors = [...COLOR_ORDER]
+  const trackEntries = Object.entries(tracks)
   return (
     <LinkBox w="full">
       <Heading>
-        <Link href={`/project/${id}`}>
+        <Link href={`/project/${projectId}`}>
           <LinkOverlay>{title}</LinkOverlay>
         </Link>
       </Heading>
       <HStack>
         <Text>
-          {tracks.length} tracks{tracks.length > 0 ? ':' : ''}
+          {trackEntries.length} tracks{trackEntries.length > 0 ? ':' : ''}
         </Text>
-        {tracks.map(({ id, name }) => (
-          <Text key={id} color={colors.shift()}>
-            {name}
+        {trackEntries.map(([trackId, { label }]) => (
+          <Text key={trackId} color={colors.shift()}>
+            {label}
           </Text>
         ))}
       </HStack>
@@ -48,7 +49,7 @@ export default function IndexList() {
   const projects = useAsync(listProjects, [])
   const [createProjectStatus, handleCreateProject] = useAsyncFn(async () => {
     const newProject = await createProject()
-    setLocation(`/project/${newProject.id}`)
+    setLocation(`/project/${newProject.projectId}`)
   }, [])
 
   return (
@@ -61,38 +62,40 @@ export default function IndexList() {
       ) : projects.error ? (
         <Text>Error loading projects</Text>
       ) : (
-        <Center
-          w="container.lg"
-          maxW="92vw"
-          minH="50vh"
-          p="8"
-          flexDirection="column"
-          bg="white"
-          borderRadius="xl"
-          boxShadow="lg"
-        >
-          {projects.value?.length > 0 && (
-            <VStack
-              flex="1"
-              w="full"
-              spacing="4"
-              divider={<StackDivider borderColor="gray.200" />}
-            >
-              {projects.value.map((project) => (
-                <ProjectItem key={project.id} project={project} />
-              ))}
-            </VStack>
-          )}
-          <Button
-            fontSize="2xl"
-            size="lg"
-            colorScheme="green"
-            onClick={handleCreateProject}
-            isLoading={createProjectStatus.loading}
+        projects.value && (
+          <Center
+            w="container.lg"
+            maxW="92vw"
+            minH="50vh"
+            p="8"
+            flexDirection="column"
+            bg="white"
+            borderRadius="xl"
+            boxShadow="lg"
           >
-            Create Project
-          </Button>
-        </Center>
+            {projects.value?.length > 0 && (
+              <VStack
+                flex="1"
+                w="full"
+                spacing="4"
+                divider={<StackDivider borderColor="gray.200" />}
+              >
+                {projects.value.map((project) => (
+                  <ProjectItem key={project.projectId} project={project} />
+                ))}
+              </VStack>
+            )}
+            <Button
+              fontSize="2xl"
+              size="lg"
+              colorScheme="green"
+              onClick={handleCreateProject}
+              isLoading={createProjectStatus.loading}
+            >
+              Create Project
+            </Button>
+          </Center>
+        )
       )}
     </Center>
   )

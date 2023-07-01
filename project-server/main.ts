@@ -3,19 +3,21 @@ import { APP_ORIGIN, PROJECT_SERVER_PORT } from './env.ts'
 import {
   getProjectState,
   watchProject,
-  listProjects,
   getProjectInfo,
   updateProject,
   updateTrack,
   createTrack,
   deleteTrack,
-  generateId,
   projectExists,
   streamTrackChunk,
+  createProject,
+  listProjects,
+  getTrackInfo,
 } from './store.ts'
-import { ProjectParams, TrackParams } from '../shared/schema.ts'
-import { initMinio, initRedis } from './service.ts'
+import { ProjectFields, TrackFields } from '../shared/schema.ts'
+import { initMinio, initPostgres, initRedis } from './service.ts'
 
+export const db = await initPostgres()
 export const redisClient = await initRedis()
 export const minioClient = await initMinio()
 
@@ -40,14 +42,14 @@ const projectRouter = new Router()
   })
   .put('/', async (ctx) => {
     const body = await ctx.request.body({ type: 'json' }).value
-    const params = ProjectParams.parse(body)
-    await updateProject(ctx.state.project, params)
+    const fields = ProjectFields.parse(body)
+    await updateProject(ctx.state.project, fields)
     ctx.response.status = 200
   })
   .put('/track/:track(\\w+)', async (ctx) => {
     const body = await ctx.request.body({ type: 'json' }).value
-    const params = TrackParams.parse(body)
-    await updateTrack(ctx.state.project, ctx.params.track, params)
+    const fields = TrackFields.parse(body)
+    await updateTrack(ctx.state.project, ctx.params.track, fields)
     ctx.response.status = 200
   })
   .delete('/track/:track(\\w+)', async (ctx) => {
@@ -61,12 +63,12 @@ const projectRouter = new Router()
       fileData,
       ctx.request.url.searchParams.get('filename') ?? 'unknown',
     )
-    ctx.response.body = { id: trackId }
+    ctx.response.body = await getTrackInfo(trackId)
   })
   .get(`/track/:track(\\w+)/:chunk(\\d+\.flac)`, async (ctx) => {
     const { track, chunk } = ctx.params
 
-    const resp = await streamTrackChunk(ctx.state.project, track, chunk)
+    const resp = await streamTrackChunk(track, chunk)
     ctx.response.body = resp
   })
 
@@ -76,11 +78,9 @@ const router = new Router()
     ctx.response.body = projects
   })
   .post('/project', async (ctx) => {
-    const projectId = generateId()
-
     const body = await ctx.request.body({ type: 'json' }).value
-    const params = ProjectParams.parse(body)
-    await updateProject(projectId, params)
+    const fields = ProjectFields.parse(body)
+    const projectId = await createProject(fields)
 
     watchProject(projectId)
 

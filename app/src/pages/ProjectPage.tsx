@@ -49,6 +49,7 @@ import {
 } from 'react-icons/md'
 import { useAsync, usePrevious, useUpdateEffect } from 'react-use'
 import ReconnectingWebSocket from 'reconnecting-websocket'
+import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import { DisplayMS } from '../components/DisplayMS'
 import Editor, {
@@ -312,9 +313,13 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
         return
       }
 
+      const slug = slugify(project!.title, {
+        remove: /[*+~.()'"!:@$]/g,
+      })
+
       const a = document.createElement('a')
       a.href = outputURL
-      a.download = `${project!.slug}.wav`
+      a.download = `${slug}.wav`
       a.click()
       URL.revokeObjectURL(outputURL)
 

@@ -93,7 +93,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
 
   const colorMap = useMemo(() => {
     const colorOrder = [...COLOR_ORDER]
-    return mapValues(project.tracks, ({ id }) => colorOrder.shift() ?? 'black')
+    return mapValues(project.tracks, () => colorOrder.shift() ?? 'black')
   }, [project])
 
   const initialConfig: InitialConfigType = useMemo(() => {
@@ -216,7 +216,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   const saveEditorState = debounce(function saveEditorState() {
     const editorState = editorRef.current?.getEditorState()
     if (editorState && !editorState.isEmpty()) {
-      saveProjectEditorState(project.id, editorState.toJSON())
+      saveProjectEditorState(project.projectId, editorState.toJSON())
     }
   }, 1000)
 

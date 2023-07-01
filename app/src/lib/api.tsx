@@ -1,4 +1,4 @@
-import { ProjectParamsInput, TrackParamsInput } from '@shared/schema'
+import { ProjectFieldsInput, TrackFieldsInput } from '@shared/schema'
 import { ProjectInfo } from '@shared/types'
 import { join } from 'path-browserify'
 import ReconnectingWebSocket from 'reconnecting-websocket'
@@ -18,7 +18,7 @@ export async function listProjects(): Promise<ProjectInfo[]> {
 }
 
 export async function createProject(
-  params: ProjectParamsInput = {},
+  params: ProjectFieldsInput = {},
 ): Promise<ProjectInfo> {
   const resp = await fetch(`//${server}/project/`, {
     method: 'POST',
@@ -32,7 +32,7 @@ export function uploadTrack(
   projectId: string,
   file: File,
   onProgress: (progress: number) => void,
-): { result: Promise<{ id: string }>; abort: () => void } {
+): { result: Promise<{ trackId: string }>; abort: () => void } {
   const xhr = new XMLHttpRequest()
   const abort = xhr.abort.bind(xhr)
   return {
@@ -64,7 +64,7 @@ export function uploadTrack(
 
 export async function updateProject(
   projectId: string,
-  params: ProjectParamsInput,
+  params: ProjectFieldsInput,
 ): Promise<void> {
   await fetch(`//${server}/project/${projectId}`, {
     method: 'PUT',
@@ -76,7 +76,7 @@ export async function updateProject(
 export async function updateTrack(
   projectId: string,
   trackId: string,
-  params: TrackParamsInput,
+  params: TrackFieldsInput,
 ): Promise<void> {
   await fetch(`//${server}/project/${projectId}/track/${trackId}`, {
     method: 'PUT',

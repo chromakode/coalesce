@@ -5,6 +5,14 @@ services:
     volumes:
       - redis:/data
 
+  postgres:
+    image: docker.io/postgres:15
+    restart: unless-stopped
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    env_file:
+      - docker-compose.env
+
   minio:
     image: quay.io/minio/minio
     restart: unless-stopped
@@ -70,6 +78,7 @@ services:
       dockerfile: ./project-server/Dockerfile
     depends_on:
       - redis
+      - postgres
       - minio
     ports:
       - '127.0.0.1:3001:3001'
@@ -81,3 +90,4 @@ services:
 volumes:
   minio:
   redis:
+  postgres:

@@ -1,3 +1,5 @@
+import { ProjectResult, TrackResult } from '@shared/schema'
+
 export interface Word {
   text: string
   start: number
@@ -19,10 +21,18 @@ export interface Words {
   segments: Segment[]
 }
 
-export interface Track {
-  id: string
-  name: string | undefined
-  originalFilename: string
+export type TrackInfo = TrackResult
+
+export type ProjectInfo = ProjectResult & {
+  tracks: Record<string, TrackInfo>
+}
+
+export interface Project extends Omit<ProjectInfo, 'tracks'> {
+  tracks: Record<string, Track>
+  jobs: Record<string, JobInfo>
+}
+
+export interface Track extends TrackInfo {
   words: Words
   audio: TrackChunks
 }
@@ -33,30 +43,6 @@ export interface TrackChunks {
   sampleCount: number
   chunkLength: number
   chunks: string[]
-}
-
-export interface Project {
-  id: string
-  title: string
-  slug: string
-  hidden: boolean
-  tracks: Record<string, Track>
-  jobs: Record<string, JobInfo>
-}
-
-export type TrackInfo = Pick<Track, 'id' | 'name' | 'originalFilename'>
-
-export type ProjectInfo = Pick<Project, 'id' | 'title' | 'slug' | 'hidden'> & {
-  tracks: TrackInfo[]
-}
-
-export type JobInfo = Pick<
-  JobState,
-  'id' | 'project' | 'track' | 'task' | 'state'
->
-
-export interface ChunksIndex {
-  [name: string]: TrackChunks
 }
 
 export interface Job {
@@ -76,3 +62,8 @@ export interface JobState extends Job {
     | { status: 'complete' }
     | { status: 'failed'; error: string }
 }
+
+export type JobInfo = Pick<
+  JobState,
+  'id' | 'project' | 'track' | 'task' | 'state'
+>

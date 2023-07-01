@@ -100,7 +100,7 @@ function TrackUpload({
   onRemoveFile: (filename: string) => void
 }) {
   const trackIdRef = useRef<string>()
-  const nameRef = useRef<string>()
+  const labelRef = useRef<string>()
 
   // TODO handle errors
   const [uploadProgress, setUploadProgress] = useState(track ? 1 : 0)
@@ -109,11 +109,11 @@ function TrackUpload({
     if (uploadRef.current || !file) {
       return
     }
-    uploadRef.current = uploadTrack(project.id, file, setUploadProgress)
-    uploadRef.current.result.then(({ id: trackId }) => {
+    uploadRef.current = uploadTrack(project.projectId, file, setUploadProgress)
+    uploadRef.current.result.then(({ trackId }) => {
       trackIdRef.current = trackId
-      updateTrack(project.id, trackId, {
-        name: nameRef.current,
+      updateTrack(project.projectId, trackId, {
+        label: labelRef.current,
         originalFilename: file.name,
       })
       uploadRef.current = undefined
@@ -131,24 +131,24 @@ function TrackUpload({
     }
 
     if (track) {
-      deleteTrack(project.id, track.id)
+      deleteTrack(project.projectId, track.trackId)
     }
   }, [file])
 
-  const handleChangeName = useMemo(
+  const handleChangeLabel = useMemo(
     () =>
       debounce((ev: React.ChangeEvent<HTMLInputElement>) => {
-        const name = ev.target.value
-        nameRef.current = name
+        const label = ev.target.value
+        labelRef.current = label
 
         if (track) {
-          updateTrack(project.id, track.id, {
-            name,
+          updateTrack(project.projectId, track.trackId, {
+            label,
             originalFilename: track?.originalFilename,
           })
         }
       }, 500),
-    [uploadProgress],
+    [uploadProgress, track],
   )
 
   const progress =
@@ -194,7 +194,7 @@ function TrackUpload({
           </Text>
           {isReadOnly ? (
             <Text color={color} mx="4">
-              {track?.name}
+              {track?.label}
             </Text>
           ) : (
             <Input
@@ -205,8 +205,8 @@ function TrackUpload({
               size="sm"
               fontSize="lg"
               color={color}
-              defaultValue={track?.name}
-              onChange={handleChangeName}
+              defaultValue={track?.label}
+              onChange={handleChangeLabel}
             />
           )}
         </Flex>
@@ -307,13 +307,13 @@ export default function TracksForm({
   const colors = [...COLOR_ORDER]
   return (
     <VStack w="full" alignItems="stretch">
-      {sortedTracks.map(({ type, key, track, file }) => (
+      {sortedTracks.map(({ key, track, file }) => (
         <TrackUpload
           key={key}
           project={project}
           file={file}
           track={track}
-          jobs={track ? jobsForTrack[track.id] : null}
+          jobs={track ? jobsForTrack[track.trackId] : null}
           color={colors.shift() ?? 'black'}
           isReadOnly={isReadOnly}
           onRemoveFile={handleRemove}

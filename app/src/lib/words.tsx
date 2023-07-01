@@ -16,8 +16,8 @@ function allTaggedWords(words: Words, source: string, speakerName: string) {
 export function projectToEditorState(project: Project) {
   const allWords = sortBy(
     flatten(
-      Object.values(project.tracks).map(({ words, id, name }) =>
-        allTaggedWords(words, id, name ?? 'Speaker'),
+      Object.values(project.tracks).map(({ words, trackId, label }) =>
+        allTaggedWords(words, trackId, label ?? 'Speaker'),
       ),
     ),
     'start',

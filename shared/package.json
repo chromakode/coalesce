@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "dependencies": {
+    "kysely": "^0.25.0",
     "zod": "^3.21.4"
   }
 }

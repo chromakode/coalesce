@@ -4,9 +4,9 @@ import localForage from 'localforage'
 
 export function emptyProject(): Project {
   return {
-    id: '???',
+    projectId: '???',
+    createdAt: new Date(),
     title: 'empty',
-    slug: 'empty',
     hidden: false,
     tracks: {},
     jobs: {},

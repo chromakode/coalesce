@@ -6,7 +6,9 @@
     "semiColons": false
   },
   "imports": {
-    "@shared/": "../shared/",
+    "@shared/schema": "../shared/schema.ts",
+    "@shared/types": "../shared/types.ts",
+    "kysely": "npm:kysely@^0.25.0",
     "zod": "https://deno.land/x/zod@v3.21.4/mod.ts"
   }
 }

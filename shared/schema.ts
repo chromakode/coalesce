@@ -1,17 +1,28 @@
 import { z } from 'zod'
+import type { ColumnType, Generated, Selectable } from 'kysely'
 
-export const ProjectParams = z.object({
+export const ProjectFields = z.object({
   title: z.string().optional().default('Untitled'),
   hidden: z.boolean().optional().default(false),
 })
+export type ProjectFields = z.infer<typeof ProjectFields>
+export type ProjectFieldsInput = z.input<typeof ProjectFields>
 
-export type ProjectParams = z.infer<typeof ProjectParams>
-export type ProjectParamsInput = z.input<typeof ProjectParams>
+export interface ProjectTable extends ProjectFields {
+  projectId: string
+  createdAt: ColumnType<Date, undefined, never>
+}
+export type ProjectResult = Omit<Selectable<ProjectTable>, 'sid'>
 
-export const TrackParams = z.object({
-  name: z.string().optional(),
+export const TrackFields = z.object({
+  label: z.string().optional(),
   originalFilename: z.string(),
 })
+export type TrackFields = z.infer<typeof TrackFields>
+export type TrackFieldsInput = z.input<typeof TrackFields>
 
-export type TrackParams = z.infer<typeof TrackParams>
-export type TrackParamsInput = z.input<typeof TrackParams>
+export interface TrackTable extends TrackFields {
+  trackId: string
+  createdAt: ColumnType<Date, undefined, never>
+}
+export type TrackResult = Omit<Selectable<TrackTable>, 'sid'>
