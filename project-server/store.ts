@@ -86,7 +86,7 @@ async function* subscribeBuffer({
 
 export const storePath = {
   projectDocPath: (projectId: string) => path.join('project', projectId, 'doc'),
-  trackUploadPath: (trackId: string) => path.join(trackId, 'upload'),
+  trackUploadPath: (trackId: string) => path.join('track', trackId, 'upload'),
   trackDir: (trackId: string) => path.join('track', trackId) + '/',
   trackWords: (trackId: string) => path.join('track', trackId, 'words.json'),
   trackChunks: (trackId: string) => path.join('track', trackId, 'chunks.json'),
