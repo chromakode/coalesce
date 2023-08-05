@@ -5,11 +5,18 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 
 export const server = import.meta.env.VITE_PROJECT_SERVER
 
+function socketProto(): string {
+  return window.location.protocol === 'https:' ? 'wss' : 'ws'
+}
+
 export function projectSocket(projectId: string): ReconnectingWebSocket {
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   return new ReconnectingWebSocket(
-    `${proto}://${server}/project/${projectId}/ws`,
+    `${socketProto()}://${server}/project/${projectId}/ws`,
   )
+}
+
+export function collabSocketBase(): string {
+  return `${socketProto()}://${server}/project/`
 }
 
 export async function listProjects(): Promise<ProjectInfo[]> {

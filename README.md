@@ -23,7 +23,7 @@ Next up:
 - [x] Improve playback perf w/ incremental lookahead audio scheduler
 - [x] Highlight words as they're played
 - [x] Drag and drop files to transcribe and process
-- [ ] Collaborative editing
+- [x] Collaborative editing
 - [ ] Export separate audio tracks
 - [ ] Add sound clips
 

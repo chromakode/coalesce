@@ -19,7 +19,7 @@ import {
   VStack,
   useBoolean,
 } from '@chakra-ui/react'
-import { Project } from '@shared/types'
+import { Project, SoundLocation } from '@shared/types'
 import {
   cloneDeep,
   debounce,
@@ -47,7 +47,7 @@ import {
   MdPause,
   MdPlayArrow,
 } from 'react-icons/md'
-import { useAsync, usePrevious, useUpdateEffect } from 'react-use'
+import { useAsync } from 'react-use'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
@@ -64,14 +64,12 @@ import { WaveEditor } from '../components/WaveEditor'
 import AudioEngine, {
   AudioEngineStatus,
   OffsetSoundLocation,
-  SoundLocation,
   exportWAV,
   getTimeFromNodeKey,
   padLocation,
 } from '../lib/AudioEngine'
 import { playLocations } from '../lib/AudioScheduler'
 import { projectSocket, updateProject } from '../lib/api'
-import { loadProjectEditorState } from '../lib/project'
 import './ProjectPage.css'
 
 const WAVE_PADDING = 0.5
@@ -142,15 +140,10 @@ function useEngineStatus(engine: AudioEngine | null): AudioEngineStatus {
   return state
 }
 
-function useSavedEditorState(projectId: string) {
-  return useAsync(() => loadProjectEditorState(projectId), [projectId])
-}
-
 export default function ProjectPage({ projectId }: { projectId: string }) {
   const project = useSocket(projectId)
   const engine = useEngine(project)
   const engineStatus = useEngineStatus(engine)
-  const savedEditorState = useSavedEditorState(projectId)
   const editorRef = useRef<EditorRef | null>(null)
   const [selection, setSelection] = useState<{
     locs: SoundLocation[]
@@ -339,23 +332,6 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     [],
   )
 
-  // Regenerate transcript when tracks added/removed.
-  const transcriptionCount = project
-    ? Object.values(project.tracks).filter(({ words }) => words != null).length
-    : null
-  const prevTranscriptionCount = usePrevious(transcriptionCount)
-  useUpdateEffect(() => {
-    if (
-      !editorRef.current ||
-      !project ||
-      prevTranscriptionCount == null ||
-      transcriptionCount === prevTranscriptionCount
-    ) {
-      return
-    }
-    editorRef.current.resetEditorState(project)
-  }, [project, transcriptionCount, prevTranscriptionCount])
-
   const selectionBuffers = useAsync(async () => {
     if (!selection) {
       return []
@@ -516,11 +492,10 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                 },
               }}
             >
-              {hasTranscription && !savedEditorState.loading ? (
+              {hasTranscription ? (
                 <Editor
                   ref={editorRef}
                   project={project}
-                  savedEditorState={savedEditorState.value ?? null}
                   onSelect={handleSelect}
                   onMetricsUpdated={setMetrics}
                 />

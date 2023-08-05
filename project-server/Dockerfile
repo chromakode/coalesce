@@ -1,7 +1,8 @@
-FROM denoland/deno
+FROM denoland/deno:1.35.1
 
 WORKDIR /app/project-server
 
+COPY ./project-server/deno.jsonc ./
 COPY ./project-server/deps.ts ./
 
 RUN deno cache deps.ts
@@ -11,4 +12,4 @@ COPY ./shared ../shared/
 
 RUN deno cache main.ts
 
-CMD ["run", "--allow-net", "--allow-env", "--allow-read=/app/project-server/migrations", "main.ts"]
+CMD ["run", "--allow-net", "--allow-env", "--allow-read=/app/project-server/,/usr/bin/deno", "main.ts"]

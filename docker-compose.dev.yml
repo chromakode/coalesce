@@ -15,7 +15,7 @@ services:
       - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:4001}
 
   project-server:
-    command: run --watch --allow-net --allow-env --allow-read=/app/project-server/migrations main.ts
+    command: run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno main.ts
     volumes:
       - ./project-server:/app/project-server
       - ./shared:/app/shared

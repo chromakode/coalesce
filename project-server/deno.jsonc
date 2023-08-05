@@ -8,7 +8,11 @@
   "imports": {
     "@shared/schema": "../shared/schema.ts",
     "@shared/types": "../shared/types.ts",
+    "@shared/lexical": "../shared/lexical/index.ts",
+    "lexical": "https://esm.sh/lexical@0.11.3?pin=130&cjs-exports=createCommand,createEditor,ElementNode,TextNode,YText,$createParagraphNode,$createTextNode,$getRoot,$isRootNode,$isElementNode,$getNodeByKey,$isTextNode,$getSelection,$isRangeSelection",
+    "@lexical/rich-text": "https://esm.sh/@lexical/rich-text@0.11.3?pin=130&external=lexical&cjs-exports=HeadingNode",
     "kysely": "npm:kysely@^0.25.0",
+    "yjs": "npm:yjs@^13.6.6",
     "zod": "https://deno.land/x/zod@v3.21.4/mod.ts"
   }
 }

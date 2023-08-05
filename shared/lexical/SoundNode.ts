@@ -1,5 +1,6 @@
-import { EditorConfig, LexicalNode, NodeKey, TextNode } from 'lexical'
-import { SoundLocation } from '../lib/AudioEngine'
+import { SoundLocation } from '../types.ts'
+import { TextNode } from 'lexical'
+import type { EditorConfig, LexicalNode, NodeKey } from 'lexical'
 
 function isPlayingStyle(isPlaying: boolean) {
   return isPlaying ? '"GRAD" 150, "YOPQ" 100' : ''
@@ -22,7 +23,7 @@ export class SoundNode extends TextNode {
 
   constructor(text: string, loc: SoundLocation, key?: NodeKey) {
     super(text, key)
-    this.__soundLoc = { ...loc, key: this.getKey() }
+    this.__soundLoc = { ...loc }
     this.__isPlaying = false
   }
 
@@ -59,12 +60,12 @@ export class SoundNode extends TextNode {
 
   getSoundLocation() {
     const self = this.getLatest()
-    return self.__soundLoc
+    return { ...self.__soundLoc, key: this.getKey() }
   }
 
   setSoundLocation(loc: SoundLocation) {
     const self = this.getWritable()
-    self.__soundLoc = { ...loc, key: this.getKey() }
+    self.__soundLoc = { ...loc }
     return self
   }
 

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { ColumnType, Generated, Selectable } from 'kysely'
+import type { ColumnType, Selectable } from 'kysely'
 
 export const ProjectFields = z.object({
   title: z.string().optional().default('Untitled'),

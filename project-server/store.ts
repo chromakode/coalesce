@@ -1,14 +1,17 @@
+import { on } from 'node:events'
+import { Buffer as NodeBuffer } from 'node:buffer'
 import {
   path,
   pick,
-  redis,
   nanoidCustom,
   BodyStream,
   S3Errors,
   createHttpError,
   sql,
+  awarenessProtocol,
+  Y,
 } from './deps.ts'
-import { REDIS_URL, QUEUE_NAME } from './env.ts'
+import { QUEUE_NAME } from './env.ts'
 import {
   Job,
   ProjectInfo,
@@ -19,8 +22,9 @@ import {
   JobInfo,
 } from '@shared/types'
 import { ProjectFields, TrackFields } from '@shared/schema'
-import { db, redisClient, minioClient } from './main.ts'
-import { bucket, initMinioJS } from './service.ts'
+import { db, redisClient, minioClient, redlock } from './main.ts'
+import { bucket, initMinioJS, initRedis } from './service.ts'
+import { projectToYDoc } from './editorState.ts'
 
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
 export const generateId = nanoidCustom(nanoidAlphabet, 20)
@@ -39,7 +43,49 @@ async function readJSON(path: string) {
   }
 }
 
+async function* psubscribe(pattern: string) {
+  const redisPubSub = initRedis()
+  redisPubSub.psubscribe(pattern)
+
+  try {
+    const updates: AsyncIterableIterator<
+      [pattern: string, channel: string, message: string]
+    > = on(redisPubSub, 'pmessage')
+    for await (const [_pattern, _channel, message] of updates) {
+      yield message
+    }
+  } finally {
+    redisPubSub.disconnect()
+  }
+}
+
+async function* subscribeBuffer({
+  pattern,
+  ignoreChannel,
+}: {
+  pattern: string
+  ignoreChannel?: string
+}) {
+  const redisPubSub = initRedis()
+  redisPubSub.subscribe(pattern)
+
+  try {
+    const updates: AsyncIterableIterator<
+      [pattern: string, channel: string, message: NodeBuffer]
+    > = on(redisPubSub, 'messageBuffer')
+    for await (const [_pattern, channel, message] of updates) {
+      if (ignoreChannel !== undefined && channel === ignoreChannel) {
+        continue
+      }
+      yield message
+    }
+  } finally {
+    redisPubSub.disconnect()
+  }
+}
+
 export const storePath = {
+  projectDocPath: (projectId: string) => path.join('project', projectId, 'doc'),
   trackUploadPath: (trackId: string) => path.join(trackId, 'upload'),
   trackDir: (trackId: string) => path.join('track', trackId) + '/',
   trackWords: (trackId: string) => path.join('track', trackId, 'words.json'),
@@ -73,17 +119,11 @@ export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
 }
 
 export async function* watchProject(projectId: string) {
-  // Work around https://github.com/denodrivers/redis/issues/390
-  const redisPubSub = await redis.connect(redis.parseURL(REDIS_URL))
-
-  const sub = await redisPubSub.psubscribe(`project:${projectId}*`)
-
-  const deletedTracks = new Set()
-
   // TODO: Manual partial updates to project object. Replace with JSON diff and
   // brute force reload project state on any event?
-  for await (const recv of sub.receive()) {
-    const msg = JSON.parse(recv.message)
+  const deletedTracks = new Set()
+  for await (const msgStr of psubscribe(`project:${projectId}*`)) {
+    const msg = JSON.parse(msgStr)
     if (msg.type === 'job-status') {
       if (deletedTracks.has(msg.track)) {
         continue
@@ -137,10 +177,11 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
 
   let nextCursor = 0
   do {
-    // FIXME: https://github.com/denodrivers/redis/issues/391
-    const [cursor, keys] = await redisClient.scan(nextCursor, {
-      pattern: `project:${projectId}.job.*`,
-    })
+    const [cursor, keys] = await redisClient.scan(
+      nextCursor,
+      'MATCH',
+      `project:${projectId}.job.*`,
+    )
     nextCursor = Number(cursor)
 
     if (!keys.length) {
@@ -159,6 +200,89 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
   } while (nextCursor != 0)
 
   return jobs
+}
+
+export async function getAwarenessData(
+  projectId: string,
+): Promise<Uint8Array | null> {
+  return await redisClient.getBuffer(`project:${projectId}.awareness`)
+}
+
+export async function setAwarenessData(projectId: string, data: Uint8Array) {
+  await redisClient.set(
+    `project:${projectId}.awareness`,
+    NodeBuffer.from(data),
+    'EX',
+    awarenessProtocol.outdatedTimeout,
+  )
+}
+
+export async function getCollabDoc(
+  projectId: string,
+): Promise<Uint8Array | null> {
+  try {
+    const resp = await minioClient.getObject(
+      storePath.projectDocPath(projectId),
+    )
+    const ab = await resp.arrayBuffer()
+    return new Uint8Array(ab)
+  } catch (err) {
+    if (err instanceof S3Errors.ServerError && err.code === 'NoSuchKey') {
+      return null
+    } else {
+      throw err
+    }
+  }
+}
+
+export async function generateCollabDoc(
+  projectId: string,
+  baseDoc?: Uint8Array,
+): Promise<Uint8Array> {
+  const project = await getProjectState(projectId)
+  const doc = await projectToYDoc(project, baseDoc)
+  return Y.encodeStateAsUpdate(doc)
+}
+
+// TODO update doc when track finishes uploading which saves doc w/ replacement and broadcasts update
+
+export async function saveCollabDoc(projectId: string, data: Uint8Array) {
+  await redlock.using([projectId], 5000, async () => {
+    // Merge existing data with update (with gc) and store.
+    const mergeDoc = new Y.Doc({ gc: true })
+
+    const currentData = await getCollabDoc(projectId)
+    if (currentData !== null) {
+      Y.applyUpdate(mergeDoc, currentData)
+    }
+    Y.applyUpdate(mergeDoc, data)
+
+    const mergeData = Y.encodeStateAsUpdate(mergeDoc)
+    await minioClient.putObject(storePath.projectDocPath(projectId), mergeData)
+  })
+}
+
+export async function* watchProjectCollab(
+  projectId: string,
+  awarenessId: number,
+) {
+  for await (const buf of subscribeBuffer({
+    pattern: `project-collab:${projectId}*`,
+    ignoreChannel: `project-collab:${projectId}@${awarenessId}`,
+  })) {
+    yield buf
+  }
+}
+
+export async function publishProjectCollab(
+  projectId: string,
+  awarenessId: number,
+  data: ArrayBuffer,
+) {
+  await redisClient.publish(
+    `project-collab:${projectId}@${awarenessId}`,
+    NodeBuffer.from(data),
+  )
 }
 
 export async function getTrackInfo(trackId: string): Promise<TrackInfo> {

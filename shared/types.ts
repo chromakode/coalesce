@@ -1,4 +1,4 @@
-import { ProjectResult, TrackResult } from '@shared/schema'
+import { ProjectResult, TrackResult } from './schema.ts'
 
 export interface Word {
   text: string
@@ -67,3 +67,11 @@ export type JobInfo = Pick<
   JobState,
   'id' | 'project' | 'track' | 'task' | 'state'
 >
+
+export interface SoundLocation {
+  key?: string
+  source: string
+  start: number
+  end: number
+  children?: SoundLocation[]
+}

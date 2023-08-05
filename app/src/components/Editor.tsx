@@ -1,4 +1,5 @@
 import { HEADING } from '@lexical/markdown'
+import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin'
 import {
   InitialConfigType,
   LexicalComposer,
@@ -10,19 +11,23 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { HeadingNode } from '@lexical/rich-text'
-import type { Project } from '@shared/types'
+import { $isSoundNode, SoundNode, lexicalNodes } from '@shared/lexical'
+import { WebsocketProvider } from 'y-websocket'
+import * as Y from 'yjs'
+
+import { ExcludedProperties, Provider } from '@lexical/yjs'
+import type { Project, SoundLocation } from '@shared/types'
 import {
   $getNodeByKey,
   $getRoot,
   $getSelection,
   EditorState,
   LexicalEditor,
-  SerializedEditorState,
 } from 'lexical'
 import { debounce, mapValues } from 'lodash-es'
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -30,14 +35,14 @@ import {
 } from 'react'
 import {
   OffsetSoundLocation,
-  SoundLocation,
   getEndTime,
   getNodeKeyToLoc,
   processLocations,
 } from '../lib/AudioEngine'
-import { saveProjectEditorState } from '../lib/project'
-import { projectToEditorState } from '../lib/words'
-import { $isSoundNode, SoundNode } from './SoundNode'
+import { collabSocketBase } from '../lib/api'
+
+const excludedProperties: ExcludedProperties = new Map()
+excludedProperties.set(SoundNode, new Set(['__isPlaying']))
 
 function onError(error: Error) {
   console.error(error)
@@ -56,7 +61,6 @@ export type SoundNodeData = ReturnType<SoundNode['exportJSON']> & {
 export interface EditorRef {
   colorMap: Record<string, string>
   getEditor: () => LexicalEditor | null
-  resetEditorState: (project: Project) => void
   updateSoundNode: (key: string, loc: Partial<SoundLocation>) => void
   setSoundNodePlaying: (key: string, isPlaying: boolean) => void
   scrollToKey: (key: string) => void
@@ -70,7 +74,6 @@ export interface EditorMetrics {
 
 export interface EditorProps {
   project: Project
-  savedEditorState: SerializedEditorState | null
   onSelect?: (locs: OffsetSoundLocation[], nodes: SoundNodeData[]) => void
   onMetricsUpdated?: (metrics: EditorMetrics) => void
 }
@@ -85,7 +88,7 @@ export const COLOR_ORDER = [
 ]
 
 export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
-  { project, savedEditorState, onSelect, onMetricsUpdated },
+  { project, onSelect, onMetricsUpdated },
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null)
@@ -97,13 +100,9 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   }, [project])
 
   const initialConfig: InitialConfigType = useMemo(() => {
-    const editorState = savedEditorState
-      ? (editor: LexicalEditor) =>
-          editor.setEditorState(editor.parseEditorState(savedEditorState))
-      : projectToEditorState(project)
-
     return {
-      namespace: 'Coalesce',
+      namespace: 'coalesce',
+      nodes: lexicalNodes,
       theme: {
         ltr: 'ltr',
         rtl: 'rtl',
@@ -112,10 +111,9 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         sourceColors: colorMap,
       },
       onError,
-      nodes: [SoundNode, HeadingNode],
-      editorState,
+      editorState: null, // CollaborationPlugin will set editor state
     }
-  }, [project, savedEditorState])
+  }, [project])
 
   function getAllSoundLocations() {
     return (
@@ -139,9 +137,6 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         colorMap,
         getEditor() {
           return editorRef.current
-        },
-        resetEditorState(project: Project) {
-          editorRef.current?.update(projectToEditorState(project))
         },
         updateSoundNode(key, locUpdate) {
           editorRef.current?.update(() => {
@@ -213,15 +208,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   },
   150)
 
-  const saveEditorState = debounce(function saveEditorState() {
-    const editorState = editorRef.current?.getEditorState()
-    if (editorState && !editorState.isEmpty()) {
-      saveProjectEditorState(project.projectId, editorState.toJSON())
-    }
-  }, 1000)
-
   const handleChange = debounce(function handleChange() {
-    saveEditorState()
     const allLocs = getAllSoundLocations()
     const endTime = getEndTime(allLocs)
     if (endTime === null) {
@@ -235,6 +222,21 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   }, 500)
 
   useEffect(handleChange, [])
+
+  const createWebsocketProvider = useCallback(
+    (id: string, yjsDocMap: Map<string, Y.Doc>) => {
+      const doc = new Y.Doc()
+      yjsDocMap.set(id, doc)
+
+      const provider = new WebsocketProvider(collabSocketBase(), id, doc, {
+        connect: false,
+      })
+
+      // Lexical's type is stricter than YJS's :(
+      return provider as unknown as Provider
+    },
+    [],
+  )
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
@@ -252,6 +254,13 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       <HistoryPlugin />
       <MarkdownShortcutPlugin transformers={[HEADING]} />
       <RefPlugin editorRef={editorRef} />
+      <CollaborationPlugin
+        id={`${project.projectId}/collab`}
+        providerFactory={createWebsocketProvider}
+        username="Editor"
+        excludedProperties={excludedProperties}
+        shouldBootstrap={false}
+      />
     </LexicalComposer>
   )
 })

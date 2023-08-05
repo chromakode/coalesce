@@ -1,4 +1,4 @@
-import { Project } from '@shared/types'
+import { Project, SoundLocation } from '@shared/types'
 import audioBufferToWav from 'audiobuffer-to-wav'
 import { groupBy, last, sortBy } from 'lodash-es'
 import { LRUCache } from 'lru-cache'
@@ -6,14 +6,6 @@ import mitt from 'mitt'
 import { AudioScheduler, AudioTask, SCHEDULER_BUFFER_S } from './AudioScheduler'
 import { chunkURL } from './api'
 import { emptyProject } from './project'
-
-export interface SoundLocation {
-  key?: string
-  source: string
-  start: number
-  end: number
-  children?: SoundLocation[]
-}
 
 export interface OffsetSoundLocation extends SoundLocation {
   offset: number

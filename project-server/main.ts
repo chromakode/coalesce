@@ -1,7 +1,6 @@
 import { Application, Router, oakCors } from './deps.ts'
 import { APP_ORIGIN, PROJECT_SERVER_PORT } from './env.ts'
 import {
-  getProjectState,
   watchProject,
   getProjectInfo,
   updateProject,
@@ -15,30 +14,46 @@ import {
   getTrackInfo,
 } from './store.ts'
 import { ProjectFields, TrackFields } from '../shared/schema.ts'
-import { initMinio, initPostgres, initRedis } from './service.ts'
+import { initMinio, initPostgres, initRedis, initRedlock } from './service.ts'
+import { pushProjectUpdates, runCollab } from './socket.ts'
 
 export const db = await initPostgres()
 export const redisClient = await initRedis()
+export const redlock = await initRedlock(redisClient)
 export const minioClient = await initMinio()
 
 const app = new Application()
 
+async function socketReady(ws: WebSocket) {
+  if (ws.readyState !== ws.OPEN) {
+    await new Promise((resolve) =>
+      ws.addEventListener('open', resolve, { once: true }),
+    )
+  }
+}
+
 const projectRouter = new Router()
   .get('/ws', async (ctx) => {
+    const { project } = ctx.state
+
     if (!ctx.isUpgradable) {
       ctx.throw(501)
     }
 
     const ws = ctx.upgrade()
-
+    await socketReady(ws)
+    await pushProjectUpdates(project, ws)
+  })
+  .get('/collab', async (ctx) => {
     const { project } = ctx.state
 
-    const projectState = await getProjectState(project)
-    ws.send(JSON.stringify({ type: 'project:data', data: projectState }))
-
-    for await (const message of watchProject(project)) {
-      ws.send(message)
+    if (!ctx.isUpgradable) {
+      ctx.throw(501)
     }
+
+    const ws = ctx.upgrade()
+    await socketReady(ws)
+    await runCollab(project, ws)
   })
   .put('/', async (ctx) => {
     const body = await ctx.request.body({ type: 'json' }).value
