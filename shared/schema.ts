@@ -16,7 +16,6 @@ export type ProjectResult = Omit<Selectable<ProjectTable>, 'sid'>
 
 export const TrackFields = z.object({
   label: z.string().optional(),
-  originalFilename: z.string(),
 })
 export type TrackFields = z.infer<typeof TrackFields>
 export type TrackFieldsInput = z.input<typeof TrackFields>
@@ -24,5 +23,6 @@ export type TrackFieldsInput = z.input<typeof TrackFields>
 export interface TrackTable extends TrackFields {
   trackId: string
   createdAt: ColumnType<Date, undefined, never>
+  originalFilename: string
 }
 export type TrackResult = Omit<Selectable<TrackTable>, 'sid'>

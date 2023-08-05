@@ -112,11 +112,12 @@ function TrackUpload({
     uploadRef.current = uploadTrack(project.projectId, file, setUploadProgress)
     uploadRef.current.result.then(({ trackId }) => {
       trackIdRef.current = trackId
-      updateTrack(project.projectId, trackId, {
-        label: labelRef.current,
-        originalFilename: file.name,
-      })
       uploadRef.current = undefined
+      if (labelRef.current) {
+        updateTrack(project.projectId, trackId, {
+          label: labelRef.current,
+        })
+      }
     })
   }, [file])
 
@@ -144,7 +145,6 @@ function TrackUpload({
         if (track) {
           updateTrack(project.projectId, track.trackId, {
             label,
-            originalFilename: track?.originalFilename,
           })
         }
       }, 500),
