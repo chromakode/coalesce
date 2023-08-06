@@ -69,8 +69,10 @@ export async function initPostgres() {
   return db
 }
 
-export function initRedis() {
-  return new redis.Redis(REDIS_URL)
+export async function initRedis() {
+  const client = redis.createClient({ url: REDIS_URL })
+  await client.connect()
+  return client
 }
 
 const minioURL = new URL(MINIO_ENDPOINT)
@@ -108,7 +110,8 @@ export async function initMinio() {
   return client
 }
 
-export function initRedlock(redisClient: redis.Redis) {
+export async function initRedlock() {
+  const redisClient = await initRedis()
   return new Redlock([redisClient])
 }
 

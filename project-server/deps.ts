@@ -44,7 +44,7 @@ export { default as pg } from 'npm:pg@^8.11.1'
 
 export * as Minio from 'npm:minio@^7.1.1'
 
-export * as redis from 'npm:ioredis@^5.3.2'
+export * as redis from 'npm:redis@^4.6.7'
 
 export { default as Redlock } from 'npm:redlock@^5.0.0-beta.2'
 

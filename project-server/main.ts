@@ -19,7 +19,7 @@ import { pushProjectUpdates, runCollab } from './socket.ts'
 
 export const db = await initPostgres()
 export const redisClient = await initRedis()
-export const redlock = await initRedlock(redisClient)
+export const redlock = await initRedlock()
 export const minioClient = await initMinio()
 
 const app = new Application()

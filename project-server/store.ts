@@ -10,6 +10,7 @@ import {
   sql,
   awarenessProtocol,
   Y,
+  EventIterator,
 } from './deps.ts'
 import { QUEUE_NAME } from './env.ts'
 import {
@@ -43,22 +44,6 @@ async function readJSON(path: string) {
   }
 }
 
-async function* psubscribe(pattern: string) {
-  const redisPubSub = initRedis()
-  redisPubSub.psubscribe(pattern)
-
-  try {
-    const updates: AsyncIterableIterator<
-      [pattern: string, channel: string, message: string]
-    > = on(redisPubSub, 'pmessage')
-    for await (const [_pattern, _channel, message] of updates) {
-      yield message
-    }
-  } finally {
-    redisPubSub.disconnect()
-  }
-}
-
 async function* subscribeBuffer({
   pattern,
   ignoreChannel,
@@ -66,21 +51,27 @@ async function* subscribeBuffer({
   pattern: string
   ignoreChannel?: string
 }) {
-  const redisPubSub = initRedis()
-  redisPubSub.subscribe(pattern)
-
-  try {
-    const updates: AsyncIterableIterator<
-      [pattern: string, channel: string, message: NodeBuffer]
-    > = on(redisPubSub, 'messageBuffer')
-    for await (const [_pattern, channel, message] of updates) {
-      if (ignoreChannel !== undefined && channel === ignoreChannel) {
-        continue
+  const redisPubSub = await initRedis()
+  const iter = new EventIterator<[message: NodeBuffer, channel: NodeBuffer]>(
+    (queue) => {
+      redisPubSub.on('error', queue.fail)
+      redisPubSub.pSubscribe(
+        pattern,
+        (message, buffer) => queue.push([message, buffer]),
+        true,
+      )
+      return () => {
+        redisPubSub.pUnsubscribe()
+        redisPubSub.disconnect()
       }
-      yield message
+    },
+  )
+
+  for await (const [message, channel] of iter) {
+    if (ignoreChannel !== undefined && channel.toString() === ignoreChannel) {
+      continue
     }
-  } finally {
-    redisPubSub.disconnect()
+    yield message
   }
 }
 
@@ -105,7 +96,7 @@ export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
   )
 
   // Enqueue the job
-  await redisClient.lpush(QUEUE_NAME, JSON.stringify(job))
+  await redisClient.lPush(QUEUE_NAME, JSON.stringify(job))
 
   // Notify that job was created
   await redisClient.publish(
@@ -122,8 +113,10 @@ export async function* watchProject(projectId: string) {
   // TODO: Manual partial updates to project object. Replace with JSON diff and
   // brute force reload project state on any event?
   const deletedTracks = new Set()
-  for await (const msgStr of psubscribe(`project:${projectId}*`)) {
-    const msg = JSON.parse(msgStr)
+  for await (const msgBuf of subscribeBuffer({
+    pattern: `project:${projectId}*`,
+  })) {
+    const msg = JSON.parse(msgBuf.toString())
     if (msg.type === 'job-status') {
       if (deletedTracks.has(msg.track)) {
         continue
@@ -177,18 +170,16 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
 
   let nextCursor = 0
   do {
-    const [cursor, keys] = await redisClient.scan(
-      nextCursor,
-      'MATCH',
-      `project:${projectId}.job.*`,
-    )
+    const { cursor, keys } = await redisClient.scan(nextCursor, {
+      MATCH: `project:${projectId}.job.*`,
+    })
     nextCursor = Number(cursor)
 
     if (!keys.length) {
       continue
     }
 
-    const values = await redisClient.mget(...keys)
+    const values = await redisClient.mGet(keys)
     for (const jobDataText of values) {
       if (jobDataText == null) {
         continue
@@ -205,15 +196,19 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
 export async function getAwarenessData(
   projectId: string,
 ): Promise<Uint8Array | null> {
-  return await redisClient.getBuffer(`project:${projectId}.awareness`)
+  return await redisClient.get(
+    redisClient.commandOptions({
+      returnBuffers: true,
+    }),
+    `project:${projectId}.awareness`,
+  )
 }
 
 export async function setAwarenessData(projectId: string, data: Uint8Array) {
   await redisClient.set(
     `project:${projectId}.awareness`,
     NodeBuffer.from(data),
-    'EX',
-    awarenessProtocol.outdatedTimeout,
+    { EX: awarenessProtocol.outdatedTimeout },
   )
 }
 
