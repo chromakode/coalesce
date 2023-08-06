@@ -1,4 +1,3 @@
-import { Buffer as NodeBuffer } from 'node:buffer'
 import {
   debounce,
   pThrottle,
@@ -186,7 +185,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
   }
 
   // Messages from other server instances via redis pubsub
-  async function handleReceiveFromPeer(msg: NodeBuffer) {
+  async function handleReceiveFromPeer(msg: Uint8Array) {
     const decoder = decoding.createDecoder(msg)
     const messageType = decoding.readVarUint(decoder)
     switch (messageType) {

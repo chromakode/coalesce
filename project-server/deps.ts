@@ -10,6 +10,8 @@ export {
 } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 export type { BodyStream } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 
+export * as redis from 'https://deno.land/x/redis@v0.31.0/mod.ts'
+
 export { customAlphabet as nanoidCustom } from 'https://deno.land/x/nanoid@v3.0.0/mod.ts'
 
 export { slug } from 'https://deno.land/x/slug@v1.1.0/mod.ts'
@@ -42,8 +44,6 @@ export { default as pg } from 'pg'
 export { default as advisoryLock } from 'https://esm.sh/advisory-lock@2.0.0?pin=130&external=pg'
 
 export * as Minio from 'npm:minio@^7.1.1'
-
-export * as redis from 'npm:redis@^4.6.7'
 
 // @deno-types="npm:@types/lodash@^4.14.195"
 export { flatten, pick, sortBy } from 'npm:lodash-es@^4.17.21'

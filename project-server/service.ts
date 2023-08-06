@@ -74,9 +74,7 @@ export function initPostgresLock() {
 }
 
 export async function initRedis() {
-  const client = redis.createClient({ url: REDIS_URL })
-  await client.connect()
-  return client
+  return await redis.connect(redis.parseURL(REDIS_URL))
 }
 
 const minioURL = new URL(MINIO_ENDPOINT)

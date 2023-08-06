@@ -10,7 +10,6 @@ import {
   sql,
   awarenessProtocol,
   Y,
-  EventIterator,
 } from './deps.ts'
 import { QUEUE_NAME } from './env.ts'
 import {
@@ -44,36 +43,6 @@ async function readJSON(path: string) {
   }
 }
 
-async function* subscribeBuffer({
-  pattern,
-  ignoreChannel,
-}: {
-  pattern: string
-  ignoreChannel?: string
-}) {
-  const redisPubSub = await initRedis()
-  const iter = new EventIterator<[message: NodeBuffer, channel: NodeBuffer]>(
-    (queue) => {
-      redisPubSub.on('error', queue.fail)
-      redisPubSub.pSubscribe(
-        pattern,
-        (message, buffer) => queue.push([message, buffer]),
-        true,
-      )
-      return () => {
-        redisPubSub.disconnect()
-      }
-    },
-  )
-
-  for await (const [message, channel] of iter) {
-    if (ignoreChannel !== undefined && channel.toString() === ignoreChannel) {
-      continue
-    }
-    yield message
-  }
-}
-
 export const storePath = {
   projectDocPath: (projectId: string) => path.join('project', projectId, 'doc'),
   trackUploadPath: (trackId: string) => path.join('track', trackId, 'upload'),
@@ -95,7 +64,7 @@ export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
   )
 
   // Enqueue the job
-  await redisClient.lPush(QUEUE_NAME, JSON.stringify(job))
+  await redisClient.lpush(QUEUE_NAME, JSON.stringify(job))
 
   // Notify that job was created
   await redisClient.publish(
@@ -109,54 +78,60 @@ export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
 }
 
 export async function* watchProject(projectId: string) {
-  // TODO: Manual partial updates to project object. Replace with JSON diff and
-  // brute force reload project state on any event?
-  const deletedTracks = new Set()
-  for await (const msgBuf of subscribeBuffer({
-    pattern: `project:${projectId}*`,
-  })) {
-    const msg = JSON.parse(msgBuf.toString())
-    if (msg.type === 'job-status') {
-      if (deletedTracks.has(msg.track)) {
-        continue
-      }
-      yield JSON.stringify({
-        type: 'project:update',
-        path: `jobs.${msg.id}.state`,
-        data: msg.state,
-      })
-      if (msg.state.status === 'complete') {
+  const redisPubSub = await initRedis()
+
+  try {
+    const sub = await redisPubSub.psubscribe(`project:${projectId}*`)
+
+    // TODO: Manual partial updates to project object. Replace with JSON diff and
+    // brute force reload project state on any event?
+    const deletedTracks = new Set()
+    for await (const { message: rawMsg } of sub.receive()) {
+      const msg = JSON.parse(rawMsg)
+      if (msg.type === 'job-status') {
+        if (deletedTracks.has(msg.track)) {
+          continue
+        }
         yield JSON.stringify({
           type: 'project:update',
-          path: `tracks.${msg.track}`,
-          data: await getTrackState(msg.track),
+          path: `jobs.${msg.id}.state`,
+          data: msg.state,
+        })
+        if (msg.state.status === 'complete') {
+          yield JSON.stringify({
+            type: 'project:update',
+            path: `tracks.${msg.track}`,
+            data: await getTrackState(msg.track),
+          })
+        }
+      } else if (msg.type === 'job-created') {
+        yield JSON.stringify({
+          type: 'project:update',
+          path: `jobs.${msg.job.id}`,
+          data: serializeJobInfo(msg.job),
+        })
+      } else if (msg.type === 'project-updated') {
+        yield JSON.stringify({
+          type: 'project:update',
+          data: msg.update,
+        })
+      } else if (msg.type === 'track-updated') {
+        yield JSON.stringify({
+          type: 'project:update',
+          path: `tracks.${msg.trackId}`,
+          data: { trackId: msg.trackId, ...msg.update },
+        })
+      } else if (msg.type === 'track-deleted') {
+        deletedTracks.add(msg.id)
+        yield JSON.stringify({
+          type: 'project:update',
+          path: `tracks.${msg.id}`,
+          data: null,
         })
       }
-    } else if (msg.type === 'job-created') {
-      yield JSON.stringify({
-        type: 'project:update',
-        path: `jobs.${msg.job.id}`,
-        data: serializeJobInfo(msg.job),
-      })
-    } else if (msg.type === 'project-updated') {
-      yield JSON.stringify({
-        type: 'project:update',
-        data: msg.update,
-      })
-    } else if (msg.type === 'track-updated') {
-      yield JSON.stringify({
-        type: 'project:update',
-        path: `tracks.${msg.trackId}`,
-        data: { trackId: msg.trackId, ...msg.update },
-      })
-    } else if (msg.type === 'track-deleted') {
-      deletedTracks.add(msg.id)
-      yield JSON.stringify({
-        type: 'project:update',
-        path: `tracks.${msg.id}`,
-        data: null,
-      })
     }
+  } finally {
+    redisPubSub.close()
   }
 }
 
@@ -169,8 +144,9 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
 
   let nextCursor = 0
   do {
-    const { cursor, keys } = await redisClient.scan(nextCursor, {
-      MATCH: `project:${projectId}.job.*`,
+    // FIXME: https://github.com/denodrivers/redis/issues/391
+    const [cursor, keys] = await redisClient.scan(nextCursor, {
+      pattern: `project:${projectId}.job.*`,
     })
     nextCursor = Number(cursor)
 
@@ -178,7 +154,7 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
       continue
     }
 
-    const values = await redisClient.mGet(keys)
+    const values = await redisClient.mget(...keys)
     for (const jobDataText of values) {
       if (jobDataText == null) {
         continue
@@ -195,19 +171,18 @@ async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
 export async function getAwarenessData(
   projectId: string,
 ): Promise<Uint8Array | null> {
-  return await redisClient.get(
-    redisClient.commandOptions({
-      returnBuffers: true,
-    }),
-    `project:${projectId}.awareness`,
-  )
+  return (await redisClient.sendCommand(
+    'GET',
+    [`project:${projectId}.awareness`],
+    { returnUint8Arrays: true },
+  )) as Uint8Array
 }
 
 export async function setAwarenessData(projectId: string, data: Uint8Array) {
-  await redisClient.set(
+  await redisClient.setex(
     `project:${projectId}.awareness`,
+    awarenessProtocol.outdatedTimeout,
     NodeBuffer.from(data),
-    { EX: awarenessProtocol.outdatedTimeout },
   )
 }
 
@@ -262,11 +237,20 @@ export async function* watchProjectCollab(
   projectId: string,
   awarenessId: number,
 ) {
-  for await (const buf of subscribeBuffer({
-    pattern: `project-collab:${projectId}*`,
-    ignoreChannel: `project-collab:${projectId}@${awarenessId}`,
-  })) {
-    yield buf
+  const redisPubSub = await initRedis()
+  const ownChannel = `project-collab:${projectId}@${awarenessId}`
+
+  try {
+    const sub = await redisPubSub.psubscribe(`project-collab:${projectId}*`)
+
+    for await (const { channel, message } of sub.receiveBuffers()) {
+      if (channel === ownChannel) {
+        continue
+      }
+      yield message
+    }
+  } finally {
+    redisPubSub.close()
   }
 }
 
