@@ -236,7 +236,12 @@ export async function coalesceCollabDoc(
   )
 
   for (const seenKey of seenKeys) {
-    await minioClient.deleteObject(seenKey)
+    try {
+      await minioClient.deleteObject(seenKey)
+    } catch (err) {
+      console.warn('Error deleting collab doc version', seenKey, err)
+      continue
+    }
   }
 
   return mergeData
