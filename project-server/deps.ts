@@ -39,9 +39,7 @@ export { default as lexicalYjs } from 'https://esm.sh/@lexical/yjs@0.11.3?pin=13
 export { createHeadlessEditor } from 'https://esm.sh/@lexical/headless@0.11.3?pin=130&external=lexical&cjs-exports=createHeadlessEditor'
 
 // @deno-types="npm:@types/pg@^8.10.2"
-export { default as pg } from 'pg'
-
-export { default as advisoryLock } from 'https://esm.sh/advisory-lock@2.0.0?pin=130&external=pg'
+export { default as pg } from 'npm:pg@^8.11.1'
 
 export * as Minio from 'npm:minio@^7.1.1'
 

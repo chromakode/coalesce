@@ -22,7 +22,7 @@ import {
   JobInfo,
 } from '@shared/types'
 import { ProjectFields, TrackFields } from '@shared/schema'
-import { db, lock, redisClient, minioClient } from './main.ts'
+import { db, redisClient, minioClient } from './main.ts'
 import { bucket, initMinioJS, initRedis } from './service.ts'
 import { projectToYDoc } from './editorState.ts'
 
@@ -44,7 +44,8 @@ async function readJSON(path: string) {
 }
 
 export const storePath = {
-  projectDocPath: (projectId: string) => path.join('project', projectId, 'doc'),
+  projectDocPath: (projectId: string, versionId: string) =>
+    path.join('project', projectId, 'doc', versionId),
   trackUploadPath: (trackId: string) => path.join('track', trackId, 'upload'),
   trackDir: (trackId: string) => path.join('track', trackId) + '/',
   trackWords: (trackId: string) => path.join('track', trackId, 'words.json'),
@@ -186,22 +187,58 @@ export async function setAwarenessData(projectId: string, data: Uint8Array) {
   )
 }
 
-export async function getCollabDoc(
+export async function coalesceCollabDoc(
   projectId: string,
 ): Promise<Uint8Array | null> {
-  try {
-    const resp = await minioClient.getObject(
-      storePath.projectDocPath(projectId),
-    )
-    const ab = await resp.arrayBuffer()
-    return new Uint8Array(ab)
-  } catch (err) {
-    if (err instanceof S3Errors.ServerError && err.code === 'NoSuchKey') {
-      return null
-    } else {
-      throw err
+  // Merging fetcher to allow lock-free persistince.
+  //
+  // Minio guarantees strict list-after-write behavior:
+  // https://github.com/minio/minio/blob/master/docs/distributed/README.md#consistency-guarantees
+  //
+  // To get the latest version of the doc:
+  // 1. Fetch all versions in the bucket and merge together
+  // 2. Write new merged version
+  // 3. Delete seen old versions
+  let mergeDoc = null
+  const seenKeys = []
+
+  for await (const entry of minioClient.listObjects({
+    prefix: storePath.projectDocPath(projectId, ''),
+  })) {
+    if (mergeDoc === null) {
+      mergeDoc = new Y.Doc({ gc: true })
+    }
+
+    try {
+      const resp = await minioClient.getObject(entry.key)
+      const ab = await resp.arrayBuffer()
+      Y.applyUpdate(mergeDoc, new Uint8Array(ab))
+      seenKeys.push(entry.key)
+    } catch (err) {
+      console.warn('Error fetching collab doc version', entry.key, err)
+      continue
     }
   }
+
+  if (mergeDoc === null) {
+    return null
+  }
+
+  const mergeData = Y.encodeStateAsUpdate(mergeDoc)
+
+  // If only one version exists, no need to delete and recreate
+  if (seenKeys.length > 1) {
+    await minioClient.putObject(
+      storePath.projectDocPath(projectId, generateId()),
+      mergeData,
+    )
+
+    for (const seenKey of seenKeys) {
+      await minioClient.deleteObject(seenKey)
+    }
+  }
+
+  return mergeData
 }
 
 export async function generateCollabDoc(
@@ -216,21 +253,14 @@ export async function generateCollabDoc(
 // TODO update doc when track finishes uploading which saves doc w/ replacement and broadcasts update
 
 export async function saveCollabDoc(projectId: string, data: Uint8Array) {
-  // FIXME: Would prefer to use redlock for this, but ioredis is incompatible
-  // with Deno 1.36.0.
-  await lock(projectId).withLock(async () => {
-    // Merge existing data with update (with gc) and store.
-    const mergeDoc = new Y.Doc({ gc: true })
+  // Store the doc w/ a random version id
+  await minioClient.putObject(
+    storePath.projectDocPath(projectId, generateId()),
+    data,
+  )
 
-    const currentData = await getCollabDoc(projectId)
-    if (currentData !== null) {
-      Y.applyUpdate(mergeDoc, currentData)
-    }
-    Y.applyUpdate(mergeDoc, data)
-
-    const mergeData = Y.encodeStateAsUpdate(mergeDoc)
-    await minioClient.putObject(storePath.projectDocPath(projectId), mergeData)
-  })
+  // Merge existing versions together
+  coalesceCollabDoc(projectId)
 }
 
 export async function* watchProjectCollab(

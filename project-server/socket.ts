@@ -11,7 +11,7 @@ import {
 import {
   generateCollabDoc,
   getAwarenessData,
-  getCollabDoc,
+  coalesceCollabDoc,
   getProjectState,
   publishProjectCollab,
   saveCollabDoc,
@@ -235,7 +235,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
 
   const [awarenessData, storedDoc] = await Promise.all([
     getAwarenessData(projectId),
-    getCollabDoc(projectId),
+    coalesceCollabDoc(projectId),
   ])
 
   const docData = storedDoc ?? (await generateCollabDoc(projectId))

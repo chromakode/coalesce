@@ -12,7 +12,6 @@ import {
   MigrationProvider,
   Migration,
   CamelCasePlugin,
-  advisoryLock,
 } from './deps.ts'
 
 import { REDIS_URL, MINIO_ENDPOINT, POSTGRES_URL } from './env.ts'
@@ -67,10 +66,6 @@ export async function initPostgres() {
   }
 
   return db
-}
-
-export function initPostgresLock() {
-  return advisoryLock(POSTGRES_URL)
 }
 
 export async function initRedis() {
