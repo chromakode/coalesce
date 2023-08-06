@@ -199,20 +199,16 @@ export async function coalesceCollabDoc(
   // 1. Fetch all versions in the bucket and merge together
   // 2. Write new merged version
   // 3. Delete seen old versions
-  let mergeDoc = null
   const seenKeys = []
+  const versions = []
 
   for await (const entry of minioClient.listObjects({
     prefix: storePath.projectDocPath(projectId, ''),
   })) {
-    if (mergeDoc === null) {
-      mergeDoc = new Y.Doc({ gc: true })
-    }
-
     try {
       const resp = await minioClient.getObject(entry.key)
       const ab = await resp.arrayBuffer()
-      Y.applyUpdate(mergeDoc, new Uint8Array(ab))
+      versions.push(new Uint8Array(ab))
       seenKeys.push(entry.key)
     } catch (err) {
       console.warn('Error fetching collab doc version', entry.key, err)
@@ -220,22 +216,27 @@ export async function coalesceCollabDoc(
     }
   }
 
-  if (mergeDoc === null) {
+  if (versions.length === 0) {
     return null
+  } else if (versions.length === 1) {
+    // If only one version exists, no need to merge.
+    return versions[0]
+  }
+
+  const mergeDoc = new Y.Doc({ gc: true })
+  for (const version of versions) {
+    Y.applyUpdate(mergeDoc, version)
   }
 
   const mergeData = Y.encodeStateAsUpdate(mergeDoc)
 
-  // If only one version exists, no need to delete and recreate
-  if (seenKeys.length > 1) {
-    await minioClient.putObject(
-      storePath.projectDocPath(projectId, generateId()),
-      mergeData,
-    )
+  await minioClient.putObject(
+    storePath.projectDocPath(projectId, generateId()),
+    mergeData,
+  )
 
-    for (const seenKey of seenKeys) {
-      await minioClient.deleteObject(seenKey)
-    }
+  for (const seenKey of seenKeys) {
+    await minioClient.deleteObject(seenKey)
   }
 
   return mergeData
