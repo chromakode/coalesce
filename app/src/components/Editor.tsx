@@ -228,6 +228,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       const doc = new Y.Doc()
       yjsDocMap.set(id, doc)
 
+      // TODO: create a custom provider to combine YJS and project updates in one WebSocket
       const provider = new WebsocketProvider(collabSocketBase(), id, doc, {
         connect: false,
       })
