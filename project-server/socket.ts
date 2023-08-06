@@ -266,6 +266,8 @@ export async function runCollab(projectId: string, ws: WebSocket) {
   } finally {
     stopWatchingPeers()
     queueSaveDoc.flush()
+    awareness.destroy()
+    doc.destroy()
   }
 }
 
