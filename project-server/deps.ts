@@ -1,9 +1,6 @@
 export * as path from 'https://deno.land/std@0.191.0/path/mod.ts'
 export * as fs from 'https://deno.land/std@0.191.0/fs/mod.ts'
-export {
-  debounce,
-  abortableAsyncIterable,
-} from 'https://deno.land/std@0.191.0/async/mod.ts'
+export { debounce } from 'https://deno.land/std@0.191.0/async/mod.ts'
 
 export {
   Application,
@@ -40,13 +37,13 @@ export { default as lexicalYjs } from 'https://esm.sh/@lexical/yjs@0.11.3?pin=13
 export { createHeadlessEditor } from 'https://esm.sh/@lexical/headless@0.11.3?pin=130&external=lexical&cjs-exports=createHeadlessEditor'
 
 // @deno-types="npm:@types/pg@^8.10.2"
-export { default as pg } from 'npm:pg@^8.11.1'
+export { default as pg } from 'pg'
+
+export { default as advisoryLock } from 'https://esm.sh/advisory-lock@2.0.0?pin=130&external=pg'
 
 export * as Minio from 'npm:minio@^7.1.1'
 
 export * as redis from 'npm:redis@^4.6.7'
-
-export { default as Redlock } from 'npm:redlock@^5.0.0-beta.2'
 
 // @deno-types="npm:@types/lodash@^4.14.195"
 export { flatten, pick, sortBy } from 'npm:lodash-es@^4.17.21'
@@ -54,6 +51,8 @@ export { flatten, pick, sortBy } from 'npm:lodash-es@^4.17.21'
 export { default as pThrottle } from 'npm:p-throttle@^5.1.0'
 
 export { EventIterator } from 'npm:event-iterator@^2.0.0'
+
+export { abortableSource } from 'npm:abortable-iterator@^5.0.1'
 
 export * as Y from 'yjs'
 export * as awarenessProtocol from 'npm:y-protocols@^1.0.5/awareness'

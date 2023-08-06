@@ -23,7 +23,7 @@ import {
   JobInfo,
 } from '@shared/types'
 import { ProjectFields, TrackFields } from '@shared/schema'
-import { db, redisClient, minioClient, redlock } from './main.ts'
+import { db, lock, redisClient, minioClient } from './main.ts'
 import { bucket, initMinioJS, initRedis } from './service.ts'
 import { projectToYDoc } from './editorState.ts'
 
@@ -61,7 +61,6 @@ async function* subscribeBuffer({
         true,
       )
       return () => {
-        redisPubSub.pUnsubscribe()
         redisPubSub.disconnect()
       }
     },
@@ -242,7 +241,9 @@ export async function generateCollabDoc(
 // TODO update doc when track finishes uploading which saves doc w/ replacement and broadcasts update
 
 export async function saveCollabDoc(projectId: string, data: Uint8Array) {
-  await redlock.using([projectId], 5000, async () => {
+  // FIXME: Would prefer to use redlock for this, but ioredis is incompatible
+  // with Deno 1.36.0.
+  await lock(projectId).withLock(async () => {
     // Merge existing data with update (with gc) and store.
     const mergeDoc = new Y.Doc({ gc: true })
 

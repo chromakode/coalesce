@@ -12,7 +12,7 @@ import {
   MigrationProvider,
   Migration,
   CamelCasePlugin,
-  Redlock,
+  advisoryLock,
 } from './deps.ts'
 
 import { REDIS_URL, MINIO_ENDPOINT, POSTGRES_URL } from './env.ts'
@@ -69,6 +69,10 @@ export async function initPostgres() {
   return db
 }
 
+export function initPostgresLock() {
+  return advisoryLock(POSTGRES_URL)
+}
+
 export async function initRedis() {
   const client = redis.createClient({ url: REDIS_URL })
   await client.connect()
@@ -108,11 +112,6 @@ export async function initMinio() {
   }
 
   return client
-}
-
-export async function initRedlock() {
-  const redisClient = await initRedis()
-  return new Redlock([redisClient])
 }
 
 export function initMinioJS() {

@@ -7,7 +7,7 @@ import {
   syncProtocol,
   lib0,
   EventIterator,
-  abortableAsyncIterable,
+  abortableSource,
 } from './deps.ts'
 import {
   generateCollabDoc,
@@ -46,11 +46,12 @@ function cancelable<T>(
 
   async function doIter() {
     try {
-      for await (const msg of abortableAsyncIterable(iter, controller.signal)) {
+      // @ts-expect-error(Deno's AbortSignal type doesn't have all the DOM event methods abortable-iterator expects)
+      for await (const msg of abortableSource(iter, controller.signal)) {
         fn(msg)
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      if (err.code === 'ABORT_ERR') {
         return
       }
       throw err

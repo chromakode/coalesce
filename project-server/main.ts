@@ -14,12 +14,17 @@ import {
   getTrackInfo,
 } from './store.ts'
 import { ProjectFields, TrackFields } from '../shared/schema.ts'
-import { initMinio, initPostgres, initRedis, initRedlock } from './service.ts'
+import {
+  initMinio,
+  initPostgres,
+  initPostgresLock,
+  initRedis,
+} from './service.ts'
 import { pushProjectUpdates, runCollab } from './socket.ts'
 
 export const db = await initPostgres()
+export const lock = await initPostgresLock()
 export const redisClient = await initRedis()
-export const redlock = await initRedlock()
 export const minioClient = await initMinio()
 
 const app = new Application()
