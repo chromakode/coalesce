@@ -11,7 +11,7 @@ import {
   awarenessProtocol,
   Y,
 } from './deps.ts'
-import { QUEUE_NAME, COALESCE_DEV_FLAGS } from './env.ts'
+import { AUDIO_QUEUE_NAME, COALESCE_DEV_FLAGS } from './env.ts'
 import {
   Job,
   ProjectInfo,
@@ -65,7 +65,7 @@ export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
   )
 
   // Enqueue the job
-  await redisClient.lpush(QUEUE_NAME, JSON.stringify(job))
+  await redisClient.lpush(AUDIO_QUEUE_NAME, JSON.stringify(job))
 
   // Notify that job was created
   await redisClient.publish(

@@ -14,8 +14,8 @@ from .audio import transcribe_audio, split_audio
 
 
 REDIS_URL = os.getenv("REDIS_URL")
-QUEUE_NAME = os.getenv("QUEUE_NAME")
-PROCESSING_QUEUE_NAME = os.getenv("PROCESSING_QUEUE_NAME")
+AUDIO_QUEUE_NAME = os.getenv("AUDIO_QUEUE_NAME")
+AUDIO_PROCESSING_QUEUE_NAME = os.getenv("AUDIO_PROCESSING_QUEUE_NAME")
 
 
 class ProcessJob(BaseModel):
@@ -102,8 +102,8 @@ def main():
 
     consumer = CoalesceConsumer(
         redis_url=REDIS_URL,
-        queue_name=QUEUE_NAME,
-        processing_queue_name=PROCESSING_QUEUE_NAME,
+        queue_name=AUDIO_QUEUE_NAME,
+        processing_queue_name=AUDIO_PROCESSING_QUEUE_NAME,
         roles=args.roles,
     )
 
