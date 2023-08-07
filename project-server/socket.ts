@@ -1,5 +1,6 @@
 import {
   debounce,
+  castArray,
   pThrottle,
   Y,
   awarenessProtocol,
@@ -17,6 +18,7 @@ import {
   saveCollabDoc,
   watchProject,
   watchProjectCollab,
+  saveAwarenessData,
 } from './store.ts'
 
 const { encoding, decoding } = lib0
@@ -25,6 +27,8 @@ enum msgType {
   Sync = 0,
   Awareness = 1,
 }
+
+type TransactionOrigin = 'local' | 'peer' | 'client' | undefined
 
 function iterSocket(ws: WebSocket) {
   return new EventIterator<MessageEvent>((queue) => {
@@ -62,25 +66,31 @@ function cancelable<T>(
   return () => controller.abort()
 }
 
+type SendSink = (data: Uint8Array) => Promise<void>
+
 export async function runCollab(projectId: string, ws: WebSocket) {
   const doc = new Y.Doc({ gc: true })
   const awareness = new awarenessProtocol.Awareness(doc)
 
   async function sendEncoded(
-    send: (data: Uint8Array) => Promise<void>,
+    sinks: SendSink | SendSink[],
     cb: (enc: lib0.encoding.Encoder) => boolean | undefined | void,
   ) {
     const encoder = encoding.createEncoder()
     if (cb(encoder) === false) {
       return
     }
-    await send(encoding.toUint8Array(encoder))
+
+    const data = encoding.toUint8Array(encoder)
+    for (const send of castArray(sinks)) {
+      await send(data)
+    }
   }
 
   // https://github.com/denoland/deno/issues/19851
   const denoSocketThrottle = pThrottle({ limit: 1, interval: 0 })
 
-  const toWS = denoSocketThrottle(async (data: Uint8Array) => {
+  const toWS: SendSink = denoSocketThrottle(async (data: Uint8Array) => {
     if (ws.readyState !== ws.OPEN) {
       return
     }
@@ -96,12 +106,20 @@ export async function runCollab(projectId: string, ws: WebSocket) {
     }
   })
 
-  async function toPeers(data: Uint8Array) {
-    return await publishProjectCollab(projectId, awareness.clientID, data)
-  }
+  const toPeers: SendSink = async (data: Uint8Array) =>
+    await publishProjectCollab(projectId, awareness.clientID, data)
 
   function saveDoc() {
     saveCollabDoc(projectId, Y.encodeStateAsUpdate(doc))
+  }
+
+  function saveAwareness() {
+    saveAwarenessData(
+      projectId,
+      awarenessProtocol.encodeAwarenessUpdate(awareness, [
+        ...awareness.getStates().keys(),
+      ]),
+    )
   }
 
   // TODO: reduce interval based on # of connected clients, smarter promise
@@ -119,13 +137,24 @@ export async function runCollab(projectId: string, ws: WebSocket) {
       updated: Array<number>
       removed: Array<number>
     },
-    transactionOrigin: WebSocket | undefined,
+    transactionOrigin: TransactionOrigin,
   ) {
-    if (transactionOrigin === ws) {
-      return
+    // Awareness updates can come from the client (websocket) or peers (redis)
+    // Save awareness updates from our client or our local timer.
+    if (transactionOrigin === 'client') {
+      saveAwareness()
     }
+
+    const sinks = []
+    if (transactionOrigin !== 'client') {
+      sinks.push(toWS)
+    }
+    if (transactionOrigin !== 'peer') {
+      sinks.push(toPeers)
+    }
+
     const changedClients = added.concat(updated, removed)
-    sendEncoded(toWS, (enc) => {
+    sendEncoded(sinks, (enc) => {
       encoding.writeVarUint(enc, msgType.Awareness)
       encoding.writeVarUint8Array(
         enc,
@@ -137,10 +166,10 @@ export async function runCollab(projectId: string, ws: WebSocket) {
   // When the doc changes, send update to the client
   function handleDocUpdate(
     update: Uint8Array,
-    transactionOrigin: WebSocket | undefined,
+    transactionOrigin: TransactionOrigin,
   ) {
     queueSaveDoc()
-    if (transactionOrigin === ws) {
+    if (transactionOrigin === 'client') {
       return
     }
     sendEncoded(toWS, (enc) => {
@@ -162,7 +191,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
       case msgType.Sync:
         await sendEncoded(toWS, (enc) => {
           encoding.writeVarUint(enc, msgType.Sync)
-          syncProtocol.readSyncMessage(decoder, enc, doc, ws)
+          syncProtocol.readSyncMessage(decoder, enc, doc, 'client')
           // If the `encoder` only contains the type of reply message and no
           // message, there is no need to send the message. When `encoder` only
           // contains the type of reply, its length is 1.
@@ -175,7 +204,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
         awarenessProtocol.applyAwarenessUpdate(
           awareness,
           decoding.readVarUint8Array(decoder),
-          ws,
+          'client',
         )
         break
     }
@@ -192,7 +221,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
       case msgType.Sync:
         await sendEncoded(toPeers, (enc) => {
           encoding.writeVarUint(enc, msgType.Sync)
-          syncProtocol.readSyncMessage(decoder, enc, doc, ws)
+          syncProtocol.readSyncMessage(decoder, enc, doc, 'peer')
           if (encoding.length(enc) <= 1) {
             return false
           }
@@ -202,7 +231,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
         awarenessProtocol.applyAwarenessUpdate(
           awareness,
           decoding.readVarUint8Array(decoder),
-          ws,
+          'peer',
         )
         break
     }
@@ -246,7 +275,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
 
   awareness.setLocalState(null)
   if (awarenessData != null) {
-    awarenessProtocol.applyAwarenessUpdate(awareness, awarenessData, null)
+    awarenessProtocol.applyAwarenessUpdate(awareness, awarenessData, 'peer')
   }
 
   await sendInitToClient()

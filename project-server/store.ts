@@ -179,7 +179,7 @@ export async function getAwarenessData(
   )) as Uint8Array
 }
 
-export async function setAwarenessData(projectId: string, data: Uint8Array) {
+export async function saveAwarenessData(projectId: string, data: Uint8Array) {
   await redisClient.setex(
     `project:${projectId}.awareness`,
     awarenessProtocol.outdatedTimeout,
