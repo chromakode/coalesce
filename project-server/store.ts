@@ -385,6 +385,10 @@ export async function updateProject(
   projectId: string,
   update: Partial<ProjectFields>,
 ) {
+  if (Object.keys(update).length === 0) {
+    return
+  }
+
   await db
     .updateTable('project')
     .set(update)
@@ -417,6 +421,10 @@ export async function updateTrack(
   trackId: string,
   update: Partial<TrackFields>,
 ) {
+  if (Object.keys(update).length === 0) {
+    return
+  }
+
   await db
     .updateTable('track')
     .set(update)
