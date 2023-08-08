@@ -21,6 +21,7 @@ import {
   $getNodeByKey,
   $getRoot,
   $getSelection,
+  $nodesOfType,
   EditorState,
   LexicalEditor,
 } from 'lexical'
@@ -119,12 +120,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
     return (
       editorRef.current?.getEditorState().read(() => {
         const root = $getRoot()
-        // FIXME: is there a better way to get all nodes in order?
-        const allNodes =
-          root
-            .getFirstDescendant()
-            ?.getNodesBetween(root.getLastDescendant()!) ?? []
-        const soundNodes = allNodes.filter($isSoundNode)
+        const soundNodes = $nodesOfType(SoundNode)
         return processLocations(soundNodes.map((l) => l.getSoundLocation()))
       }) ?? []
     )
