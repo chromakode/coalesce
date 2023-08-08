@@ -13,3 +13,7 @@ export const QUEUE_NAME = requireEnv('QUEUE_NAME')
 export const PROCESSING_QUEUE_NAME = requireEnv('PROCESSING_QUEUE_NAME')
 export const APP_ORIGIN = requireEnv('APP_ORIGIN')
 export const MINIO_ENDPOINT = requireEnv('MINIO_ENDPOINT')
+
+export type DevFlag = 'reuse-track-by-filename'
+const devFlagsRaw = Deno.env.get('COALESCE_DEV_FLAGS') ?? ''
+export const COALESCE_DEV_FLAGS = new Set(devFlagsRaw.split(',') as DevFlag[])

@@ -11,7 +11,7 @@ import {
   awarenessProtocol,
   Y,
 } from './deps.ts'
-import { QUEUE_NAME } from './env.ts'
+import { QUEUE_NAME, COALESCE_DEV_FLAGS } from './env.ts'
 import {
   Job,
   ProjectInfo,
@@ -122,7 +122,7 @@ export async function* watchProject(projectId: string) {
           path: `tracks.${msg.trackId}`,
           data: { trackId: msg.trackId, ...msg.update },
         })
-      } else if (msg.type === 'track-deleted') {
+      } else if (msg.type === 'track-removed') {
         deletedTracks.add(msg.id)
         yield JSON.stringify({
           type: 'project:update',
@@ -461,56 +461,81 @@ export async function createTrack(
   fileData: BodyStream,
   originalFilename: string,
 ): Promise<string> {
-  const trackId = generateId()
-  const uploadPath = storePath.trackUploadPath(trackId)
-  await minioClient.putObject(uploadPath, fileData.value, {
-    partSize: 16 * 1024 * 1024,
-  })
+  let trackId = null
 
-  await db
-    .insertInto('track')
-    .values({ trackId, originalFilename })
-    .executeTakeFirst()
+  if (COALESCE_DEV_FLAGS.has('reuse-track-by-filename')) {
+    // For development, it's convenient to be able to skip processing delays by
+    // uploading the same filename.
+    const existingTrack = await db
+      .selectFrom('track')
+      .where('originalFilename', '=', originalFilename)
+      .select(['trackId'])
+      .executeTakeFirst()
+
+    if (existingTrack) {
+      trackId = existingTrack.trackId
+      console.log('DEV: reusing track', trackId, 'for', originalFilename)
+
+      for await (const _ of fileData.value) {
+        // Noop, finish the upload.
+      }
+    }
+  }
+
+  if (trackId == null) {
+    trackId = generateId()
+
+    const uploadPath = storePath.trackUploadPath(trackId)
+    await minioClient.putObject(uploadPath, fileData.value, {
+      partSize: 16 * 1024 * 1024,
+    })
+
+    await db
+      .insertInto('track')
+      .values({ trackId, originalFilename })
+      .executeTakeFirst()
+
+    const inputURI = await minioClient.getPresignedUrl('GET', uploadPath)
+
+    const trackDir = storePath.trackDir(trackId)
+    const { postURL: outputURI, formData: outputFormData } =
+      await makeUploadURL(trackDir)
+    outputFormData['key'] = path.join(trackDir, '${filename}')
+
+    await queueProcessingJob({
+      task: 'chunks',
+      project: projectId,
+      track: trackId,
+      inputURI,
+      outputURI,
+      outputFormData,
+    })
+
+    await queueProcessingJob({
+      task: 'transcribe',
+      project: projectId,
+      track: trackId,
+      inputURI,
+      outputURI,
+      outputFormData,
+    })
+  }
 
   await db
     .insertInto('projectTracks')
     .values({ projectId, trackId })
     .executeTakeFirst()
 
+  const trackState = await getTrackState(trackId)
+
   await redisClient.publish(
     `project:${projectId}`,
     JSON.stringify({
       type: 'track-updated',
       trackId,
-      update: { originalFilename },
+      update: trackState,
     }),
   )
-
-  const inputURI = await minioClient.getPresignedUrl('GET', uploadPath)
-
-  const trackDir = storePath.trackDir(trackId)
-  const { postURL: outputURI, formData: outputFormData } = await makeUploadURL(
-    trackDir,
-  )
-  outputFormData['key'] = path.join(trackDir, '${filename}')
-
-  await queueProcessingJob({
-    task: 'chunks',
-    project: projectId,
-    track: trackId,
-    inputURI,
-    outputURI,
-    outputFormData,
-  })
-
-  await queueProcessingJob({
-    task: 'transcribe',
-    project: projectId,
-    track: trackId,
-    inputURI,
-    outputURI,
-    outputFormData,
-  })
 
   return trackId
 }
@@ -519,22 +544,31 @@ export async function deleteTrack(
   projectId: string,
   trackId: string,
 ): Promise<void> {
-  const trackDir = storePath.trackDir(trackId)
-  for await (const entry of minioClient.listObjects({ prefix: trackDir })) {
-    await minioClient.deleteObject(entry.key)
-  }
-
-  await db.deleteFrom('track').where('trackId', '=', trackId).execute()
   await db
     .deleteFrom('projectTracks')
     .where('projectId', '=', projectId)
     .where('trackId', '=', trackId)
     .execute()
 
+  const { useCount } = await db
+    .selectFrom('projectTracks')
+    .where('trackId', '=', trackId)
+    .select(db.fn.countAll<number>().as('useCount'))
+    .executeTakeFirstOrThrow()
+
+  if (useCount === 0) {
+    await db.deleteFrom('track').where('trackId', '=', trackId).execute()
+
+    const trackDir = storePath.trackDir(trackId)
+    for await (const entry of minioClient.listObjects({ prefix: trackDir })) {
+      await minioClient.deleteObject(entry.key)
+    }
+  }
+
   await redisClient.publish(
     `project:${projectId}`,
     JSON.stringify({
-      type: 'track-deleted',
+      type: 'track-removed',
       id: trackId,
     }),
   )
