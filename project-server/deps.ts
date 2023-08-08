@@ -28,8 +28,14 @@ export type { Migration, MigrationProvider } from 'kysely'
 
 export type { ZodTypeAny, output as ZodOutput } from 'zod'
 
-export { $createParagraphNode, $createTextNode, $getRoot } from 'lexical'
-export type { LexicalEditor } from 'lexical'
+// @deno-types="https://esm.sh/lexical@0.11.3?pin=130"
+export {
+  $createParagraphNode,
+  $createTextNode,
+  $getRoot,
+  $nodesOfType,
+} from 'lexical'
+export type { LexicalEditor, LexicalNode } from 'lexical'
 
 // @lexical/yjs requires the CSM version of yjs which is incompatible with our mjs import
 // see: https://github.com/facebook/lexical/issues/1707
