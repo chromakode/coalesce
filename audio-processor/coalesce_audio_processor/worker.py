@@ -11,11 +11,13 @@ from typing import Dict
 from pydantic import BaseModel
 from .queue import QueueConsumer
 from .audio import transcribe_audio, split_audio
+from .util import generate_id
 
 
 REDIS_URL = os.getenv("REDIS_URL")
 AUDIO_QUEUE_NAME = os.getenv("AUDIO_QUEUE_NAME")
 AUDIO_PROCESSING_QUEUE_NAME = os.getenv("AUDIO_PROCESSING_QUEUE_NAME")
+DOC_QUEUE_NAME = os.getenv("DOC_QUEUE_NAME")
 
 
 class ProcessJob(BaseModel):
@@ -67,6 +69,17 @@ class CoalesceConsumer(QueueConsumer):
                         input_file.name,
                         output_sink=output_sink,
                         progress_callback=progress_callback,
+                    )
+                    self.redis_client.lpush(
+                        DOC_QUEUE_NAME,
+                        json.dumps(
+                            {
+                                "id": generate_id(),
+                                "project": job.project,
+                                "track": job.track,
+                                "task": "transcribe_done",
+                            }
+                        ),
                     )
                 elif job.task == "chunks":
                     split_audio(

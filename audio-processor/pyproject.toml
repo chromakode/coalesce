@@ -33,6 +33,7 @@ llvmlite = "^0.40.0"
 numba = "^0.57.0"
 onnxruntime = "^1.15.0"
 aiohttp = "^3.8.4"
+nanoid = "^2.0.0"
 
 [tool.poetry.group.cpu]
 optional = true

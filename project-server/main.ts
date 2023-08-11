@@ -6,16 +6,17 @@ import {
   updateProject,
   updateTrack,
   createTrack,
-  deleteTrack,
   projectExists,
   streamTrackChunk,
   createProject,
   listProjects,
   getTrackInfo,
+  removeTrackFromProject,
 } from './store.ts'
 import { ProjectFields, TrackFields } from '../shared/schema.ts'
 import { initMinio, initPostgres, initRedis } from './service.ts'
 import { pushProjectUpdates, runCollab } from './socket.ts'
+import { consumeDocJobs } from './docWorker.ts'
 
 export const db = await initPostgres()
 export const redisClient = await initRedis()
@@ -67,7 +68,7 @@ const projectRouter = new Router()
     ctx.response.status = 200
   })
   .delete('/track/:track(\\w+)', async (ctx) => {
-    await deleteTrack(ctx.state.project, ctx.params.track)
+    await removeTrackFromProject(ctx.state.project, ctx.params.track)
     ctx.response.status = 200
   })
   .post(`/track`, async (ctx) => {
@@ -123,4 +124,4 @@ app.use(oakCors({ origin: APP_ORIGIN }))
 
 app.use(router.routes())
 
-app.listen({ port: PROJECT_SERVER_PORT })
+await Promise.all([app.listen({ port: PROJECT_SERVER_PORT }), consumeDocJobs()])

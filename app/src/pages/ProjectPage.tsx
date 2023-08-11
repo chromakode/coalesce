@@ -461,7 +461,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                 <Alert status="warning">
                   <AlertIcon />
                   <AlertTitle>
-                    Adding tracks will reset any edits you've made to the text.
+                    Removing tracks will delete the track's text.
                   </AlertTitle>
                 </Alert>
               )}

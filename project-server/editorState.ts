@@ -104,6 +104,25 @@ function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
   })
 }
 
+function removeTrackFromEditor(
+  trackId: string,
+  editor: LexicalEditor,
+): Promise<void> {
+  return new Promise((resolve) => {
+    editor.update(
+      () => {
+        const speakerNodes = $nodesOfType(SpeakerNode)
+        for (const node of speakerNodes) {
+          if (node.getSource() === trackId) {
+            node.remove()
+          }
+        }
+      },
+      { onUpdate: resolve },
+    )
+  })
+}
+
 function dummyProvider(): lexicalYjs.Provider {
   return {
     awareness: {
@@ -121,9 +140,10 @@ function dummyProvider(): lexicalYjs.Provider {
 }
 
 // Thanks to https://github.com/facebook/lexical/discussions/4442#discussioncomment-5785644 for providing an example of this.
-export async function projectToYDoc(
+export async function editCollabDoc(
   project: Project,
-  baseDoc?: Uint8Array,
+  baseDoc: Uint8Array | null,
+  applyUpdate: (editor: LexicalEditor) => Promise<void>,
 ): Promise<Y.Doc> {
   const editor = createHeadlessEditor({
     namespace: 'coalesce',
@@ -182,11 +202,37 @@ export async function projectToYDoc(
   // Unclear why this is necessary (see linked lexical discussion above)
   editor.update(() => {}, { discrete: true })
 
-  for (const track of Object.values(project.tracks)) {
-    await addTrackToEditor(track, editor)
-  }
+  await applyUpdate(editor)
 
   removeListener()
 
   return doc
+}
+
+export function projectToYDoc(project: Project, baseDoc: Uint8Array | null) {
+  return editCollabDoc(project, baseDoc, async (editor) => {
+    for (const track of Object.values(project.tracks)) {
+      await addTrackToEditor(track, editor)
+    }
+  })
+}
+
+export function addTrackToYDoc(
+  project: Project,
+  trackId: string,
+  baseDoc: Uint8Array | null,
+) {
+  return editCollabDoc(project, baseDoc, async (editor) => {
+    await addTrackToEditor(project.tracks[trackId], editor)
+  })
+}
+
+export function removeTrackFromYDoc(
+  project: Project,
+  trackId: string,
+  baseDoc: Uint8Array | null,
+) {
+  return editCollabDoc(project, baseDoc, async (editor) => {
+    await removeTrackFromEditor(trackId, editor)
+  })
 }

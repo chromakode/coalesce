@@ -11,7 +11,7 @@ import {
   awarenessProtocol,
   Y,
 } from './deps.ts'
-import { AUDIO_QUEUE_NAME, COALESCE_DEV_FLAGS } from './env.ts'
+import { AUDIO_QUEUE_NAME, COALESCE_DEV_FLAGS, DOC_QUEUE_NAME } from './env.ts'
 import {
   Job,
   ProjectInfo,
@@ -20,11 +20,18 @@ import {
   TrackInfo,
   JobState,
   JobInfo,
+  AudioJob,
+  DocJob,
 } from '@shared/types'
 import { ProjectFields, TrackFields } from '@shared/schema'
 import { db, redisClient, minioClient } from './main.ts'
 import { bucket, initMinioJS, initRedis } from './service.ts'
-import { projectToYDoc } from './editorState.ts'
+import {
+  addTrackToYDoc,
+  projectToYDoc,
+  removeTrackFromYDoc,
+} from './editorState.ts'
+import { sendDocUpdate } from './socket.ts'
 
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
 export const generateId = nanoidCustom(nanoidAlphabet, 20)
@@ -54,7 +61,7 @@ export const storePath = {
     path.join('track', trackId, chunkName),
 }
 
-export async function queueProcessingJob(jobDesc: Omit<Job, 'id'>) {
+export async function queueProcessingJob(jobDesc: Omit<AudioJob, 'id'>) {
   const job: Job = { ...jobDesc, id: generateId() }
   const jobState: JobState = { ...job, state: { status: 'queued' } }
 
@@ -249,14 +256,12 @@ export async function coalesceCollabDoc(
 
 export async function generateCollabDoc(
   projectId: string,
-  baseDoc?: Uint8Array,
+  baseDoc: Uint8Array | null = null,
 ): Promise<Uint8Array> {
   const project = await getProjectState(projectId)
   const doc = await projectToYDoc(project, baseDoc)
   return Y.encodeStateAsUpdate(doc)
 }
-
-// TODO update doc when track finishes uploading which saves doc w/ replacement and broadcasts update
 
 export async function saveCollabDoc(projectId: string, data: Uint8Array) {
   // Store the doc w/ a random version id
@@ -292,12 +297,41 @@ export async function* watchProjectCollab(
 
 export async function publishProjectCollab(
   projectId: string,
-  awarenessId: number,
+  awarenessId: number | string,
   data: ArrayBuffer,
 ) {
   await redisClient.publish(
     `project-collab:${projectId}@${awarenessId}`,
     NodeBuffer.from(data),
+  )
+}
+
+async function _updateCollabDoc(
+  projectId: string,
+  updater: (project: Project, baseDoc: Uint8Array | null) => Promise<Y.Doc>,
+) {
+  const project = await getProjectState(projectId)
+  const baseDoc = await coalesceCollabDoc(projectId)
+  const doc = await updater(project, baseDoc)
+  await saveCollabDoc(projectId, Y.encodeStateAsUpdate(doc))
+  await sendDocUpdate(
+    projectId,
+    Y.encodeStateAsUpdate(doc, baseDoc ?? undefined),
+  )
+}
+
+export async function addTrackToCollabDoc(projectId: string, trackId: string) {
+  await _updateCollabDoc(projectId, (project, baseDoc) =>
+    addTrackToYDoc(project, trackId, baseDoc),
+  )
+}
+
+export async function removeTrackFromCollabDoc(
+  projectId: string,
+  trackId: string,
+) {
+  await _updateCollabDoc(projectId, (project, baseDoc) =>
+    removeTrackFromYDoc(project, trackId, baseDoc),
   )
 }
 
@@ -462,6 +496,7 @@ export async function createTrack(
   originalFilename: string,
 ): Promise<string> {
   let trackId = null
+  let isReusingTrack
 
   if (COALESCE_DEV_FLAGS.has('reuse-track-by-filename')) {
     // For development, it's convenient to be able to skip processing delays by
@@ -473,8 +508,10 @@ export async function createTrack(
       .executeTakeFirst()
 
     if (existingTrack) {
-      trackId = existingTrack.trackId
       console.log('DEV: reusing track', trackId, 'for', originalFilename)
+
+      isReusingTrack = true
+      trackId = existingTrack.trackId
 
       for await (const _ of fileData.value) {
         // Noop, finish the upload.
@@ -537,10 +574,23 @@ export async function createTrack(
     }),
   )
 
+  if (isReusingTrack) {
+    // Mock transcribe finish job
+    await redisClient.lpush(
+      DOC_QUEUE_NAME,
+      JSON.stringify({
+        id: generateId(),
+        task: 'transcribe_done',
+        project: projectId,
+        track: trackId,
+      } satisfies DocJob),
+    )
+  }
+
   return trackId
 }
 
-export async function deleteTrack(
+export async function removeTrackFromProject(
   projectId: string,
   trackId: string,
 ): Promise<void> {
@@ -572,6 +622,8 @@ export async function deleteTrack(
       id: trackId,
     }),
   )
+
+  await removeTrackFromCollabDoc(projectId, trackId)
 }
 
 export async function streamTrackChunk(

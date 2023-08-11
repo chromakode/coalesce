@@ -49,10 +49,18 @@ export interface Job {
   id: string
   project: string
   track: string
+  task: string
+}
+
+export interface AudioJob extends Job {
   task: 'transcribe' | 'chunks'
   inputURI: string
   outputURI: string
   outputFormData: Record<string, string>
+}
+
+export interface DocJob extends Job {
+  task: 'transcribe_done'
 }
 
 export interface JobState extends Job {

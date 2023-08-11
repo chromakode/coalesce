@@ -267,10 +267,8 @@ export async function runCollab(projectId: string, ws: WebSocket) {
     coalesceCollabDoc(projectId),
   ])
 
-  const docData = storedDoc ?? (await generateCollabDoc(projectId))
-  Y.applyUpdate(doc, docData)
-  if (!storedDoc) {
-    saveDoc()
+  if (storedDoc) {
+    Y.applyUpdate(doc, storedDoc)
   }
 
   awareness.setLocalState(null)
@@ -307,4 +305,12 @@ export async function pushProjectUpdates(projectId: string, ws: WebSocket) {
   for await (const message of watchProject(projectId)) {
     ws.send(message)
   }
+}
+
+export async function sendDocUpdate(projectId: string, update: Uint8Array) {
+  const encoder = encoding.createEncoder()
+  encoding.writeVarUint(encoder, msgType.Sync)
+  syncProtocol.writeUpdate(encoder, update)
+  const data = encoding.toUint8Array(encoder)
+  await publishProjectCollab(projectId, 'coalesce', data)
 }

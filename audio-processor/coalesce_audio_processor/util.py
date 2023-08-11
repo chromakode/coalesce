@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 
+from nanoid import generate
 from tqdm import tqdm
 
 
@@ -17,3 +18,7 @@ def tqdm_from_callback(**kwargs):
     finally:
         if tqdm_instance is not None:
             tqdm_instance.close()
+
+
+def generate_id() -> str:
+    return generate("6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz", 20)

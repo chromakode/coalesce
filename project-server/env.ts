@@ -13,6 +13,8 @@ export const AUDIO_QUEUE_NAME = requireEnv('AUDIO_QUEUE_NAME')
 export const AUDIO_PROCESSING_QUEUE_NAME = requireEnv(
   'AUDIO_PROCESSING_QUEUE_NAME',
 )
+export const DOC_QUEUE_NAME = requireEnv('DOC_QUEUE_NAME')
+export const DOC_PROCESSING_QUEUE_NAME = requireEnv('DOC_PROCESSING_QUEUE_NAME')
 export const APP_ORIGIN = requireEnv('APP_ORIGIN')
 export const MINIO_ENDPOINT = requireEnv('MINIO_ENDPOINT')
 
