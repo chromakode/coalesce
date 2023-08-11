@@ -34,6 +34,8 @@ export {
   $createTextNode,
   $getRoot,
   $nodesOfType,
+  $splitNode,
+  $isTextNode,
 } from 'lexical'
 export type { LexicalEditor, LexicalNode } from 'lexical'
 

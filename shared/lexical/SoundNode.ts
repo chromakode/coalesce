@@ -2,7 +2,7 @@ import { SoundLocation } from '../types.ts'
 
 // @deno-types="https://esm.sh/lexical@0.11.3?pin=130"
 import { TextNode } from 'lexical'
-import type { EditorConfig, LexicalNode, NodeKey } from 'lexical'
+import type { EditorConfig, LexicalNode, NodeKey, TextModeType } from 'lexical'
 
 function isPlayingStyle(isPlaying: boolean) {
   return isPlaying ? '"GRAD" 150, "YOPQ" 100' : ''
@@ -27,6 +27,10 @@ export class SoundNode extends TextNode {
     super(text, key)
     this.__soundLoc = { ...loc }
     this.__isPlaying = false
+
+    // In case we get a soundLoc with an existing key passed to us, reset it
+    // since it won't match ours.
+    delete this.__soundLoc['key']
   }
 
   static getType(): string {
@@ -60,6 +64,25 @@ export class SoundNode extends TextNode {
     return false
   }
 
+  isUnmergeable(): boolean {
+    return true
+  }
+
+  splitText(...splitOffsets: number[]): TextNode[] {
+    const self = this.getLatest()
+    const nodes = super.splitText(...splitOffsets)
+    const soundLoc = self.getSoundLocation()
+    const soundNodes = nodes.map((node) => {
+      if ($isSoundNode(node)) {
+        return node
+      }
+      const soundNode = $createSoundNode(node.getTextContent(), soundLoc)
+      node.replace(soundNode)
+      return soundNode
+    })
+    return soundNodes
+  }
+
   getSoundLocation() {
     const self = this.getLatest()
     return { ...self.__soundLoc, key: this.getKey() }
@@ -87,7 +110,7 @@ export class SoundNode extends TextNode {
 
   static importJSON(
     serializedNode: ReturnType<SoundNode['exportJSON']>,
-  ): TextNode {
+  ): SoundNode {
     const node = $createSoundNode(serializedNode.text, serializedNode.soundLoc)
     return node
   }

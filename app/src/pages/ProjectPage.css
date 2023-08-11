@@ -26,3 +26,16 @@
   margin: 0 0 15px 0;
   position: relative;
 }
+
+.editor-paragraph[data-label] {
+  margin-left: 4em;
+}
+
+.editor-paragraph[data-label]:before {
+  content: attr(data-label);
+  position: relative;
+  display: block;
+  height: 0;
+  left: -4em;
+  user-select: none;
+}

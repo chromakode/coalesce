@@ -1,12 +1,19 @@
-import { $createSoundNode, lexicalNodes } from '@shared/lexical'
-import type { Project, Words } from '@shared/types'
 import {
-  flatten,
+  $createSoundNode,
+  SoundNode,
+  $createSpeakerNode,
+  SpeakerNode,
+  lexicalNodes,
+} from '@shared/lexical'
+import type { Project, Track, Words } from '@shared/types'
+import {
   pick,
   sortBy,
-  $createParagraphNode,
   $createTextNode,
   $getRoot,
+  $nodesOfType,
+  $splitNode,
+  $isTextNode,
   lexicalYjs,
   createHeadlessEditor,
   LexicalEditor,
@@ -23,16 +30,9 @@ function allTaggedWords(words: Words, source: string, speakerName: string) {
   return result
 }
 
-function writeProjectToEditor(
-  project: Project,
-  editor: LexicalEditor,
-): Promise<void> {
-  const allWords = sortBy(
-    flatten(
-      Object.values(project.tracks).map(({ words, trackId, label }) =>
-        allTaggedWords(words, trackId, label ?? 'Speaker'),
-      ),
-    ),
+function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
+  const words = sortBy(
+    allTaggedWords(track.words, track.trackId, track.label ?? 'Speaker'),
     'start',
   )
 
@@ -40,29 +40,63 @@ function writeProjectToEditor(
     editor.update(
       () => {
         const root = $getRoot()
-        root.clear()
+        const soundNodes = $nodesOfType(SoundNode)
 
-        let para = null
-        let lastSource = null
-
-        for (const word of allWords) {
-          if (lastSource !== word.source) {
-            para = $createParagraphNode()
-            root.append(para)
-
-            para.append($createTextNode(`${word.speakerName}: `))
-
-            lastSource = word.source
+        let prevWordNode: SoundNode = soundNodes[0]
+        for (const word of words) {
+          // TODO: should we be smarter about resolving ties so adjacent words aren't broken up?
+          while (
+            soundNodes.length &&
+            soundNodes[0].getSoundLocation().start <= word.start
+          ) {
+            prevWordNode = soundNodes.shift()!
           }
 
-          const text = $createSoundNode(
+          const newWordNode = $createSoundNode(
             word.text,
             pick(word, ['source', 'start', 'end']),
           )
-          para!.append(text)
 
-          // FIXME: skip last
-          para!.append($createTextNode(' '))
+          if (prevWordNode === undefined) {
+            const parentNode = $createSpeakerNode(word.speakerName, word.source)
+            parentNode.append(newWordNode)
+            root.append(parentNode)
+          } else if (
+            prevWordNode.getSoundLocation().source === word.source ||
+            prevWordNode === prevWordNode.getParent()?.getLastChild()
+          ) {
+            const spaceNode = $createTextNode(' ')
+            prevWordNode.insertAfter(spaceNode)
+            spaceNode.insertAfter(newWordNode)
+          } else {
+            const [beforeParent, afterParent] = $splitNode(
+              prevWordNode.getParent()!,
+              prevWordNode.getIndexWithinParent(),
+            )
+
+            const parentNode = $createSpeakerNode(word.speakerName, word.source)
+            afterParent.insertBefore(parentNode)
+            parentNode.append(newWordNode)
+
+            // Trim leading space
+            const firstAfterNode = afterParent.getFirstChild()
+            if (
+              firstAfterNode &&
+              $isTextNode(firstAfterNode) &&
+              firstAfterNode.getTextContent().trim() === ''
+            ) {
+              firstAfterNode.remove()
+            }
+
+            if (
+              beforeParent &&
+              beforeParent.getTextContent().trim().length === 0
+            ) {
+              beforeParent.remove()
+            }
+          }
+
+          prevWordNode = newWordNode
         }
       },
       { onUpdate: resolve },
@@ -148,7 +182,9 @@ export async function projectToYDoc(
   // Unclear why this is necessary (see linked lexical discussion above)
   editor.update(() => {}, { discrete: true })
 
-  await writeProjectToEditor(project, editor)
+  for (const track of Object.values(project.tracks)) {
+    await addTrackToEditor(track, editor)
+  }
 
   removeListener()
 

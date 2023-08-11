@@ -10,7 +10,14 @@ import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { $isSoundNode, SoundNode, lexicalNodes } from '@shared/lexical'
+import {
+  $createSpeakerNode,
+  $isSoundNode,
+  $isSpeakerNode,
+  SoundNode,
+  SpeakerNode,
+  lexicalNodes,
+} from '@shared/lexical'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 
@@ -20,9 +27,12 @@ import {
   $getNodeByKey,
   $getRoot,
   $getSelection,
+  $isRangeSelection,
+  $isTextNode,
   $nodesOfType,
   EditorState,
   LexicalEditor,
+  LexicalNode,
 } from 'lexical'
 import { debounce, mapValues } from 'lodash-es'
 import {
@@ -30,6 +40,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react'
@@ -51,6 +62,84 @@ function onError(error: Error) {
 function RefPlugin({ editorRef }: { editorRef: any }) {
   const [editor] = useLexicalComposerContext()
   editorRef.current = editor
+  return null
+}
+
+function SpeakerPlugin({ project }: { project: Project }) {
+  const [editor] = useLexicalComposerContext()
+
+  useLayoutEffect(() => {
+    return editor.registerNodeTransform(SoundNode, (soundNode) => {
+      const createSpeakerNode = () => {
+        const source = soundNode.getSoundLocation().source
+        return $createSpeakerNode(
+          project.tracks[source]?.label ?? 'Speaker',
+          source,
+        )
+      }
+
+      const appendAdjacentNodes = (destNode: SpeakerNode) => {
+        const source = soundNode.getSoundLocation().source
+        const isRelevantNode = (node: LexicalNode) => {
+          if ($isSoundNode(node)) {
+            return node.getSoundLocation().source === source
+          }
+
+          if ($isTextNode(node)) {
+            return true
+          }
+
+          return false
+        }
+
+        let curNode: LexicalNode | null = soundNode
+
+        // Scan backwards to start or first node with different source
+        let prevNode = curNode.getPreviousSibling()
+        while (prevNode && isRelevantNode(prevNode)) {
+          curNode = prevNode
+          prevNode = curNode.getPreviousSibling()
+        }
+
+        // Scan forward, reparenting nodes
+        while (curNode && isRelevantNode(curNode)) {
+          const origParentNode = curNode.getParent()
+          const nextNode: LexicalNode | null = curNode.getNextSibling()
+
+          curNode.remove()
+
+          // If the previous parent is empty, remove it and nudge the selection forward
+          if (origParentNode?.isEmpty()) {
+            const selection = $getSelection()
+            if (
+              $isRangeSelection(selection) &&
+              selection.anchor.key === origParentNode.getKey()
+            ) {
+              destNode.selectStart()
+            }
+            origParentNode.remove()
+          }
+
+          destNode.append(curNode)
+          curNode = nextNode
+        }
+      }
+
+      const parentNode = soundNode.getParentOrThrow()
+      if (!$isSpeakerNode(parentNode)) {
+        const speakerNode = createSpeakerNode()
+        soundNode.getParentOrThrow().insertAfter(speakerNode)
+        appendAdjacentNodes(speakerNode)
+      } else if (
+        parentNode.getSource() !== soundNode.getSoundLocation().source
+      ) {
+        const speakerNode = createSpeakerNode()
+        parentNode.insertAfter(speakerNode)
+        appendAdjacentNodes(speakerNode)
+      }
+    })
+  }, [editor])
+
   return null
 }
 
@@ -249,6 +338,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
       <MarkdownShortcutPlugin transformers={[HEADING]} />
       <RefPlugin editorRef={editorRef} />
+      <SpeakerPlugin project={project} />
       <CollaborationPlugin
         id={`${project.projectId}/collab`}
         providerFactory={createWebsocketProvider}
