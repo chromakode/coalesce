@@ -61,10 +61,7 @@ function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
             const parentNode = $createSpeakerNode(word.speakerName, word.source)
             parentNode.append(newWordNode)
             root.append(parentNode)
-          } else if (
-            prevWordNode.getSoundLocation().source === word.source ||
-            prevWordNode === prevWordNode.getParent()?.getLastChild()
-          ) {
+          } else if (prevWordNode.getSoundLocation().source === word.source) {
             const spaceNode = $createTextNode(' ')
             prevWordNode.insertAfter(spaceNode)
             spaceNode.insertAfter(newWordNode)
