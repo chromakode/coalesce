@@ -1,4 +1,3 @@
-import { on } from 'node:events'
 import { Buffer as NodeBuffer } from 'node:buffer'
 import {
   path,
