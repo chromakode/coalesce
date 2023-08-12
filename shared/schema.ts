@@ -12,7 +12,7 @@ export interface ProjectTable extends ProjectFields {
   projectId: string
   createdAt: ColumnType<Date, undefined, never>
 }
-export type ProjectResult = Omit<Selectable<ProjectTable>, 'sid'>
+export type ProjectResult = Selectable<ProjectTable>
 
 export const TrackFields = z.object({
   label: z.string().optional(),
@@ -25,4 +25,4 @@ export interface TrackTable extends TrackFields {
   createdAt: ColumnType<Date, undefined, never>
   originalFilename: string
 }
-export type TrackResult = Omit<Selectable<TrackTable>, 'sid'>
+export type TrackResult = Selectable<TrackTable>
