@@ -11,26 +11,28 @@ function isPlayingStyle(isPlaying: boolean) {
 function updateStyle(
   config: EditorConfig,
   element: HTMLElement,
-  loc: SoundLocation,
+  source: string,
   isPlaying: boolean,
 ) {
-  element.style.color = config.theme.sourceColors[loc.source] ?? 'black'
+  element.style.color = config.theme.sourceColors[source] ?? 'black'
   element.style.fontVariationSettings = isPlayingStyle(isPlaying)
   element.style.textDecoration = isPlaying ? 'underline' : ''
 }
 
 export class SoundNode extends TextNode {
-  __soundLoc: SoundLocation
+  __soundStart: number
+  __soundEnd: number
+  __soundSource: string
   __isPlaying: boolean
 
   constructor(text: string, loc: SoundLocation, key?: NodeKey) {
     super(text, key)
-    this.__soundLoc = { ...loc }
+    if (loc) {
+      this.__soundStart = loc.start
+      this.__soundEnd = loc.end
+      this.__soundSource = loc.source
+    }
     this.__isPlaying = false
-
-    // In case we get a soundLoc with an existing key passed to us, reset it
-    // since it won't match ours.
-    delete this.__soundLoc['key']
   }
 
   static getType(): string {
@@ -38,12 +40,12 @@ export class SoundNode extends TextNode {
   }
 
   static clone(node: SoundNode): SoundNode {
-    return new SoundNode(node.__text, node.__soundLoc, node.__key)
+    return new SoundNode(node.__text, node.getSoundLocation(), node.__key)
   }
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = super.createDOM(config)
-    updateStyle(config, element, this.__soundLoc, this.__isPlaying)
+    updateStyle(config, element, this.__soundSource, this.__isPlaying)
     return element
   }
 
@@ -57,9 +59,11 @@ export class SoundNode extends TextNode {
     }
     if (
       prevNode.__isPlaying !== this.__isPlaying ||
-      prevNode.__soundLoc !== this.__soundLoc
+      prevNode.__soundStart !== this.__soundStart ||
+      prevNode.__soundEnd !== this.__soundEnd ||
+      prevNode.__soundSource !== this.__soundSource
     ) {
-      updateStyle(config, dom, this.__soundLoc, this.__isPlaying)
+      updateStyle(config, dom, this.__soundSource, this.__isPlaying)
     }
     return false
   }
@@ -85,12 +89,19 @@ export class SoundNode extends TextNode {
 
   getSoundLocation() {
     const self = this.getLatest()
-    return { ...self.__soundLoc, key: this.getKey() }
+    return {
+      start: self.__soundStart,
+      end: self.__soundEnd,
+      source: self.__soundSource,
+      key: self.getKey(),
+    }
   }
 
   setSoundLocation(loc: SoundLocation) {
     const self = this.getWritable()
-    self.__soundLoc = { ...loc }
+    self.__soundStart = loc.start
+    self.__soundEnd = loc.end
+    self.__soundSource = loc.source
     return self
   }
 
@@ -103,7 +114,9 @@ export class SoundNode extends TextNode {
   exportJSON() {
     return {
       ...super.exportJSON(),
-      soundLoc: this.__soundLoc,
+      soundStart: this.__soundStart,
+      soundEnd: this.__soundEnd,
+      soundSource: this.__soundSource,
       type: 'sound',
     }
   }
@@ -111,7 +124,11 @@ export class SoundNode extends TextNode {
   static importJSON(
     serializedNode: ReturnType<SoundNode['exportJSON']>,
   ): SoundNode {
-    const node = $createSoundNode(serializedNode.text, serializedNode.soundLoc)
+    const node = $createSoundNode(serializedNode.text, {
+      start: serializedNode.soundStart,
+      end: serializedNode.soundEnd,
+      source: serializedNode.soundSource,
+    })
     return node
   }
 }

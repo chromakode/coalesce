@@ -369,10 +369,10 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           // FIXME: inefficient multi pass filtering
           const regions = nodes
             .filter(
-              ({ soundLoc: { source, start, end } }) =>
+              ({ soundSource: source, soundStart: start, soundEnd: end }) =>
                 source === lineSource && start >= l.start && end <= l.end,
             )
-            .map(({ key, text, soundLoc: { start, end } }) => ({
+            .map(({ key, text, soundStart: start, soundEnd: end }) => ({
               id: key,
               content: text.trim(),
               start: start - l.start,
