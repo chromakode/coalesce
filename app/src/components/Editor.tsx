@@ -25,7 +25,6 @@ import { ExcludedProperties, Provider } from '@lexical/yjs'
 import type { Project, SoundLocation } from '@shared/types'
 import {
   $getNodeByKey,
-  $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
@@ -207,7 +206,6 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   function getAllSoundLocations() {
     return (
       editorRef.current?.getEditorState().read(() => {
-        const root = $getRoot()
         const soundNodes = $nodesOfType(SoundNode)
         return processLocations(soundNodes.map((l) => l.getSoundLocation()))
       }) ?? []
