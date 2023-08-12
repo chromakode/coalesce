@@ -142,7 +142,7 @@ export async function editCollabDoc(
   baseDoc: Uint8Array | null,
   applyUpdate: (editor: LexicalEditor) => Promise<void>,
 ): Promise<Y.Doc> {
-  const editor = createHeadlessEditor({
+  const editor: LexicalEditor = createHeadlessEditor({
     namespace: 'coalesce',
     nodes: lexicalNodes,
     // deno-lint-ignore no-explicit-any
