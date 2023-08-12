@@ -353,10 +353,18 @@ export function processLocations(locs: SoundLocation[]) {
     return []
   }
 
+  const filteredLocs = locs.filter((loc) => {
+    if (loc.start === undefined || loc.end === undefined) {
+      console.warn('Ignoring location missing timestamps', loc)
+      return false
+    }
+    return true
+  })
+
   // 1. If words were moved creating discontinuities, offset later clips so they play afterward
   // 2. Merge adjacent clips into single longer clips
   // 3. Replace gaps with a consistent amount of padding
-  return removeGaps(coalesceLocations(offsetMovedLocations(locs)))
+  return removeGaps(coalesceLocations(offsetMovedLocations(filteredLocs)))
 }
 
 export function getEndTime(locs: OffsetSoundLocation[]): number | null {
