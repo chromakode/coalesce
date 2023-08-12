@@ -69,8 +69,10 @@ function SpeakerPlugin({ project }: { project: Project }) {
 
   useLayoutEffect(() => {
     return editor.registerNodeTransform(SoundNode, (soundNode) => {
+      const soundLoc = soundNode.getSoundLocation()
+      const { source } = soundLoc
+
       const createSpeakerNode = () => {
-        const source = soundNode.getSoundLocation().source
         return $createSpeakerNode(
           project.tracks[source]?.label ?? 'Speaker',
           source,
@@ -78,7 +80,6 @@ function SpeakerPlugin({ project }: { project: Project }) {
       }
 
       const appendAdjacentNodes = (destNode: SpeakerNode) => {
-        const source = soundNode.getSoundLocation().source
         const isRelevantNode = (node: LexicalNode) => {
           if ($isSoundNode(node)) {
             return node.getSoundLocation().source === source
@@ -129,9 +130,7 @@ function SpeakerPlugin({ project }: { project: Project }) {
         const speakerNode = createSpeakerNode()
         soundNode.getParentOrThrow().insertAfter(speakerNode)
         appendAdjacentNodes(speakerNode)
-      } else if (
-        parentNode.getSource() !== soundNode.getSoundLocation().source
-      ) {
+      } else if (parentNode.getSource() !== source) {
         const speakerNode = createSpeakerNode()
         parentNode.insertAfter(speakerNode)
         appendAdjacentNodes(speakerNode)
