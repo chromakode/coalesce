@@ -23,7 +23,6 @@ export class SpeakerNode extends ParagraphNode {
   createDOM(config: EditorConfig): HTMLElement {
     const element = super.createDOM(config)
     element.dataset.label = this.__label
-    const labelEl = document.createElement('div')
     return element
   }
 
