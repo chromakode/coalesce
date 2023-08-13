@@ -11,6 +11,7 @@ function isPlayingStyle(isPlaying: boolean) {
 function updateStyle(element: HTMLElement, isPlaying: boolean) {
   element.style.fontVariationSettings = isPlayingStyle(isPlaying)
   element.style.textDecoration = isPlaying ? 'underline' : ''
+  element.style.color = isPlaying ? `var(--label-color)` : ''
 }
 
 export class SoundNode extends TextNode {
