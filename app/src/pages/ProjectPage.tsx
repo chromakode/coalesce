@@ -144,6 +144,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const project = useSocket(projectId)
   const engine = useEngine(project)
   const engineStatus = useEngineStatus(engine)
+  const scrollerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<EditorRef | null>(null)
   const [isInitialSynced, setIsInitialSynced] = useState(false)
   const [selection, setSelection] = useState<{
@@ -422,7 +423,15 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           onClose={handleDismissExport}
         />
       )}
-      <Box flex="1" overflow="auto" pb={bottomWavePadding}>
+      <Box
+        flex="1"
+        overflow="auto"
+        pb={bottomWavePadding}
+        // Relative position so absolutely-positioned Lexical collab cursors /
+        // selections scroll with the text
+        position="relative"
+        ref={scrollerRef}
+      >
         {project && (
           <Container maxW="container.lg" pt="24">
             <VStack>
@@ -500,6 +509,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
               {hasTranscription ? (
                 <Editor
                   ref={editorRef}
+                  scrollerRef={scrollerRef}
                   project={project}
                   onSync={handleOnSync}
                   onSelect={handleSelect}

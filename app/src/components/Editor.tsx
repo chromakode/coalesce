@@ -35,6 +35,7 @@ import {
 } from 'lexical'
 import { debounce } from 'lodash-es'
 import {
+  MutableRefObject,
   forwardRef,
   useCallback,
   useEffect,
@@ -163,13 +164,14 @@ export interface EditorMetrics {
 
 export interface EditorProps {
   project: Project
+  scrollerRef: MutableRefObject<HTMLElement | null>
   onSync: (isSynced: boolean) => void
   onSelect?: (locs: OffsetSoundLocation[], nodes: SoundNodeData[]) => void
   onMetricsUpdated?: (metrics: EditorMetrics) => void
 }
 
 export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
-  { project, onSync, onSelect, onMetricsUpdated },
+  { project, scrollerRef, onSync, onSelect, onMetricsUpdated },
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null)
@@ -335,6 +337,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         username="Editor"
         excludedProperties={excludedProperties}
         shouldBootstrap={false}
+        cursorsContainerRef={scrollerRef}
       />
     </LexicalComposer>
   )
