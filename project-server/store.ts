@@ -29,6 +29,7 @@ import {
   addTrackToYDoc,
   projectToYDoc,
   removeTrackFromYDoc,
+  updateSpeakerInYDoc,
 } from './editorState.ts'
 import { sendDocUpdate } from './socket.ts'
 import { TRACK_COLOR_ORDER } from '../shared/constants.ts'
@@ -336,6 +337,15 @@ export async function removeTrackFromCollabDoc(
   )
 }
 
+export async function updateSpeakerInCollabDoc(
+  projectId: string,
+  trackId: string,
+) {
+  await _updateCollabDoc(projectId, (project, baseDoc) =>
+    updateSpeakerInYDoc(project, trackId, baseDoc),
+  )
+}
+
 export async function getTrackInfo(trackId: string): Promise<TrackInfo> {
   return await db
     .selectFrom('track')
@@ -484,6 +494,8 @@ export async function updateTrack(
       update,
     }),
   )
+
+  await updateSpeakerInCollabDoc(projectId, trackId)
 }
 
 async function makeUploadURL(prefix: string) {

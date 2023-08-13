@@ -129,6 +129,25 @@ function removeTrackFromEditor(
   })
 }
 
+function updateSpeakerInEditor(
+  track: Track,
+  editor: LexicalEditor,
+): Promise<void> {
+  return new Promise((resolve) => {
+    editor.update(
+      () => {
+        const speakerNodes = $nodesOfType(SpeakerNode)
+        for (const node of speakerNodes) {
+          if (node.getSource() === track.trackId) {
+            node.setLabel(track.label ?? 'Speaker', track.color ?? 'black')
+          }
+        }
+      },
+      { onUpdate: resolve },
+    )
+  })
+}
+
 function dummyProvider(): lexicalYjs.Provider {
   return {
     awareness: {
@@ -240,5 +259,15 @@ export function removeTrackFromYDoc(
 ) {
   return editCollabDoc(project, baseDoc, async (editor) => {
     await removeTrackFromEditor(trackId, editor)
+  })
+}
+
+export function updateSpeakerInYDoc(
+  project: Project,
+  trackId: string,
+  baseDoc: Uint8Array | null,
+) {
+  return editCollabDoc(project, baseDoc, async (editor) => {
+    await updateSpeakerInEditor(project.tracks[trackId], editor)
   })
 }

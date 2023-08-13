@@ -57,9 +57,10 @@ export class SpeakerNode extends ParagraphNode {
     return self.__label
   }
 
-  setLabel(label: string) {
+  setLabel(label: string, color: string) {
     const self = this.getWritable()
     self.__label = label
+    self.__color = color
     return self
   }
 
