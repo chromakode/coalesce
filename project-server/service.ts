@@ -1,4 +1,8 @@
-import { ProjectTable, TrackTable } from '../shared/schema.ts'
+import {
+  ProjectTable,
+  TrackTable,
+  ProjectTracksTable,
+} from '../shared/schema.ts'
 import {
   Kysely,
   Migrator,
@@ -19,10 +23,7 @@ import { REDIS_URL, MINIO_ENDPOINT, POSTGRES_URL } from './env.ts'
 export interface DB {
   project: ProjectTable
   track: TrackTable
-  projectTracks: {
-    projectId: string
-    trackId: string
-  }
+  projectTracks: ProjectTracksTable
 }
 
 class DenoFileMigrationProvider implements MigrationProvider {

@@ -35,6 +35,7 @@ function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
     allTaggedWords(track.words, track.trackId, track.label ?? 'Speaker'),
     'start',
   )
+  const color = track.color ?? 'black'
 
   return new Promise((resolve) => {
     editor.update(
@@ -58,7 +59,11 @@ function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
           )
 
           if (prevWordNode === undefined) {
-            const parentNode = $createSpeakerNode(word.speakerName, word.source)
+            const parentNode = $createSpeakerNode(
+              word.speakerName,
+              color,
+              word.source,
+            )
             parentNode.append(newWordNode)
             root.append(parentNode)
           } else if (prevWordNode.getSoundLocation().source === word.source) {
@@ -71,7 +76,11 @@ function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
               prevWordNode.getIndexWithinParent(),
             )
 
-            const parentNode = $createSpeakerNode(word.speakerName, word.source)
+            const parentNode = $createSpeakerNode(
+              word.speakerName,
+              color,
+              word.source,
+            )
             afterParent.insertBefore(parentNode)
             parentNode.append(newWordNode)
 

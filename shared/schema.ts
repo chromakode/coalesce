@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { ColumnType, Selectable } from 'kysely'
+import { TRACK_COLOR_ORDER } from '@shared/constants'
 
 export const ProjectFields = z.object({
   title: z.string().optional().default('Untitled'),
@@ -25,4 +26,16 @@ export interface TrackTable extends TrackFields {
   createdAt: ColumnType<Date, undefined, never>
   originalFilename: string
 }
-export type TrackResult = Selectable<TrackTable>
+
+export const ProjectTracksFields = z.object({
+  color: z.enum(TRACK_COLOR_ORDER).optional(),
+})
+export type ProjectTracksFields = z.infer<typeof ProjectTracksFields>
+export type ProjectTracksFieldsInput = z.input<typeof ProjectTracksFields>
+
+export interface ProjectTracksTable extends ProjectTracksFields {
+  projectId: string
+  trackId: string
+}
+
+export type TrackResult = Selectable<TrackTable> & ProjectTracksFields

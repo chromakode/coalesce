@@ -31,6 +31,8 @@ import {
   removeTrackFromYDoc,
 } from './editorState.ts'
 import { sendDocUpdate } from './socket.ts'
+import { TRACK_COLOR_ORDER } from '../shared/constants.ts'
+import { retry } from 'https://deno.land/std@0.191.0/async/retry.ts'
 
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
 export const generateId = nanoidCustom(nanoidAlphabet, 20)
@@ -108,7 +110,7 @@ export async function* watchProject(projectId: string) {
           yield JSON.stringify({
             type: 'project:update',
             path: `tracks.${msg.track}`,
-            data: await getTrackState(msg.track),
+            data: await getTrackState(msg.project, msg.track),
           })
         }
       } else if (msg.type === 'job-created') {
@@ -361,6 +363,7 @@ function projectQuery() {
         'track.createdAt',
         'track.label',
         'track.originalFilename',
+        'projectTracks.color',
       ])
       .as('info')})`.as('tracks'),
   ])
@@ -376,11 +379,20 @@ export async function listProjects(): Promise<ProjectInfo[]> {
   return await projectQuery().execute()
 }
 
-export async function getTrackState(trackId: string): Promise<Track> {
+export async function getTrackState(
+  projectId: string,
+  trackId: string,
+): Promise<Track> {
   const trackInfo = await getTrackInfo(trackId)
+  const { color } = await db
+    .selectFrom('projectTracks')
+    .where('projectId', '=', projectId)
+    .where('trackId', '=', trackId)
+    .select(['color'])
+    .executeTakeFirstOrThrow()
   const words = await readJSON(storePath.trackWords(trackId))
   const audio = await readJSON(storePath.trackChunks(trackId))
-  return { ...trackInfo, words, audio }
+  return { ...trackInfo, color, words, audio }
 }
 
 export async function getProjectState(projectId: string): Promise<Project> {
@@ -494,7 +506,7 @@ export async function createTrack(
   fileData: BodyStream,
   originalFilename: string,
 ): Promise<string> {
-  let trackId = null
+  let trackId: string | null = null
   let isReusingTrack
 
   if (COALESCE_DEV_FLAGS.has('reuse-track-by-filename')) {
@@ -557,12 +569,32 @@ export async function createTrack(
     })
   }
 
-  await db
-    .insertInto('projectTracks')
-    .values({ projectId, trackId })
-    .executeTakeFirst()
+  await retry(
+    async () => {
+      await db
+        .transaction()
+        .setIsolationLevel('serializable')
+        .execute(async (trx) => {
+          // Find the next unused color
+          const usedColors = await trx
+            .selectFrom('projectTracks')
+            .where('projectId', '=', projectId)
+            .select(['color'])
+            .execute()
+          const usedColorsSet = new Set(usedColors.map(({ color }) => color))
+          const color =
+            TRACK_COLOR_ORDER.filter((c) => !usedColorsSet.has(c))[0] ?? 'black'
 
-  const trackState = await getTrackState(trackId)
+          await trx
+            .insertInto('projectTracks')
+            .values({ projectId, trackId: trackId!, color })
+            .execute()
+        })
+    },
+    { minTimeout: 50, maxTimeout: 1000 },
+  )
+
+  const trackState = await getTrackState(projectId, trackId)
 
   await redisClient.publish(
     `project:${projectId}`,

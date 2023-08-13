@@ -6,6 +6,7 @@
     "semiColons": false
   },
   "imports": {
+    "@shared/constants": "../shared/constants.ts",
     "@shared/schema": "../shared/schema.ts",
     "@shared/types": "../shared/types.ts",
     "@shared/lexical": "../shared/lexical/index.ts",

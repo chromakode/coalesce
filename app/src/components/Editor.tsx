@@ -33,7 +33,7 @@ import {
   LexicalEditor,
   LexicalNode,
 } from 'lexical'
-import { debounce, mapValues } from 'lodash-es'
+import { debounce } from 'lodash-es'
 import {
   forwardRef,
   useCallback,
@@ -71,10 +71,12 @@ function SpeakerPlugin({ project }: { project: Project }) {
     return editor.registerNodeTransform(SoundNode, (soundNode) => {
       const soundLoc = soundNode.getSoundLocation()
       const { source } = soundLoc
+      const track = project.tracks[source]
 
       const createSpeakerNode = () => {
         return $createSpeakerNode(
-          project.tracks[source]?.label ?? 'Speaker',
+          track?.label ?? 'Speaker',
+          track?.color ?? 'black',
           source,
         )
       }
@@ -146,7 +148,6 @@ export type SoundNodeData = ReturnType<SoundNode['exportJSON']> & {
 }
 
 export interface EditorRef {
-  colorMap: Record<string, string>
   getEditor: () => LexicalEditor | null
   updateSoundNode: (key: string, loc: Partial<SoundLocation>) => void
   setSoundNodePlaying: (key: string, isPlaying: boolean) => void
@@ -165,26 +166,12 @@ export interface EditorProps {
   onMetricsUpdated?: (metrics: EditorMetrics) => void
 }
 
-export const COLOR_ORDER = [
-  'red',
-  'green',
-  'blue',
-  'yellow',
-  'purple',
-  'orange',
-]
-
 export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   { project, onSelect, onMetricsUpdated },
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null)
   const prevSelection = useRef<ReturnType<typeof $getSelection>>(null)
-
-  const colorMap = useMemo(() => {
-    const colorOrder = [...COLOR_ORDER]
-    return mapValues(project.tracks, () => colorOrder.shift() ?? 'black')
-  }, [project])
 
   const initialConfig: InitialConfigType = useMemo(() => {
     return {
@@ -195,7 +182,6 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         rtl: 'rtl',
         placeholder: 'editor-placeholder',
         paragraph: 'editor-paragraph',
-        sourceColors: colorMap,
       },
       onError,
       editorState: null, // CollaborationPlugin will set editor state
@@ -215,7 +201,6 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
     ref,
     () =>
       ({
-        colorMap,
         getEditor() {
           return editorRef.current
         },

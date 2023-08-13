@@ -4,11 +4,18 @@ import type { EditorConfig, LexicalNode, NodeKey } from 'lexical'
 
 export class SpeakerNode extends ParagraphNode {
   __label: string | null
+  __color: string | null
   __source: string
 
-  constructor(label: string | null, source: string, key?: NodeKey) {
+  constructor(
+    label: string | null,
+    color: string | null,
+    source: string,
+    key?: NodeKey,
+  ) {
     super(key)
     this.__label = label
+    this.__color = color
     this.__source = source
   }
 
@@ -17,12 +24,21 @@ export class SpeakerNode extends ParagraphNode {
   }
 
   static clone(node: SpeakerNode): SpeakerNode {
-    return new SpeakerNode(node.__label, node.__source, node.__key)
+    return new SpeakerNode(
+      node.__label,
+      node.__color,
+      node.__source,
+      node.__key,
+    )
   }
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = super.createDOM(config)
     element.dataset.label = this.__label
+    element.style.setProperty(
+      '--label-color',
+      `var(--chakra-colors-${this.__color}-600)`,
+    )
     return element
   }
 
@@ -32,6 +48,7 @@ export class SpeakerNode extends ParagraphNode {
     config: EditorConfig,
   ): boolean {
     dom.dataset.label = this.__label
+    dom.dataset.color = this.__color
     return false
   }
 
@@ -55,6 +72,7 @@ export class SpeakerNode extends ParagraphNode {
     return {
       ...super.exportJSON(),
       label: this.__label,
+      color: this.__color,
       source: this.__source,
       type: 'speaker',
     }
@@ -63,16 +81,21 @@ export class SpeakerNode extends ParagraphNode {
   static importJSON(
     serializedNode: ReturnType<SpeakerNode['exportJSON']>,
   ): SpeakerNode {
-    const node = $createSpeakerNode(serializedNode.label, serializedNode.source)
+    const node = $createSpeakerNode(
+      serializedNode.label,
+      serializedNode.color,
+      serializedNode.source,
+    )
     return node
   }
 }
 
 export function $createSpeakerNode(
   label: string | null,
+  color: string | null,
   source: string,
 ): SpeakerNode {
-  return new SpeakerNode(label, source)
+  return new SpeakerNode(label, color, source)
 }
 
 export function $isSpeakerNode(node?: LexicalNode): node is SpeakerNode {

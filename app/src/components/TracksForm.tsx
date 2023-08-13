@@ -9,6 +9,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
+import { TRACK_COLOR_ORDER } from '@shared/constants'
 import { JobInfo, Project, Track } from '@shared/types'
 import { uniqBy } from 'lodash'
 import { debounce, groupBy, partition, sortBy } from 'lodash-es'
@@ -17,7 +18,6 @@ import { useDropzone } from 'react-dropzone'
 import { MdAudioFile, MdClose } from 'react-icons/md'
 import { useBeforeUnload } from 'react-use'
 import { deleteTrack, updateTrack, uploadTrack } from '../lib/api'
-import { COLOR_ORDER } from './Editor'
 
 function jobProgress(
   hasResult: boolean,
@@ -289,6 +289,11 @@ export default function TracksForm({
     return [sortedTracks, trackKeys]
   }, [tracks, files])
 
+  const availableColors = React.useMemo(() => {
+    const usedColors = new Set(Object.values(tracks).map(({ color }) => color))
+    return TRACK_COLOR_ORDER.filter((c) => !usedColors.has(c))
+  }, [tracks])
+
   // When tracks arrive in the project state, remove our local state for the file.
   useEffect(() => {
     const [uploaded, notUploadedYet] = partition(files, ({ name }) =>
@@ -304,7 +309,7 @@ export default function TracksForm({
     [project.jobs],
   )
 
-  const colors = [...COLOR_ORDER]
+  const colors = [...availableColors]
   return (
     <VStack w="full" alignItems="stretch">
       {sortedTracks.map(({ key, track, file }) => (
@@ -314,7 +319,7 @@ export default function TracksForm({
           file={file}
           track={track}
           jobs={track ? jobsForTrack[track.trackId] : null}
-          color={colors.shift() ?? 'black'}
+          color={`${track ? track.color : colors.shift()}.600`}
           isReadOnly={isReadOnly}
           onRemoveFile={handleRemove}
         />

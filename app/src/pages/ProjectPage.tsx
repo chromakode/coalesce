@@ -379,14 +379,14 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
               end: end - l.start,
             }))
 
-          const color = editorRef.current?.colorMap[lineSource] ?? 'black'
+          const color = project!.tracks[lineSource].color ?? 'black'
 
           return (
             <WaveEditor
               key={l.start}
               buffer={l.buffer}
               regions={regions}
-              waveColor={color ?? 'black'}
+              waveColor={color}
               minPxPerSec={800}
               cursorWidth={0}
               fillParent={false}

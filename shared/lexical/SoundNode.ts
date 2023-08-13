@@ -8,13 +8,7 @@ function isPlayingStyle(isPlaying: boolean) {
   return isPlaying ? '"GRAD" 150, "YOPQ" 100' : ''
 }
 
-function updateStyle(
-  config: EditorConfig,
-  element: HTMLElement,
-  source: string,
-  isPlaying: boolean,
-) {
-  element.style.color = config.theme.sourceColors[source] ?? 'black'
+function updateStyle(element: HTMLElement, isPlaying: boolean) {
   element.style.fontVariationSettings = isPlayingStyle(isPlaying)
   element.style.textDecoration = isPlaying ? 'underline' : ''
 }
@@ -45,7 +39,7 @@ export class SoundNode extends TextNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = super.createDOM(config)
-    updateStyle(config, element, this.__soundSource, this.__isPlaying)
+    updateStyle(element, this.__isPlaying)
     return element
   }
 
@@ -63,7 +57,7 @@ export class SoundNode extends TextNode {
       prevNode.__soundEnd !== this.__soundEnd ||
       prevNode.__soundSource !== this.__soundSource
     ) {
-      updateStyle(config, dom, this.__soundSource, this.__isPlaying)
+      updateStyle(dom, this.__isPlaying)
     }
     return false
   }

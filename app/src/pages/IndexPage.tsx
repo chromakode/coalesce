@@ -13,7 +13,6 @@ import {
 import { ProjectInfo } from '@shared/types'
 import { useAsync, useAsyncFn } from 'react-use'
 import { Link, useLocation } from 'wouter'
-import { COLOR_ORDER } from '../components/Editor'
 import { createProject, listProjects } from '../lib/api'
 
 function ProjectItem({
@@ -21,7 +20,6 @@ function ProjectItem({
 }: {
   project: ProjectInfo
 }) {
-  const colors = [...COLOR_ORDER]
   const trackEntries = Object.entries(tracks)
   return (
     <LinkBox w="full">
@@ -34,8 +32,8 @@ function ProjectItem({
         <Text>
           {trackEntries.length} tracks{trackEntries.length > 0 ? ':' : ''}
         </Text>
-        {trackEntries.map(([trackId, { label }]) => (
-          <Text key={trackId} color={colors.shift()}>
+        {trackEntries.map(([trackId, { color, label }]) => (
+          <Text key={trackId} color={`${color}.600`}>
             {label}
           </Text>
         ))}

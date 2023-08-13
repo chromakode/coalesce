@@ -33,6 +33,7 @@
 
 .editor-paragraph[data-label]:before {
   content: attr(data-label);
+  color: var(--label-color);
   position: relative;
   display: block;
   height: 0;
