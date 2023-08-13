@@ -145,6 +145,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const engine = useEngine(project)
   const engineStatus = useEngineStatus(engine)
   const editorRef = useRef<EditorRef | null>(null)
+  const [isInitialSynced, setIsInitialSynced] = useState(false)
   const [selection, setSelection] = useState<{
     locs: SoundLocation[]
     nodes: SoundNodeData[]
@@ -215,6 +216,10 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     } catch (err) {
       console.warn(err)
     }
+  }
+
+  const handleOnSync = (isSynced: boolean) => {
+    setIsInitialSynced((isInitialSynced) => isSynced || isInitialSynced)
   }
 
   const handleSelect = (
@@ -408,7 +413,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
 
   return (
     <Flex h="100vh" flexDir="column" bg="gray.100">
-      {!project && <LoadingCover />}
+      {(!project || (hasTranscription && !isInitialSynced)) && <LoadingCover />}
       {showExport && (
         <ExportModal
           isExporting={isExporting}
@@ -496,6 +501,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                 <Editor
                   ref={editorRef}
                   project={project}
+                  onSync={handleOnSync}
                   onSelect={handleSelect}
                   onMetricsUpdated={setMetrics}
                 />

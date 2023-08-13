@@ -43,6 +43,7 @@ import {
   useMemo,
   useRef,
 } from 'react'
+import { useLatest } from 'react-use'
 import {
   OffsetSoundLocation,
   getEndTime,
@@ -162,12 +163,13 @@ export interface EditorMetrics {
 
 export interface EditorProps {
   project: Project
+  onSync: (isSynced: boolean) => void
   onSelect?: (locs: OffsetSoundLocation[], nodes: SoundNodeData[]) => void
   onMetricsUpdated?: (metrics: EditorMetrics) => void
 }
 
 export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
-  { project, onSelect, onMetricsUpdated },
+  { project, onSync, onSelect, onMetricsUpdated },
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null)
@@ -289,6 +291,8 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
 
   useEffect(handleChange, [])
 
+  const latestOnSync = useLatest(onSync)
+
   const createWebsocketProvider = useCallback(
     (id: string, yjsDocMap: Map<string, Y.Doc>) => {
       const doc = new Y.Doc()
@@ -297,6 +301,10 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       // TODO: create a custom provider to combine YJS and project updates in one WebSocket
       const provider = new WebsocketProvider(collabSocketBase(), id, doc, {
         connect: false,
+      })
+
+      provider.on('sync', (isSynced: boolean) => {
+        latestOnSync.current(isSynced)
       })
 
       // Lexical's type is stricter than YJS's :(
