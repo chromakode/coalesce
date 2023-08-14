@@ -52,7 +52,8 @@ export function playLocations(
 
   let minTime = locs[0].start
 
-  const duration = getEndTime(locs)! - minTime + clipStartFudge + clipEndFudge
+  const duration =
+    getEndTime(locs)! - startSeek - minTime + clipStartFudge + clipEndFudge
 
   const scheduler: CreateAudioScheduler = async function* (
     ctx,
