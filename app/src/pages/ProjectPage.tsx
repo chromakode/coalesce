@@ -12,10 +12,12 @@ import {
   Input,
   Slider,
   SliderFilledTrack,
+  SliderMark,
   SliderThumb,
   SliderTrack,
   Spinner,
   Text,
+  Tooltip,
   VStack,
   useBoolean,
 } from '@chakra-ui/react'
@@ -33,6 +35,7 @@ import {
 } from 'lodash-es'
 import {
   ChangeEvent,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -51,6 +54,7 @@ import { useAsync } from 'react-use'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
+import { WebsocketProvider } from 'y-websocket'
 import { DisplayMS } from '../components/DisplayMS'
 import Editor, {
   EditorMetrics,
@@ -74,6 +78,14 @@ import './ProjectPage.css'
 
 const WAVE_PADDING = 0.5
 const MAX_WAVE_NODES = 10
+
+interface CollaboratorState {
+  id: number
+  name: string
+  color: string
+  playbackTime: number
+  playbackStatus: AudioEngineStatus['mode']
+}
 
 function useSocket(projectId: string): Project | null {
   const socketRef = useRef<{
@@ -146,6 +158,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const engineStatus = useEngineStatus(engine)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<EditorRef | null>(null)
+  const awarenessRef = useRef<WebsocketProvider['awareness'] | null>(null)
   const [isInitialSynced, setIsInitialSynced] = useState(false)
   const [selection, setSelection] = useState<{
     locs: SoundLocation[]
@@ -157,6 +170,9 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const [isExporting, setExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [isEditingTracks, setEditingTracks] = useBoolean()
+  const [collaboratorStates, setCollaboratorStates] = useState<
+    CollaboratorState[]
+  >([])
 
   const playbackTime =
     engineStatus.mode === 'playing'
@@ -222,6 +238,43 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const handleOnSync = (isSynced: boolean) => {
     setIsInitialSynced((isInitialSynced) => isSynced || isInitialSynced)
   }
+
+  const handleOnAwareness = useCallback(
+    (awareness: WebsocketProvider['awareness']) => {
+      awarenessRef.current = awareness
+
+      const times = []
+      for (const [id, state] of awareness.getStates().entries()) {
+        if (id === awareness.clientID) {
+          continue
+        }
+        times.push({
+          id,
+          name: state.name,
+          color: state.color,
+          playbackTime: state.playbackTime,
+          playbackStatus: state.playbackStatus,
+        })
+      }
+      setCollaboratorStates(times)
+    },
+    [],
+  )
+
+  useEffect(() => {
+    awarenessRef.current?.setLocalStateField('playbackTime', playbackTime)
+  }, [playbackTime])
+
+  useEffect(() => {
+    const { mode } = engineStatus
+    let playbackStatus
+    if (mode === 'stopped') {
+      playbackStatus = 'stopped'
+    } else if (mode === 'playing' || mode === 'loading') {
+      playbackStatus = 'playing'
+    }
+    awarenessRef.current?.setLocalStateField('playbackStatus', playbackStatus)
+  }, [engineStatus])
 
   const handleSelect = (
     locs: OffsetSoundLocation[],
@@ -512,6 +565,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   scrollerRef={scrollerRef}
                   project={project}
                   onSync={handleOnSync}
+                  onAwareness={handleOnAwareness}
                   onSelect={handleSelect}
                   onMetricsUpdated={setMetrics}
                 />
@@ -572,19 +626,60 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           isLoading={engineStatus.mode === 'loading'}
         />
         <DisplayMS ms={playbackTime} />
-        <Slider
-          aria-label="Playback progress"
-          min={0}
-          max={metrics?.durationMS}
-          value={playbackTime}
-          onChange={handleSeek}
-          focusThumbOnChange={false}
-        >
-          <SliderTrack>
-            <SliderFilledTrack />
-          </SliderTrack>
-          <SliderThumb />
-        </Slider>
+        <Box flex="1" position="relative">
+          <Slider
+            aria-label="Playback progress"
+            min={0}
+            max={metrics?.durationMS}
+            value={playbackTime}
+            onChange={handleSeek}
+            focusThumbOnChange={false}
+          >
+            <SliderTrack>
+              <SliderFilledTrack />
+            </SliderTrack>
+            <SliderThumb />
+            {collaboratorStates.map(
+              ({ id, name, color, playbackTime, playbackStatus }) => (
+                <Tooltip
+                  key={id}
+                  isOpen
+                  hasArrow
+                  aria-hidden
+                  bgColor={color}
+                  label={
+                    <HStack spacing={1}>
+                      {playbackStatus && (
+                        <Icon
+                          fontSize="md"
+                          // Compensate for a lil extra padding from the icon
+                          ml="-.1rem"
+                          as={
+                            playbackStatus === 'playing' ? MdPlayArrow : MdPause
+                          }
+                        />
+                      )}
+                      <Text>{name}</Text>
+                    </HStack>
+                  }
+                  fontSize="xs"
+                  arrowSize={8}
+                  offset={[0, 12]}
+                >
+                  <SliderMark value={playbackTime}>
+                    <Box
+                      w={2}
+                      h={2}
+                      mt={-1}
+                      borderRadius="full"
+                      bgColor={color}
+                    ></Box>
+                  </SliderMark>
+                </Tooltip>
+              ),
+            )}
+          </Slider>
+        </Box>
         {metrics && <DisplayMS ms={metrics.durationMS} />}
         <IconButton
           colorScheme="green"

@@ -166,12 +166,13 @@ export interface EditorProps {
   project: Project
   scrollerRef: MutableRefObject<HTMLElement | null>
   onSync: (isSynced: boolean) => void
+  onAwareness: (awareness: WebsocketProvider['awareness']) => void
   onSelect?: (locs: OffsetSoundLocation[], nodes: SoundNodeData[]) => void
   onMetricsUpdated?: (metrics: EditorMetrics) => void
 }
 
 export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
-  { project, scrollerRef, onSync, onSelect, onMetricsUpdated },
+  { project, scrollerRef, onSync, onAwareness, onSelect, onMetricsUpdated },
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null)
@@ -294,6 +295,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   useEffect(handleChange, [])
 
   const latestOnSync = useLatest(onSync)
+  const latestOnAwareness = useLatest(onAwareness)
 
   const createWebsocketProvider = useCallback(
     (id: string, yjsDocMap: Map<string, Y.Doc>) => {
@@ -307,6 +309,10 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
 
       provider.on('sync', (isSynced: boolean) => {
         latestOnSync.current(isSynced)
+      })
+
+      provider.awareness.on('change', () => {
+        latestOnAwareness.current(provider.awareness)
       })
 
       // Lexical's type is stricter than YJS's :(
