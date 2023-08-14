@@ -164,6 +164,7 @@ export interface EditorMetrics {
 
 export interface EditorProps {
   project: Project
+  initialNickname: string
   scrollerRef: MutableRefObject<HTMLElement | null>
   onSync: (isSynced: boolean) => void
   onAwareness: (awareness: WebsocketProvider['awareness']) => void
@@ -172,7 +173,15 @@ export interface EditorProps {
 }
 
 export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
-  { project, scrollerRef, onSync, onAwareness, onSelect, onMetricsUpdated },
+  {
+    project,
+    initialNickname,
+    scrollerRef,
+    onSync,
+    onAwareness,
+    onSelect,
+    onMetricsUpdated,
+  },
   ref,
 ) {
   const editorRef = useRef<LexicalEditor | null>(null)
@@ -340,9 +349,9 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       <CollaborationPlugin
         id={`${project.projectId}/collab`}
         providerFactory={createWebsocketProvider}
-        username="Editor"
         excludedProperties={excludedProperties}
         shouldBootstrap={false}
+        username={initialNickname}
         cursorsContainerRef={scrollerRef}
       />
     </LexicalComposer>

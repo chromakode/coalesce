@@ -10,6 +10,8 @@ import {
   Icon,
   IconButton,
   Input,
+  InputGroup,
+  InputLeftAddon,
   Slider,
   SliderFilledTrack,
   SliderMark,
@@ -22,6 +24,7 @@ import {
   useBoolean,
 } from '@chakra-ui/react'
 import { Project, SoundLocation } from '@shared/types'
+import { AnimatePresence } from 'framer-motion'
 import {
   cloneDeep,
   debounce,
@@ -47,10 +50,11 @@ import {
   MdAudioFile,
   MdCheck,
   MdEdit,
+  MdGroup,
   MdPause,
   MdPlayArrow,
 } from 'react-icons/md'
-import { useAsync } from 'react-use'
+import { useAsync, useLocalStorage } from 'react-use'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
@@ -63,6 +67,7 @@ import Editor, {
 } from '../components/Editor'
 import { ExportModal } from '../components/ExportModal'
 import { LoadingCover } from '../components/LoadingCover'
+import MotionBox from '../components/MotionBox'
 import TracksForm from '../components/TracksForm'
 import { WaveEditor } from '../components/WaveEditor'
 import AudioEngine, {
@@ -170,6 +175,8 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const [isExporting, setExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [isEditingTracks, setEditingTracks] = useBoolean()
+  const [nickname, setNickname] = useLocalStorage('collabNick', 'Anonymous')
+  const [initialNickname] = useState(() => nickname)
   const [collaboratorStates, setCollaboratorStates] = useState<
     CollaboratorState[]
   >([])
@@ -250,7 +257,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
         }
         times.push({
           id,
-          name: state.name,
+          name: state.name.length ? state.name : 'Anonymous',
           color: state.color,
           playbackTime: state.playbackTime,
           playbackStatus: state.playbackStatus,
@@ -260,6 +267,10 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     },
     [],
   )
+
+  useEffect(() => {
+    awarenessRef.current?.setLocalStateField('name', nickname)
+  }, [nickname])
 
   useEffect(() => {
     awarenessRef.current?.setLocalStateField('playbackTime', playbackTime)
@@ -391,6 +402,13 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     [],
   )
 
+  const handleChangeNick = useCallback(
+    (ev: ChangeEvent<HTMLInputElement>) => {
+      setNickname(ev.target.value)
+    },
+    [setNickname],
+  )
+
   const selectionBuffers = useAsync(async () => {
     if (!selection) {
       return []
@@ -476,6 +494,45 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           onClose={handleDismissExport}
         />
       )}
+      <AnimatePresence>
+        {collaboratorStates.length > 0 && (
+          <MotionBox
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            zIndex="overlay"
+          >
+            <HStack
+              px="4"
+              py="2"
+              justifyContent="space-between"
+              fontSize="md"
+              bg="gray.100"
+              borderBottomWidth="1px"
+              borderColor="gray.400"
+              shadow="0 0 5px rgba(0, 0, 0, .15)"
+            >
+              <HStack color="green.800">
+                <Icon as={MdGroup} fontSize="xl" />
+                <Text>
+                  Editing collaboratively with:{' '}
+                  {collaboratorStates.map(({ name }) => name).join(', ')}
+                </Text>
+              </HStack>
+              <InputGroup size="sm" w="64" bg="gray.50">
+                <InputLeftAddon fontSize="md" bg="gray.200">
+                  Your name:
+                </InputLeftAddon>
+                <Input
+                  fontSize="md"
+                  value={nickname}
+                  onChange={handleChangeNick}
+                />
+              </InputGroup>
+            </HStack>
+          </MotionBox>
+        )}
+      </AnimatePresence>
       <Box
         flex="1"
         overflow="auto"
@@ -564,6 +621,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   ref={editorRef}
                   scrollerRef={scrollerRef}
                   project={project}
+                  initialNickname={initialNickname ?? 'Anonymous'}
                   onSync={handleOnSync}
                   onAwareness={handleOnAwareness}
                   onSelect={handleSelect}
