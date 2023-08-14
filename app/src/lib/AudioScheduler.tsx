@@ -1,8 +1,8 @@
+import { SoundLocation } from '@shared/types'
 import {
   getEndTime,
   OffsetSoundLocation,
   padLocation,
-  SoundLocation,
   SoundLocationWithBuffer,
 } from './AudioEngine'
 
