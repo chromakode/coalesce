@@ -533,109 +533,110 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           </MotionBox>
         )}
       </AnimatePresence>
-      <Box
-        flex="1"
-        overflow="auto"
-        pb={bottomWavePadding}
-        // Relative position so absolutely-positioned Lexical collab cursors /
-        // selections scroll with the text
-        position="relative"
-        ref={scrollerRef}
-      >
-        {project && (
-          <Container maxW="container.lg" pt="24">
-            <VStack>
-              <Flex w="full">
-                {isEditingTracks ? (
-                  <Input
-                    flex="1"
-                    fontSize="3xl"
-                    fontWeight="bold"
-                    variant="flushed"
-                    defaultValue={project.title}
-                    onChange={handleProjectNameChange}
-                    mb="2"
+      <Box flex="1" overflow="auto" pb={bottomWavePadding}>
+        <Box
+          // Relative position so absolutely-positioned Lexical collab cursors /
+          // selections scroll with the text
+          position="relative"
+          ref={scrollerRef}
+        >
+          {project && (
+            <Container maxW="container.lg" pt="24">
+              <VStack>
+                <Flex w="full">
+                  {isEditingTracks ? (
+                    <Input
+                      flex="1"
+                      fontSize="3xl"
+                      fontWeight="bold"
+                      variant="flushed"
+                      defaultValue={project.title}
+                      onChange={handleProjectNameChange}
+                      mb="2"
+                    />
+                  ) : (
+                    <Text flex="1" fontSize="3xl" fontWeight="bold">
+                      {project.title}
+                    </Text>
+                  )}
+                  {hasTranscription && (
+                    <IconButton
+                      fontSize="2xl"
+                      icon={
+                        isEditingTracks ? (
+                          <Icon as={MdCheck} />
+                        ) : (
+                          <Icon as={MdEdit} />
+                        )
+                      }
+                      colorScheme={isEditingTracks ? 'green' : 'gray'}
+                      variant={isEditingTracks ? 'solid' : 'ghost'}
+                      ml="4"
+                      aria-label={
+                        isEditingTracks
+                          ? 'Finish editing tracks'
+                          : 'Edit tracks'
+                      }
+                      onClick={setEditingTracks.toggle}
+                    />
+                  )}
+                </Flex>
+                {isEditingTracks && hasTranscription && (
+                  <Alert status="warning">
+                    <AlertIcon />
+                    <AlertTitle>
+                      Removing tracks will delete the track's text.
+                    </AlertTitle>
+                  </Alert>
+                )}
+                <TracksForm project={project} isReadOnly={!isEditingTracks} />
+              </VStack>
+              <Box
+                w="full"
+                minH="70vh"
+                bg="white"
+                my="6"
+                py="4"
+                px="6"
+                fontSize="xl"
+                fontWeight="normal"
+                borderRadius="lg"
+                sx={{
+                  '& h1': {
+                    fontWeight: 'bold',
+                    fontSize: '1.5em',
+                    marginTop: '2rem',
+                    marginBottom: '.5rem',
+                  },
+                  '& h2': {
+                    fontWeight: 'bold',
+                    fontSize: '1.15em',
+                    marginTop: '2rem',
+                    marginBottom: '.5rem',
+                  },
+                }}
+              >
+                {hasTranscription ? (
+                  <Editor
+                    ref={editorRef}
+                    scrollerRef={scrollerRef}
+                    project={project}
+                    initialNickname={initialNickname ?? 'Anonymous'}
+                    onSync={handleOnSync}
+                    onAwareness={handleAwareness}
+                    onSelect={handleSelect}
+                    onMetricsUpdated={setMetrics}
                   />
                 ) : (
-                  <Text flex="1" fontSize="3xl" fontWeight="bold">
-                    {project.title}
-                  </Text>
+                  <Center mt="16" opacity=".5">
+                    <Spinner size="lg" mr="4" />
+                    <Text>Waiting for transcriptions...</Text>
+                  </Center>
                 )}
-                {hasTranscription && (
-                  <IconButton
-                    fontSize="2xl"
-                    icon={
-                      isEditingTracks ? (
-                        <Icon as={MdCheck} />
-                      ) : (
-                        <Icon as={MdEdit} />
-                      )
-                    }
-                    colorScheme={isEditingTracks ? 'green' : 'gray'}
-                    variant={isEditingTracks ? 'solid' : 'ghost'}
-                    ml="4"
-                    aria-label={
-                      isEditingTracks ? 'Finish editing tracks' : 'Edit tracks'
-                    }
-                    onClick={setEditingTracks.toggle}
-                  />
-                )}
-              </Flex>
-              {isEditingTracks && hasTranscription && (
-                <Alert status="warning">
-                  <AlertIcon />
-                  <AlertTitle>
-                    Removing tracks will delete the track's text.
-                  </AlertTitle>
-                </Alert>
-              )}
-              <TracksForm project={project} isReadOnly={!isEditingTracks} />
-            </VStack>
-            <Box
-              w="full"
-              minH="70vh"
-              bg="white"
-              my="6"
-              py="4"
-              px="6"
-              fontSize="xl"
-              fontWeight="normal"
-              borderRadius="lg"
-              sx={{
-                '& h1': {
-                  fontWeight: 'bold',
-                  fontSize: '1.5em',
-                  marginTop: '2rem',
-                  marginBottom: '.5rem',
-                },
-                '& h2': {
-                  fontWeight: 'bold',
-                  fontSize: '1.15em',
-                  marginTop: '2rem',
-                  marginBottom: '.5rem',
-                },
-              }}
-            >
-              {hasTranscription ? (
-                <Editor
-                  ref={editorRef}
-                  scrollerRef={scrollerRef}
-                  project={project}
-                  initialNickname={initialNickname ?? 'Anonymous'}
-                  onSync={handleOnSync}
-                  onAwareness={handleAwareness}
-                  onSelect={handleSelect}
-                  onMetricsUpdated={setMetrics}
-                />
-              ) : (
-                <Center mt="16" opacity=".5">
-                  <Spinner size="lg" mr="4" />
-                  <Text>Waiting for transcriptions...</Text>
-                </Center>
-              )}
-            </Box>
-          </Container>
-        )}
+              </Box>
+            </Container>
+          )}
+        </Box>
       </Box>
       {waves.length > 0 && (
         <Flex
