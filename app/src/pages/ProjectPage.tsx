@@ -279,10 +279,10 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   useEffect(() => {
     const { mode } = engineStatus
     let playbackStatus
-    if (mode === 'stopped') {
-      playbackStatus = 'stopped'
-    } else if (mode === 'playing' || mode === 'loading') {
+    if (mode === 'playing' || mode === 'loading') {
       playbackStatus = 'playing'
+    } else {
+      playbackStatus = 'stopped'
     }
     awarenessRef.current?.setLocalStateField('playbackStatus', playbackStatus)
   }, [engineStatus])
@@ -707,16 +707,14 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   bgColor={color}
                   label={
                     <HStack spacing={1}>
-                      {playbackStatus && (
-                        <Icon
-                          fontSize="md"
-                          // Compensate for a lil extra padding from the icon
-                          ml="-.1rem"
-                          as={
-                            playbackStatus === 'playing' ? MdPlayArrow : MdPause
-                          }
-                        />
-                      )}
+                      <Icon
+                        fontSize="md"
+                        // Compensate for a lil extra padding from the icon
+                        ml="-.1rem"
+                        as={
+                          playbackStatus === 'playing' ? MdPlayArrow : MdPause
+                        }
+                      />
                       <Text>{name}</Text>
                     </HStack>
                   }
