@@ -246,7 +246,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     setIsInitialSynced((isInitialSynced) => isSynced || isInitialSynced)
   }
 
-  const handleOnAwareness = useCallback(
+  const handleAwareness = useCallback(
     (awareness: WebsocketProvider['awareness']) => {
       awarenessRef.current = awareness
 
@@ -623,7 +623,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   project={project}
                   initialNickname={initialNickname ?? 'Anonymous'}
                   onSync={handleOnSync}
-                  onAwareness={handleOnAwareness}
+                  onAwareness={handleAwareness}
                   onSelect={handleSelect}
                   onMetricsUpdated={setMetrics}
                 />
