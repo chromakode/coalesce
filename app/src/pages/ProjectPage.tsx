@@ -697,7 +697,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
             <SliderTrack>
               <SliderFilledTrack />
             </SliderTrack>
-            <SliderThumb />
+            <SliderThumb bg="blue.600" />
             {collaboratorStates.map(
               ({ id, name, color, playbackTime, playbackStatus }) => (
                 <Tooltip
