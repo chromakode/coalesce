@@ -14,12 +14,10 @@ import {
   InputLeftAddon,
   Slider,
   SliderFilledTrack,
-  SliderMark,
   SliderThumb,
   SliderTrack,
   Spinner,
   Text,
-  Tooltip,
   VStack,
   useBoolean,
 } from '@chakra-ui/react'
@@ -59,6 +57,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import { WebsocketProvider } from 'y-websocket'
+import CollaboratorPosition from '../components/CollaboratorPosition'
 import { DisplayMS } from '../components/DisplayMS'
 import Editor, {
   EditorMetrics,
@@ -84,7 +83,7 @@ import './ProjectPage.css'
 const WAVE_PADDING = 0.5
 const MAX_WAVE_NODES = 10
 
-interface CollaboratorState {
+export interface CollaboratorState {
   id: number
   name: string
   color: string
@@ -698,43 +697,9 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
               <SliderFilledTrack />
             </SliderTrack>
             <SliderThumb bg="blue.600" />
-            {collaboratorStates.map(
-              ({ id, name, color, playbackTime, playbackStatus }) => (
-                <Tooltip
-                  key={id}
-                  isOpen
-                  hasArrow
-                  aria-hidden
-                  bgColor={color}
-                  label={
-                    <HStack spacing={1}>
-                      <Icon
-                        fontSize="md"
-                        // Compensate for a lil extra padding from the icon
-                        ml="-.1rem"
-                        as={
-                          playbackStatus === 'playing' ? MdPlayArrow : MdPause
-                        }
-                      />
-                      <Text>{name}</Text>
-                    </HStack>
-                  }
-                  fontSize="xs"
-                  arrowSize={8}
-                  offset={[0, 14]}
-                >
-                  <SliderMark value={playbackTime} ml="-.25rem">
-                    <Box
-                      w={2}
-                      h={2}
-                      mt={-1}
-                      borderRadius="full"
-                      bgColor={color}
-                    ></Box>
-                  </SliderMark>
-                </Tooltip>
-              ),
-            )}
+            {collaboratorStates.map((s) => (
+              <CollaboratorPosition key={s.id} collaboratorState={s} />
+            ))}
           </Slider>
         </Box>
         {metrics && <DisplayMS ms={metrics.durationMS} />}
