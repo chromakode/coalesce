@@ -59,7 +59,7 @@ class CoalesceConsumer(QueueConsumer):
                 async for chunk in resp.content.iter_chunked(1024):
                     input_file.write(chunk)
 
-                def output_sink(name, output_data, close=False):
+                def output_sink(name, output_data):
                     form_data = aiohttp.FormData(job.outputFormData)
                     form_data.add_field("file", output_data, filename=name)
                     group.create_task(session.post(job.outputURI, data=form_data))
