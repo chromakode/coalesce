@@ -723,7 +723,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   arrowSize={8}
                   offset={[0, 12]}
                 >
-                  <SliderMark value={playbackTime}>
+                  <SliderMark value={playbackTime} ml="-.25rem">
                     <Box
                       w={2}
                       h={2}
