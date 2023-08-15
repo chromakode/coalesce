@@ -721,7 +721,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   }
                   fontSize="xs"
                   arrowSize={8}
-                  offset={[0, 12]}
+                  offset={[0, 14]}
                 >
                   <SliderMark value={playbackTime} ml="-.25rem">
                     <Box
