@@ -14,6 +14,7 @@ import {
   $createSpeakerNode,
   $isSoundNode,
   $isSpeakerNode,
+  $nodesOfTypeInOrder,
   SoundNode,
   SpeakerNode,
   lexicalNodes,
@@ -28,7 +29,6 @@ import {
   $getSelection,
   $isRangeSelection,
   $isTextNode,
-  $nodesOfType,
   EditorState,
   LexicalEditor,
   LexicalNode,
@@ -205,7 +205,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   function getAllSoundLocations() {
     return (
       editorRef.current?.getEditorState().read(() => {
-        const soundNodes = $nodesOfType(SoundNode)
+        const soundNodes = $nodesOfTypeInOrder(SoundNode)
         return processLocations(soundNodes.map((l) => l.getSoundLocation()))
       }) ?? []
     )

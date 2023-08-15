@@ -4,6 +4,7 @@ import {
   $createSpeakerNode,
   SpeakerNode,
   lexicalNodes,
+  $nodesOfTypeInOrder,
 } from '@shared/lexical'
 import type { Project, Track, Words } from '@shared/types'
 import {
@@ -11,7 +12,6 @@ import {
   sortBy,
   $createTextNode,
   $getRoot,
-  $nodesOfType,
   $splitNode,
   $isTextNode,
   lexicalYjs,
@@ -41,7 +41,7 @@ function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
     editor.update(
       () => {
         const root = $getRoot()
-        const soundNodes = $nodesOfType(SoundNode)
+        const soundNodes = $nodesOfTypeInOrder(SoundNode)
 
         let prevWordNode: SoundNode = soundNodes[0]
         for (const word of words) {
@@ -117,7 +117,7 @@ function removeTrackFromEditor(
   return new Promise((resolve) => {
     editor.update(
       () => {
-        const speakerNodes = $nodesOfType(SpeakerNode)
+        const speakerNodes = $nodesOfTypeInOrder(SpeakerNode)
         for (const node of speakerNodes) {
           if (node.getSource() === trackId) {
             node.remove()
@@ -136,7 +136,7 @@ function updateSpeakerInEditor(
   return new Promise((resolve) => {
     editor.update(
       () => {
-        const speakerNodes = $nodesOfType(SpeakerNode)
+        const speakerNodes = $nodesOfTypeInOrder(SpeakerNode)
         for (const node of speakerNodes) {
           if (node.getSource() === track.trackId) {
             node.setLabel(track.label ?? 'Speaker', track.color ?? 'black')

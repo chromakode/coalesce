@@ -33,7 +33,6 @@ export {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
-  $nodesOfType,
   $splitNode,
   $isTextNode,
 } from 'lexical'
