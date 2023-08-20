@@ -44,9 +44,9 @@ async def process_audio(job: ProcessAudioRequest):
             async def send_update(update):
                 await ws.send(json.dumps(update))
 
-            def progress_callback(key, n, total):
+            async def send_progress(key, n, total):
                 progress[key] = n / total
-                future = send_update(
+                await send_update(
                     {
                         "status": "running",
                         "progress": (
@@ -55,16 +55,15 @@ async def process_audio(job: ProcessAudioRequest):
                         ),
                     }
                 )
-                asyncio.run_coroutine_threadsafe(future, loop).result()
 
             try:
                 async with asyncio.TaskGroup() as group:
 
-                    def output_sink(name, output_data):
+                    async def upload_output(name, output_data):
                         mimetype, _ = mimetypes.guess_type(name)
                         url = job.outputURIBase + f"/{name}"
-                        group.create_task(
-                            session.post(
+                        await group.create_task(
+                            session.put(
                                 url,
                                 data=output_data,
                                 headers={
@@ -81,14 +80,24 @@ async def process_audio(job: ProcessAudioRequest):
                         input_file.write(chunk)
 
                     for task_func in tasks:
+
+                        def progress_callback(key, n, total):
+                            asyncio.run_coroutine_threadsafe(
+                                send_progress(key, n, total), loop
+                            )
+
+                        def output_sink(name, output_data):
+                            asyncio.run_coroutine_threadsafe(
+                                upload_output(name, output_data), loop
+                            )
+
+                        task_name = task_func.__name__
                         group.create_task(
                             asyncio.to_thread(
                                 task_func,
                                 input_file.name,
                                 output_sink=output_sink,
-                                progress_callback=partial(
-                                    progress_callback, task_func.__name__
-                                ),
+                                progress_callback=partial(progress_callback, task_name),
                             )
                         )
 
