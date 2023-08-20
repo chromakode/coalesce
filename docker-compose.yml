@@ -10,8 +10,10 @@ services:
     restart: unless-stopped
     volumes:
       - postgres:/var/lib/postgresql/data
-    env_file:
-      - docker-compose.env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-coalesce}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD
 
   minio:
     image: quay.io/minio/minio
@@ -21,8 +23,9 @@ services:
       - minio:/data
     ports:
       - '127.0.0.1:9000:9000'
-    env_file:
-      - docker-compose.env
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minio}
+      - MINIO_ROOT_PASSWORD
 
   audio-processor:
     profiles: ['process-audio']
@@ -36,10 +39,9 @@ services:
       - project-server
     ports:
       - '127.0.0.1:3030:3030'
-    env_file:
-      - docker-compose.env
     environment:
       - WORKER_PORT=${WORKER_PORT:-3030}
+      - WORKER_KEY
 
   app:
     image: coalesce/app
@@ -66,12 +68,20 @@ services:
       - minio
     ports:
       - '127.0.0.1:3001:3001'
-    env_file:
-      - docker-compose.env
     environment:
+      - PROJECT_SERVER_PORT=${PROJECT_SERVER_PORT:-3001}
       - APP_ORIGIN=${APP_ORIGIN:-http://localhost:3000}
       - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:3001}
       - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:3030}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - AUDIO_QUEUE_NAME=${AUDIO_QUEUE_NAME:-audio_jobs}
+      - AUDIO_PROCESSING_QUEUE_NAME=${AUDIO_PROCESSING_QUEUE_NAME:-audio_jobs_processing}
+      - WORKER_KEY
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_URL
+      - MINIO_ENDPOINT
 
 volumes:
   minio:
