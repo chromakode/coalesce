@@ -1,7 +1,6 @@
 import { Buffer as NodeBuffer } from 'node:buffer'
 import {
   path,
-  pick,
   nanoidCustom,
   BodyStream,
   S3Errors,
@@ -9,35 +8,27 @@ import {
   sql,
   awarenessProtocol,
   Y,
-} from './deps.ts'
-import { AUDIO_QUEUE_NAME, COALESCE_DEV_FLAGS, DOC_QUEUE_NAME } from './env.ts'
-import {
-  Job,
-  ProjectInfo,
-  Project,
-  Track,
-  TrackInfo,
-  JobState,
-  JobInfo,
-  AudioJob,
-  DocJob,
-} from '@shared/types'
+} from '../deps.ts'
+import { COALESCE_DEV_FLAGS } from '../env.ts'
+import { ProjectInfo, Project, Track, TrackInfo } from '@shared/types'
 import { ProjectFields, TrackFields } from '@shared/schema'
-import { db, redisClient, minioClient } from './main.ts'
-import { bucket, initMinioJS, initRedis } from './service.ts'
+import { db, redisClient, minioClient } from '../main.ts'
+import { bucket, initMinioJS, initRedis } from '../service.ts'
 import {
   addTrackToYDoc,
   projectToYDoc,
   removeTrackFromYDoc,
   updateSpeakerInYDoc,
-} from './editorState.ts'
-import { sendDocUpdate } from './socket.ts'
-import { TRACK_COLOR_ORDER } from '../shared/constants.ts'
+} from '../editorState.ts'
+import { sendDocUpdate } from '../socket.ts'
+import { TRACK_COLOR_ORDER } from '@shared/constants'
 import { retry } from 'https://deno.land/std@0.191.0/async/retry.ts'
+import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
 
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
 export const generateId = nanoidCustom(nanoidAlphabet, 20)
 export const generateShortId = nanoidCustom(nanoidAlphabet, 10)
+export const generateJobKey = nanoidCustom(nanoidAlphabet, 30)
 
 async function readJSON(path: string) {
   try {
@@ -63,30 +54,6 @@ export const storePath = {
     path.join('track', trackId, chunkName),
 }
 
-export async function queueProcessingJob(jobDesc: Omit<AudioJob, 'id'>) {
-  const job: Job = { ...jobDesc, id: generateId() }
-  const jobState: JobState = { ...job, state: { status: 'queued' } }
-
-  // Set the initial job state
-  await redisClient.set(
-    `project:${job.project}.job.${job.id}`,
-    JSON.stringify(jobState),
-  )
-
-  // Enqueue the job
-  await redisClient.lpush(AUDIO_QUEUE_NAME, JSON.stringify(job))
-
-  // Notify that job was created
-  await redisClient.publish(
-    `project:${job.project}.job`,
-    JSON.stringify({
-      type: 'job-created',
-      job: jobState,
-    }),
-  )
-  return job
-}
-
 export async function* watchProject(projectId: string) {
   const redisPubSub = await initRedis()
 
@@ -99,26 +66,28 @@ export async function* watchProject(projectId: string) {
     for await (const { message: rawMsg } of sub.receive()) {
       const msg = JSON.parse(rawMsg)
       if (msg.type === 'job-status') {
-        if (deletedTracks.has(msg.track)) {
+        const { job } = msg
+        if (deletedTracks.has(job.track)) {
           continue
         }
         yield JSON.stringify({
           type: 'project:update',
-          path: `jobs.${msg.id}.state`,
-          data: msg.state,
+          path: `jobs.${job.jobId}.state`,
+          data: job.state,
         })
-        if (msg.state.status === 'complete') {
+        if (job.state.status === 'complete') {
           yield JSON.stringify({
             type: 'project:update',
-            path: `tracks.${msg.track}`,
-            data: await getTrackState(msg.project, msg.track),
+            path: `tracks.${job.trackId}`,
+            data: await getTrackState(job.projectId, job.trackId),
           })
         }
       } else if (msg.type === 'job-created') {
+        const { job } = msg
         yield JSON.stringify({
           type: 'project:update',
-          path: `jobs.${msg.job.id}`,
-          data: serializeJobInfo(msg.job),
+          path: `jobs.${job.jobId}`,
+          data: serializeJobInfo(job),
         })
       } else if (msg.type === 'project-updated') {
         yield JSON.stringify({
@@ -143,39 +112,6 @@ export async function* watchProject(projectId: string) {
   } finally {
     redisPubSub.close()
   }
-}
-
-function serializeJobInfo(jobData: JobState): JobInfo {
-  return pick(jobData, ['id', 'project', 'track', 'task', 'state'])
-}
-
-async function getJobInfo(projectId: string): Promise<Record<string, JobInfo>> {
-  const jobs: Record<string, JobInfo> = {}
-
-  let nextCursor = 0
-  do {
-    // FIXME: https://github.com/denodrivers/redis/issues/391
-    const [cursor, keys] = await redisClient.scan(nextCursor, {
-      pattern: `project:${projectId}.job.*`,
-    })
-    nextCursor = Number(cursor)
-
-    if (!keys.length) {
-      continue
-    }
-
-    const values = await redisClient.mget(...keys)
-    for (const jobDataText of values) {
-      if (jobDataText == null) {
-        continue
-      }
-
-      const jobData: JobState = JSON.parse(jobDataText)
-      jobs[jobData.id] = serializeJobInfo(jobData)
-    }
-  } while (nextCursor != 0)
-
-  return jobs
 }
 
 export async function getAwarenessData(
@@ -562,19 +498,10 @@ export async function createTrack(
       await makeUploadURL(trackDir)
     outputFormData['key'] = path.join(trackDir, '${filename}')
 
-    await queueProcessingJob({
-      task: 'chunks',
-      project: projectId,
-      track: trackId,
-      inputURI,
-      outputURI,
-      outputFormData,
-    })
-
-    await queueProcessingJob({
-      task: 'transcribe',
-      project: projectId,
-      track: trackId,
+    await queueAudioJob({
+      task: 'process',
+      projectId,
+      trackId,
       inputURI,
       outputURI,
       outputFormData,
@@ -618,16 +545,8 @@ export async function createTrack(
   )
 
   if (isReusingTrack) {
-    // Mock transcribe finish job
-    await redisClient.lpush(
-      DOC_QUEUE_NAME,
-      JSON.stringify({
-        id: generateId(),
-        task: 'transcribe_done',
-        project: projectId,
-        track: trackId,
-      } satisfies DocJob),
-    )
+    // No need to wait for processing to finish
+    await addTrackToCollabDoc(projectId, trackId)
   }
 
   return trackId

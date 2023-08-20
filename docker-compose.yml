@@ -25,37 +25,20 @@ services:
       - docker-compose.env
 
   audio-processor:
-    profiles: ['cpu']
     image: coalesce/audio-processor
     restart: unless-stopped
+    command: poetry run coalesce_http_worker
     build:
       context: ./audio-processor
       dockerfile: ./Dockerfile
     depends_on:
-      - redis
-      - minio
+      - project-server
+    ports:
+      - '127.0.0.1:3030:3030'
     env_file:
       - docker-compose.env
-
-  audio-processor-gpu:
-    profiles: ['gpu']
-    image: coalesce/audio-processor
-    restart: unless-stopped
-    build:
-      context: ./audio-processor
-      dockerfile: ./Dockerfile
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    depends_on:
-      - redis
-      - minio
-    env_file:
-      - docker-compose.env
+    environment:
+      - WORKER_PORT=${WORKER_PORT:-3030}
 
   app:
     image: coalesce/app
@@ -86,6 +69,8 @@ services:
       - docker-compose.env
     environment:
       - APP_ORIGIN=${APP_ORIGIN:-http://localhost:3000}
+      - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:3001}
+      - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:3030}
 
 volumes:
   minio:

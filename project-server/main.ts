@@ -12,25 +12,18 @@ import {
   listProjects,
   getTrackInfo,
   removeTrackFromProject,
-} from './store.ts'
+} from './store/index.ts'
 import { ProjectFields, TrackFields } from '../shared/schema.ts'
 import { initMinio, initPostgres, initRedis } from './service.ts'
 import { pushProjectUpdates, runCollab } from './socket.ts'
-import { consumeDocJobs } from './docWorker.ts'
+import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
+import { socketReady } from './utils.ts'
 
 export const db = await initPostgres()
 export const redisClient = await initRedis()
 export const minioClient = await initMinio()
 
 const app = new Application()
-
-async function socketReady(ws: WebSocket) {
-  if (ws.readyState !== ws.OPEN) {
-    await new Promise((resolve) =>
-      ws.addEventListener('open', resolve, { once: true }),
-    )
-  }
-}
 
 const projectRouter = new Router()
   .get('/ws', async (ctx) => {
@@ -121,7 +114,10 @@ const router = new Router()
   )
 
 app.use(oakCors({ origin: APP_ORIGIN }))
-
 app.use(router.routes())
+app.use(workerProxyRouter.routes())
 
-await Promise.all([app.listen({ port: PROJECT_SERVER_PORT }), consumeDocJobs()])
+await Promise.all([
+  app.listen({ port: PROJECT_SERVER_PORT }),
+  consumeAudioJobs(),
+])

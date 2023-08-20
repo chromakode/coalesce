@@ -1,6 +1,39 @@
 import { z } from 'zod'
 import type { ColumnType, Selectable } from 'kysely'
-import { TRACK_COLOR_ORDER } from '@shared/constants'
+import { TRACK_COLOR_ORDER } from './constants.ts'
+
+export const JobModel = z.object({
+  jobId: z.string(),
+  projectId: z.string(),
+  trackId: z.string(),
+  task: z.string(),
+})
+export type Job = z.infer<typeof JobModel>
+
+export const JobStatusUpdate = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('queued') }),
+  z.object({ status: z.literal('running'), progress: z.number() }),
+  z.object({ status: z.literal('complete') }),
+  z.object({ status: z.literal('failed'), error: z.string() }),
+])
+export type JobStatus = z.infer<typeof JobStatusUpdate>
+
+export const AudioJobModel = JobModel.extend({
+  task: z.literal('process'),
+  inputURI: z.string(),
+  outputURI: z.string(),
+  outputFormData: z.record(z.string()),
+})
+export type AudioJob = z.infer<typeof AudioJobModel>
+
+export const ProcessAudioRequestModel = z.object({
+  jobId: z.string(),
+  jobKey: z.string(),
+  statusURI: z.string(),
+  inputURI: z.string(),
+  outputURIBase: z.string(),
+})
+export type ProcessAudioRequest = z.infer<typeof ProcessAudioRequestModel>
 
 export const ProjectFields = z.object({
   title: z.string().optional().default('Untitled'),

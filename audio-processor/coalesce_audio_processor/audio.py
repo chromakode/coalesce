@@ -17,6 +17,8 @@ from pydub import AudioSegment
 from .tqdm_hook import HookTqdm
 from .util import tqdm_from_callback
 
+MODEL_NAME = "small"
+
 CHUNK_DURATION_MS = 60000
 
 
@@ -55,20 +57,19 @@ def split_audio(
     index_data = {
         "numberOfChannels": audio.channels,
         "sampleRate": audio.frame_rate,
-        "sampleCount": int(audio.frame_count()),
-        "chunkLength": int(chunk_len),
+        "sampleCdocker-compose.ymlength": int(chunk_len),
         "chunks": audio_chunks,
     }
     output_sink("chunks.json", json.dumps(index_data))
 
 
 @functools.cache
-def get_whisper_model(model_name):
+def get_whisper_model(model_name=MODEL_NAME):
     return whisper.load_model(model_name)
 
 
 def transcribe_audio(
-    input_path: str, output_sink, model_name="small", progress_callback=None
+    input_path: str, output_sink, model_name=MODEL_NAME, progress_callback=None
 ):
     audio = whisper.load_audio(input_path)
 

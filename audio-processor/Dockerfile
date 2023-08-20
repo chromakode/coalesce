@@ -21,4 +21,4 @@ COPY ./ ./
 
 RUN poetry install --only-root
 
-CMD ["poetry", "run", "coalesce_audio_processor", "worker", "transcribe", "chunks"]
+CMD ["poetry", "run", "coalesce_http_worker"]

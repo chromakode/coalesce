@@ -7,6 +7,7 @@ export {
   Router,
   isHttpError,
   createHttpError,
+  proxy,
 } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 export type { BodyStream } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 

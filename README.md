@@ -31,16 +31,20 @@ Next up:
 
 The easiest way to get started is to build and launch the containers:
 
-1. `docker-compose up --profile cpu` (or `--profile gpu`)
+1. `docker-compose up`
 2. Browse to https://localhost:3000
 
 ## Development
 
 To run all services in watch mode:
 
-1. `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --profile cpu`
+1. `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up`
 2. Browse to https://localhost:4000
 
 Tailing logs:
 
 `docker-compose -f docker-compose.yml -f docker-compose.dev.yml logs --follow`
+
+Running with a GPU:
+
+`docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up`

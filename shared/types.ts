@@ -1,4 +1,4 @@
-import { ProjectResult, TrackResult } from './schema.ts'
+import { ProjectResult, TrackResult, Job, JobStatus } from './schema.ts'
 
 export interface Word {
   text: string
@@ -45,35 +45,13 @@ export interface TrackChunks {
   chunks: string[]
 }
 
-export interface Job {
-  id: string
-  project: string
-  track: string
-  task: string
-}
-
-export interface AudioJob extends Job {
-  task: 'transcribe' | 'chunks'
-  inputURI: string
-  outputURI: string
-  outputFormData: Record<string, string>
-}
-
-export interface DocJob extends Job {
-  task: 'transcribe_done'
-}
-
 export interface JobState extends Job {
-  state:
-    | { status: 'queued' }
-    | { status: 'running'; progress: number }
-    | { status: 'complete' }
-    | { status: 'failed'; error: string }
+  state: JobStatus
 }
 
 export type JobInfo = Pick<
   JobState,
-  'id' | 'project' | 'track' | 'task' | 'state'
+  'jobId' | 'projectId' | 'trackId' | 'task' | 'state'
 >
 
 export interface SoundLocation {

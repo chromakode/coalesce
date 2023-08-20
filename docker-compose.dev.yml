@@ -1,8 +1,12 @@
 services:
   audio-processor:
-    command: poetry run python -m watchfiles coalesce_audio_processor.worker.main --args "worker transcribe chunks"
+    command: poetry run python -m watchfiles coalesce_audio_processor.worker.http.main
     volumes:
       - ./audio-processor:/app
+    ports:
+      - '4040:4040'
+    environment:
+      - WORKER_PORT=${WORKER_PORT:-4040}
 
   app:
     command: npm start -- --port 4000 --host
@@ -24,7 +28,8 @@ services:
     environment:
       - PROJECT_SERVER_PORT=${PROJECT_SERVER_PORT:-4001}
       - APP_ORIGIN=${APP_ORIGIN:-http://localhost:4000}
-      - COALESCE_DEV_FLAGS=reuse-track-by-filename
+      - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:4001}
+      - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:4040}
 
   minio-client:
     profiles: ['tools']

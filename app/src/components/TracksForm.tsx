@@ -69,9 +69,7 @@ function getCurrentTaskLabel(
   )
   if (currentTasks.length) {
     return currentTasks
-      .map(({ task }) =>
-        task === 'transcribe' ? 'Transcribing' : 'Preprocessing',
-      )
+      .map(({ task }) => (task === 'process' ? 'Processing' : 'Unknown'))
       .join(' & ')
   }
 
@@ -151,16 +149,14 @@ function TrackUpload({
     [uploadProgress, track],
   )
 
+  // TODO: display job failed state
+  const isFinished = track?.audio != null && track?.words != null
   const progress =
-    0.2 * uploadProgress +
-    0.2 * jobProgress(track?.audio != null, jobs, 'chunks') +
-    0.6 * jobProgress(track?.words != null, jobs, 'transcribe')
-
+    0.2 * uploadProgress + 0.8 * jobProgress(isFinished, jobs, 'process')
   const currentTaskLabel = getCurrentTaskLabel(uploadProgress < 1, jobs)
 
   const isRunning =
     jobs != null && jobs.some(({ state }) => state.status === 'running')
-  const isFinished = progress === 1 && !currentTaskLabel
 
   return (
     <Flex flexDir="column" w="full" bg="gray.50" p="2" borderRadius="md">
@@ -174,7 +170,7 @@ function TrackUpload({
         <Icon
           as={MdAudioFile}
           fontSize="4xl"
-          color={progress !== 1 ? 'blue.600' : 'gray.600'}
+          color={isFinished ? 'gray.600' : 'blue.600'}
           alignSelf="center"
         />
         <Flex minW="0" flex="1" alignItems="baseline">
@@ -305,7 +301,7 @@ export default function TracksForm({
   }, [files, trackKeys])
 
   const jobsForTrack = React.useMemo(
-    () => groupBy(Object.values(project.jobs), 'track'),
+    () => groupBy(Object.values(project.jobs), 'trackId'),
     [project.jobs],
   )
 
