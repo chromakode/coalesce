@@ -10,7 +10,9 @@ WORKDIR /app
 
 COPY poetry.lock pyproject.toml ./
 
-RUN poetry install --no-root --with=gpu
+RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
+    --mount=type=cache,target=/root/.cache/pypoetry/artifacts \
+    poetry install --no-root --with=gpu
 
 # Cache models
 
@@ -19,6 +21,8 @@ RUN poetry run python -c 'import torch; torch.hub.load(repo_or_dir="snakers4/sil
 
 COPY ./ ./
 
-RUN poetry install --only-root
+RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
+    --mount=type=cache,target=/root/.cache/pypoetry/artifacts \
+    poetry install --only-root
 
 CMD ["poetry", "run", "coalesce_http_worker"]

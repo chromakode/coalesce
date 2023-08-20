@@ -1,5 +1,7 @@
 FROM coalesce/audio-processor
 
-RUN poetry install --no-root --with=runpod
+RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
+    --mount=type=cache,target=/root/.cache/pypoetry/artifacts \
+    poetry install --no-root --with=runpod
 
 CMD ["poetry", "run", "coalesce_runpod_worker"]
