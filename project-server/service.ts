@@ -84,7 +84,7 @@ export async function initMinio() {
     secretKey: minioURL.password,
     region: '',
     bucket,
-    useSSL: false,
+    useSSL: minioURL.protocol === 'https:',
   })
 
   try {
@@ -97,7 +97,8 @@ export async function initMinio() {
   } catch (err) {
     if (
       err instanceof S3Errors.ServerError &&
-      err.code === 'BucketAlreadyOwnedByYou'
+      (err.code === 'BucketAlreadyOwnedByYou' || // Minio
+        err.code === 'AccessDenied') // B2
     ) {
       // Bucket already exists, that's ok!
     } else {
