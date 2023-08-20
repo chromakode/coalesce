@@ -107,13 +107,3 @@ export async function initMinio() {
 
   return client
 }
-
-export function initMinioJS() {
-  return new Minio.Client({
-    endPoint: minioURL.hostname,
-    port: Number(minioURL.port),
-    accessKey: minioURL.username,
-    secretKey: minioURL.password,
-    useSSL: false,
-  })
-}

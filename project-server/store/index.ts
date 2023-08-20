@@ -13,7 +13,7 @@ import { COALESCE_DEV_FLAGS } from '../env.ts'
 import { ProjectInfo, Project, Track, TrackInfo } from '@shared/types'
 import { ProjectFields, TrackFields } from '@shared/schema'
 import { db, redisClient, minioClient } from '../main.ts'
-import { bucket, initMinioJS, initRedis } from '../service.ts'
+import { initRedis } from '../service.ts'
 import {
   addTrackToYDoc,
   projectToYDoc,
@@ -434,21 +434,6 @@ export async function updateTrack(
   await updateSpeakerInCollabDoc(projectId, trackId)
 }
 
-async function makeUploadURL(prefix: string) {
-  // Deno-S3-Lite doesn't support post policies, so using MinioJS for this
-  const minioJS = initMinioJS()
-  const policy = minioJS.newPostPolicy()
-
-  policy.setKeyStartsWith(prefix)
-  policy.setBucket(bucket)
-
-  const expires = new Date()
-  expires.setSeconds(24 * 60 * 60) // 1 day
-  policy.setExpires(expires)
-
-  return await minioJS.presignedPostPolicy(policy)
-}
-
 export async function createTrack(
   projectId: string,
   fileData: BodyStream,
@@ -491,20 +476,10 @@ export async function createTrack(
       .values({ trackId, originalFilename })
       .executeTakeFirst()
 
-    const inputURI = await minioClient.getPresignedUrl('GET', uploadPath)
-
-    const trackDir = storePath.trackDir(trackId)
-    const { postURL: outputURI, formData: outputFormData } =
-      await makeUploadURL(trackDir)
-    outputFormData['key'] = path.join(trackDir, '${filename}')
-
     await queueAudioJob({
       task: 'process',
       projectId,
       trackId,
-      inputURI,
-      outputURI,
-      outputFormData,
     })
   }
 

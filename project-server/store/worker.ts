@@ -1,10 +1,10 @@
 import { AudioJob, Job, JobStatus } from '@shared/schema'
 import { JobInfo, JobState } from '@shared/types'
 import { AUDIO_QUEUE_NAME } from '../env.ts'
-import { generateId, generateJobKey } from '../store/index.ts'
-import { ZodOutput, ZodTypeAny, pick } from '../deps.ts'
+import { generateId, generateJobKey, storePath } from '../store/index.ts'
+import { ZodOutput, ZodTypeAny, pick, path } from '../deps.ts'
 import { initRedis } from '../service.ts'
-import { redisClient } from '../main.ts'
+import { minioClient, redisClient } from '../main.ts'
 
 export const JOB_STATE_TTL = 60 * 60
 export const JOB_KEY_TTL = JOB_STATE_TTL
@@ -124,4 +124,26 @@ export async function getJobKey(jobKey: string) {
 
 export async function deleteJobKey(jobKey: string) {
   return await redisClient.del(`job.key:${jobKey}`)
+}
+
+export async function getSignedWorkerSourceAudioURL(
+  trackId: string,
+  ttl = 300,
+): Promise<string> {
+  const sourceAudioPath = storePath.trackUploadPath(trackId)
+  return await minioClient.getPresignedUrl('GET', sourceAudioPath, {
+    expirySeconds: ttl,
+  })
+}
+
+export async function getSignedWorkerUploadURL(
+  trackId: string,
+  filename: string,
+  ttl = 300,
+): Promise<string> {
+  const trackDir = storePath.trackDir(trackId)
+  const uploadPath = path.join(trackDir, filename)
+  return await minioClient.getPresignedUrl('PUT', uploadPath, {
+    expirySeconds: ttl,
+  })
 }

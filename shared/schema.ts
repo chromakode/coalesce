@@ -20,9 +20,6 @@ export type JobStatus = z.infer<typeof JobStatusUpdate>
 
 export const AudioJobModel = JobModel.extend({
   task: z.literal('process'),
-  inputURI: z.string(),
-  outputURI: z.string(),
-  outputFormData: z.record(z.string()),
 })
 export type AudioJob = z.infer<typeof AudioJobModel>
 

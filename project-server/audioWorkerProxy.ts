@@ -18,6 +18,8 @@ import {
   createJobKey,
   deleteJobKey,
   getJobKey,
+  getSignedWorkerSourceAudioURL,
+  getSignedWorkerUploadURL,
   updateJobStatus,
 } from './store/worker.ts'
 import { addTrackToCollabDoc } from './store/index.ts'
@@ -145,37 +147,16 @@ const proxyRouter = new Router<RequestContext>()
   })
   .get('/audio', async (ctx) => {
     const { job } = ctx.state
-    const resp = await fetch(job.inputURI)
-    ctx.response.type = resp.headers.get('Content-Type') ?? 'audio/flac'
-    ctx.response.body = resp.body
-    ctx.response.status = resp.status
-    if (!resp.ok) {
-      console.error('Failed to fetch audio', resp.status, resp.statusText)
-    }
+    const audioURL = await getSignedWorkerSourceAudioURL(job.trackId)
+    ctx.response.redirect(audioURL)
   })
-  .post('/output/:filename(\\w+\\.(?:json|flac))', async (ctx) => {
+  .put('/output/:filename(\\w+\\.(?:json|flac))', async (ctx) => {
     const { job } = ctx.state
-
-    const contentType =
-      ctx.request.headers.get('Content-Type') ?? 'application/octet-stream'
-    const fileData = await ctx.request.body({ type: 'bytes' }).value
-
-    const formData = new FormData()
-    for (const [key, value] of Object.entries(job.outputFormData)) {
-      formData.append(key, value)
-    }
-    const blob = new Blob([fileData], { type: contentType })
-    formData.append('file', blob, ctx.params.filename)
-
-    const resp = await fetch(job.outputURI, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!resp.ok) {
-      console.error('Failed to upload job output', resp.status, resp.statusText)
-    }
-    ctx.response.status = resp.status
+    const uploadURL = await getSignedWorkerUploadURL(
+      job.trackId,
+      ctx.params.filename,
+    )
+    ctx.response.redirect(uploadURL)
   })
 
 export const workerProxyRouter = new Router<RequestContext>().use(
