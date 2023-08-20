@@ -79,7 +79,7 @@ export const bucket = minioURL.pathname.substring(1)
 export async function initMinio() {
   const client = await new S3Client({
     endPoint: minioURL.hostname,
-    port: Number(minioURL.port),
+    port: minioURL.port ? Number(minioURL.port) : undefined,
     accessKey: minioURL.username,
     secretKey: minioURL.password,
     region: '',
