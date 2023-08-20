@@ -30,6 +30,7 @@ services:
       - APP_ORIGIN=${APP_ORIGIN:-http://localhost:4000}
       - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:4001}
       - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:4040}
+      - COALESCE_DEV_FLAGS=reuse-track-by-filename
 
   minio-client:
     profiles: ['tools']

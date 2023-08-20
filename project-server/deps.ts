@@ -1,13 +1,13 @@
 export * as path from 'https://deno.land/std@0.191.0/path/mod.ts'
 export * as fs from 'https://deno.land/std@0.191.0/fs/mod.ts'
 export { debounce, retry } from 'https://deno.land/std@0.191.0/async/mod.ts'
+export { timingSafeEqual } from 'https://deno.land/std@0.191.0/crypto/mod.ts'
 
 export {
   Application,
   Router,
   isHttpError,
   createHttpError,
-  proxy,
 } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 export type { BodyStream } from 'https://deno.land/x/oak@v12.5.0/mod.ts'
 

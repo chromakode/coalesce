@@ -1,6 +1,5 @@
-import { path, Router } from './deps.ts'
+import { Router, timingSafeEqual } from './deps.ts'
 import {
-  APP_ORIGIN,
   AUDIO_PROCESSING_QUEUE_NAME,
   AUDIO_QUEUE_NAME,
   WORKER_ENDPOINT,
@@ -13,7 +12,7 @@ import {
   JobStatusUpdate,
   ProcessAudioRequest,
 } from '../shared/schema.ts'
-import { initMinio, initRedis } from './service.ts'
+import { initRedis } from './service.ts'
 import {
   consumeJobs,
   createJobKey,
@@ -25,7 +24,6 @@ import { addTrackToCollabDoc } from './store/index.ts'
 import { iterSocket, socketReady } from './utils.ts'
 
 export const redisClient = await initRedis()
-export const minioClient = await initMinio()
 
 async function startWorker(job: AudioJob, rawJob: string) {
   const { jobId } = job
@@ -107,13 +105,13 @@ export async function consumeAudioJobs() {
   }
 }
 
-interface JobState {
+interface RequestContext {
   jobKey: string
   job: AudioJob
   rawJob: string
 }
 
-const proxyRouter = new Router<JobState>()
+const proxyRouter = new Router<RequestContext>()
   .get('/ws', async (ctx) => {
     if (!ctx.isUpgradable) {
       ctx.throw(501)
@@ -159,7 +157,7 @@ const proxyRouter = new Router<JobState>()
     ctx.response.status = resp.status
   })
 
-export const workerProxyRouter = new Router<JobState>().use(
+export const workerProxyRouter = new Router<RequestContext>().use(
   '/worker/job/:jobId',
   async (ctx, next) => {
     const { jobId } = ctx.params
@@ -179,7 +177,9 @@ export const workerProxyRouter = new Router<JobState>().use(
     }
 
     const job = AudioJobModel.parse(JSON.parse(rawJob))
-    if (job.jobId !== jobId) {
+
+    const enc = new TextEncoder()
+    if (!timingSafeEqual(enc.encode(job.jobId), enc.encode(jobId))) {
       ctx.response.status = 403
       console.warn('Incorrect job id', ctx.request)
       return

@@ -57,7 +57,8 @@ def split_audio(
     index_data = {
         "numberOfChannels": audio.channels,
         "sampleRate": audio.frame_rate,
-        "sampleCdocker-compose.ymlength": int(chunk_len),
+        "sampleCount": int(audio.frame_count()),
+        "chunkLength": int(chunk_len),
         "chunks": audio_chunks,
     }
     output_sink("chunks.json", json.dumps(index_data))
