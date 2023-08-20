@@ -25,6 +25,7 @@ services:
       - docker-compose.env
 
   audio-processor:
+    profiles: ['process-audio']
     image: coalesce/audio-processor
     restart: unless-stopped
     command: poetry run coalesce_http_worker

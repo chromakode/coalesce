@@ -31,7 +31,7 @@ Next up:
 
 The easiest way to get started is to build and launch the containers:
 
-1. `DOCKER_BUILDKIT=1 docker-compose up`
+1. `DOCKER_BUILDKIT=1 docker-compose up --profile process-audio`
 2. Browse to https://localhost:3000
 
 ## Development
@@ -47,4 +47,4 @@ Tailing logs:
 
 Running with a GPU:
 
-`DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up`
+`DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up --profile process-audio`
