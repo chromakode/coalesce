@@ -1,0 +1,5 @@
+FROM coalesce/audio-processor
+
+RUN poetry install --no-root --with=runpod
+
+CMD ["poetry", "run", "coalesce_runpod_worker"]
