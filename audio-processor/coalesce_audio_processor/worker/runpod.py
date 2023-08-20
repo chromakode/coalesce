@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
+import asyncio
 import runpod
 from .base import ProcessAudioRequest, prepare, process_audio
 
 
-def handler(event):
+async def handler(event):
     job = ProcessAudioRequest(**event["input"])
-    process_audio(job)
+    await process_audio(job)
+    return True
 
 
 prepare()

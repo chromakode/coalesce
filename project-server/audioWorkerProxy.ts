@@ -25,6 +25,32 @@ import { iterSocket, socketReady } from './utils.ts'
 
 export const redisClient = await initRedis()
 
+async function requestHTTPWorker(req: ProcessAudioRequest): Promise<Response> {
+  const workerURL = `${WORKER_ENDPOINT}/process-audio/${req.jobId}`
+  return await fetch(workerURL, {
+    method: 'POST',
+    body: JSON.stringify(req),
+    headers: {
+      Authorization: `Bearer ${WORKER_KEY}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+async function requestRunPodWorker(
+  req: ProcessAudioRequest,
+): Promise<Response> {
+  const workerURL = WORKER_ENDPOINT.replace(/^runpod:/, '')
+  return await fetch(workerURL, {
+    method: 'POST',
+    body: JSON.stringify({ input: req }),
+    headers: {
+      Authorization: `Bearer ${WORKER_KEY}`,
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
 async function startWorker(job: AudioJob, rawJob: string) {
   const { jobId } = job
   const jobKey = await createJobKey(rawJob)
@@ -38,20 +64,15 @@ async function startWorker(job: AudioJob, rawJob: string) {
     outputURIBase: `${baseURI}/output`,
   }
 
-  // TODO: retry on failure
-  const workerURL = `${WORKER_ENDPOINT}/process-audio/${jobId}`
-  const result = await fetch(workerURL, {
-    method: 'POST',
-    body: JSON.stringify(processAudioRequest),
-    headers: {
-      Authorization: `Bearer ${WORKER_KEY}`,
-      'Content-Type': 'application/json',
-    },
-  })
+  const makeRequest = WORKER_ENDPOINT.startsWith('runpod:')
+    ? requestRunPodWorker
+    : requestHTTPWorker
 
+  // TODO: retry on failure
+  const result = await makeRequest(processAudioRequest)
   if (!result.ok) {
     throw new Error(
-      `Error status from worker: ${result.status} ${result.statusText} (${workerURL})`,
+      `Error status from worker: ${result.status} ${result.statusText} (${result.url})`,
     )
   }
 }

@@ -43,6 +43,21 @@ services:
       - WORKER_PORT=${WORKER_PORT:-3030}
       - WORKER_KEY
 
+  audio-processor-runpod:
+    profiles: ['process-audio-runpod']
+    image: coalesce/audio-processor-runpod
+    restart: unless-stopped
+    command: poetry run coalesce_runpod_worker --rp_serve_api --rp_api_host 0.0.0.0 --rp_api_port ${WORKER_PORT:-3030}
+    build:
+      context: ./audio-processor
+      dockerfile: ./Dockerfile.runpod
+    depends_on:
+      - project-server
+    ports:
+      - '127.0.0.1:3030:3030'
+    environment:
+      - WORKER_PORT=${WORKER_PORT:-3030}
+
   app:
     image: coalesce/app
     restart: unless-stopped
