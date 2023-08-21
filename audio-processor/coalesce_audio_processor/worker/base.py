@@ -83,7 +83,6 @@ async def process_audio(job: ProcessAudioRequest):
             StatusSocket(job.statusURI, headers=headers) as status,
         ):
             loop = asyncio.get_event_loop()
-            tasks = (transcribe_audio, split_audio)
             progress = defaultdict(int)
 
             async def send_progress(key, n, total):
@@ -120,7 +119,7 @@ async def process_audio(job: ProcessAudioRequest):
                     async for chunk in resp.content.iter_chunked(1024):
                         input_file.write(chunk)
 
-                    for task_func in tasks:
+                    for task_func in (transcribe_audio, split_audio):
 
                         def progress_callback(key, n, total):
                             asyncio.run_coroutine_threadsafe(
