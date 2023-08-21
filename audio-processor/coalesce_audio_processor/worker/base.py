@@ -101,10 +101,9 @@ async def process_audio(job: ProcessAudioRequest):
                 async with asyncio.TaskGroup() as group:
                     async def upload_output(name, output_data):
                         mimetype, _ = mimetypes.guess_type(name)
-                        url = job.outputURIBase + f"/{name}"
                         await group.create_task(
                             session.put(
-                                url,
+                                f"{job.outputURIBase}/{name}",
                                 data=output_data,
                                 headers={
                                     **headers,
