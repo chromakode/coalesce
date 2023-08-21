@@ -104,16 +104,13 @@ async def process_audio(job: ProcessAudioRequest):
 
                     async def upload_output(name, output_data):
                         mimetype, _ = mimetypes.guess_type(name)
-                        group.create_task(
-                            session.put(
-                                f"{job.outputURIBase}/{name}",
-                                data=output_data,
-                                headers={
-                                    **headers,
-                                    "Content-Type": mimetype
-                                    or "application/octet-stream",
-                                },
-                            )
+                        await session.put(
+                            f"{job.outputURIBase}/{name}",
+                            data=output_data,
+                            headers={
+                                **headers,
+                                "Content-Type": mimetype or "application/octet-stream",
+                            },
                         )
 
                     await status.send_update({"status": "running", "progress": 0})
@@ -131,7 +128,7 @@ async def process_audio(job: ProcessAudioRequest):
                         def output_sink(name, output_data):
                             asyncio.run_coroutine_threadsafe(
                                 upload_output(name, output_data), loop
-                            )
+                            ).result()
 
                         task_name = task_func.__name__
                         group.create_task(
