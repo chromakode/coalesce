@@ -8,6 +8,7 @@ import {
   sql,
   awarenessProtocol,
   Y,
+  retry,
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from '../env.ts'
 import { ProjectInfo, Project, Track, TrackInfo } from '@shared/types'
@@ -22,7 +23,6 @@ import {
 } from '../editorState.ts'
 import { sendDocUpdate } from '../socket.ts'
 import { TRACK_COLOR_ORDER } from '@shared/constants'
-import { retry } from 'https://deno.land/std@0.191.0/async/retry.ts'
 import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
 
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
