@@ -6,7 +6,6 @@ import {
 import {
   Kysely,
   Migrator,
-  Minio,
   PostgresDialect,
   S3Client,
   S3Errors,
