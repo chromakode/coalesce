@@ -101,6 +101,7 @@ async def process_audio(job: ProcessAudioRequest):
 
             try:
                 async with asyncio.TaskGroup() as group:
+
                     async def upload_output(name, output_data):
                         mimetype, _ = mimetypes.guess_type(name)
                         group.create_task(
