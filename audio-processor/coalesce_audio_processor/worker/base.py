@@ -7,6 +7,7 @@ import traceback
 import asyncio
 import aiohttp
 import websockets
+from aiohttp_retry import RetryClient, ExponentialRetry
 from collections import defaultdict
 from functools import partial
 from pydantic import BaseModel
@@ -75,10 +76,11 @@ async def process_audio(job: ProcessAudioRequest):
     print("Processing job:", job.jobId)
 
     headers = {"Authorization": f"Bearer {job.jobKey}"}
+    retry_options = ExponentialRetry(attempts=3, exceptions=(Exception,))
 
     with tempfile.NamedTemporaryFile() as input_file:
         async with (
-            aiohttp.ClientSession(raise_for_status=True) as session,
+            RetryClient(raise_for_status=True, retry_options=retry_options) as session,
             session.get(job.inputURI, headers=headers) as resp,
             StatusSocket(job.statusURI, headers=headers) as status,
         ):
