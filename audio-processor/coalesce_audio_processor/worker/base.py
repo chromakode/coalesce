@@ -38,7 +38,7 @@ class StatusSocket:
     async def _connect(self):
         self.ws = await websockets.connect(self.uri, extra_headers=self.headers)
 
-    async def send_update(self, value):
+    async def update_status(self, value):
         self.latest_status = value
         self.status_updated.set()
 
@@ -48,29 +48,41 @@ class StatusSocket:
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
+        if self.loop_task:
+            self.loop_task.cancel()
         if self.ws:
+            # Flush any final queued status update
+            if self.status_updated.is_set():
+                await self.send_status()
             await self.ws.close()
             self.ws = None
-        self.loop_task.cancel()
 
-    async def loop(self):
+    async def send_status(self):
+        tries = 0
         while True:
             try:
                 await self.ws.send(json.dumps(self.latest_status))
                 self.status_updated.clear()
-                await self.status_updated.wait()
+                break
             except websockets.ConnectionClosed:
+                tries += 1
+                if tries > 5:
+                    raise
+
                 while not self.ws.open:
                     print("Reconnecting to WebSocket...", flush=True)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(.5 * tries)
                     try:
                         await self._connect()
                     except Exception as exc:
                         print("WebSocket error:", exc)
                     else:
                         print("WebSocket connected", flush=True)
-                continue
 
+    async def loop(self):
+        while True:
+            await self.send_status()
+            await self.status_updated.wait()
 
 async def process_audio(job: ProcessAudioRequest):
     print("Processing job:", job.jobId)
@@ -89,7 +101,7 @@ async def process_audio(job: ProcessAudioRequest):
 
             async def send_progress(key, n, total):
                 progress[key] = n / total
-                await status.send_update(
+                await status.update_status(
                     {
                         "status": "running",
                         "progress": (
@@ -113,7 +125,7 @@ async def process_audio(job: ProcessAudioRequest):
                             },
                         )
 
-                    await status.send_update({"status": "running", "progress": 0})
+                    await status.update_status({"status": "running", "progress": 0})
 
                     async for chunk in resp.content.iter_chunked(1024):
                         input_file.write(chunk)
@@ -142,14 +154,14 @@ async def process_audio(job: ProcessAudioRequest):
 
             except* Exception as exc:
                 traceback.print_exception(exc)
-                await status.send_update(
+                await status.update_status(
                     {
                         "status": "failed",
                         "error": "".join(traceback.format_exception(exc)),
                     }
                 )
             else:
-                await status.send_update({"status": "complete"})
+                await status.update_status({"status": "complete"})
 
 
 if __name__ == "__main__":
