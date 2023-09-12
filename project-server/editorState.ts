@@ -30,9 +30,9 @@ function allTaggedWords(words: Words, source: string, speakerName: string) {
   return result
 }
 
-function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
-  const words = sortBy(
-    allTaggedWords(track.words, track.trackId, track.label ?? 'Speaker'),
+function addTrackToEditor(track: Track, words: Words, editor: LexicalEditor): Promise<void> {
+  const sortedWords = sortBy(
+    allTaggedWords(words, track.trackId, track.label ?? 'Speaker'),
     'start',
   )
   const color = track.color ?? 'black'
@@ -44,7 +44,7 @@ function addTrackToEditor(track: Track, editor: LexicalEditor): Promise<void> {
         const soundNodes = $nodesOfTypeInOrder(SoundNode)
 
         let prevWordNode: SoundNode = soundNodes[0]
-        for (const word of words) {
+        for (const word of sortedWords) {
           // TODO: should we be smarter about resolving ties so adjacent words aren't broken up?
           while (
             soundNodes.length &&
@@ -234,10 +234,10 @@ export async function editCollabDoc(
   return doc
 }
 
-export function projectToYDoc(project: Project, baseDoc: Uint8Array | null) {
+export function projectToYDoc(project: Project, trackWords: Record<string, Words>, baseDoc: Uint8Array | null) {
   return editCollabDoc(project, baseDoc, async (editor) => {
     for (const track of Object.values(project.tracks)) {
-      await addTrackToEditor(track, editor)
+      await addTrackToEditor(track, trackWords[track.trackId], editor)
     }
   })
 }
@@ -245,10 +245,11 @@ export function projectToYDoc(project: Project, baseDoc: Uint8Array | null) {
 export function addTrackToYDoc(
   project: Project,
   trackId: string,
+  words: Words,
   baseDoc: Uint8Array | null,
 ) {
   return editCollabDoc(project, baseDoc, async (editor) => {
-    await addTrackToEditor(project.tracks[trackId], editor)
+    await addTrackToEditor(project.tracks[trackId], words, editor)
   })
 }
 

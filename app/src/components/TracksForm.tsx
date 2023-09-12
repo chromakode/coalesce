@@ -19,15 +19,7 @@ import { MdAudioFile, MdClose } from 'react-icons/md'
 import { useBeforeUnload } from 'react-use'
 import { deleteTrack, updateTrack, uploadTrack } from '../lib/api'
 
-function jobProgress(
-  hasResult: boolean,
-  jobs: JobInfo[] | null,
-  task: JobInfo['task'],
-): number {
-  if (hasResult) {
-    return 1
-  }
-
+function jobProgress(jobs: JobInfo[] | null, task: JobInfo['task']): number {
   if (!jobs) {
     return 0
   }
@@ -150,9 +142,7 @@ function TrackUpload({
   )
 
   // TODO: display job failed state
-  const isFinished = track?.audio != null && track?.words != null
-  const progress =
-    0.2 * uploadProgress + 0.8 * jobProgress(isFinished, jobs, 'process')
+  const progress = 0.2 * uploadProgress + 0.8 * jobProgress(jobs, 'process')
   const currentTaskLabel = getCurrentTaskLabel(uploadProgress < 1, jobs)
 
   const isRunning =
@@ -170,7 +160,7 @@ function TrackUpload({
         <Icon
           as={MdAudioFile}
           fontSize="4xl"
-          color={isFinished ? 'gray.600' : 'blue.600'}
+          color={!isRunning ? 'gray.600' : 'blue.600'}
           alignSelf="center"
         />
         <Flex minW="0" flex="1" alignItems="baseline">
@@ -216,7 +206,7 @@ function TrackUpload({
           />
         )}
       </Flex>
-      <Collapse in={!isFinished}>
+      <Collapse in={isRunning}>
         <Progress
           w="full"
           mt="2"

@@ -33,7 +33,6 @@ export interface Project extends Omit<ProjectInfo, 'tracks'> {
 }
 
 export interface Track extends TrackInfo {
-  words: Words
   audio: TrackChunks
 }
 

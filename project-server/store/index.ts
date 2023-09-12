@@ -11,7 +11,7 @@ import {
   retry,
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from '../env.ts'
-import { ProjectInfo, Project, Track, TrackInfo } from '@shared/types'
+import { ProjectInfo, Project, Track, TrackInfo, Words } from '@shared/types'
 import { ProjectFields, TrackFields } from '@shared/schema'
 import { db, redisClient, minioClient } from '../main.ts'
 import { initRedis } from '../service.ts'
@@ -197,7 +197,14 @@ export async function generateCollabDoc(
   baseDoc: Uint8Array | null = null,
 ): Promise<Uint8Array> {
   const project = await getProjectState(projectId)
-  const doc = await projectToYDoc(project, baseDoc)
+
+  const trackWords: Record<string, Words> = {}
+  for (const [trackId] of Object.keys(project.tracks)) {
+    const words = await getTrackWords(trackId)
+    trackWords[trackId] = words
+  }
+
+  const doc = await projectToYDoc(project, trackWords, baseDoc)
   return Y.encodeStateAsUpdate(doc)
 }
 
@@ -259,8 +266,9 @@ async function _updateCollabDoc(
 }
 
 export async function addTrackToCollabDoc(projectId: string, trackId: string) {
+  const words = await getTrackWords(trackId)
   await _updateCollabDoc(projectId, (project, baseDoc) =>
-    addTrackToYDoc(project, trackId, baseDoc),
+    addTrackToYDoc(project, trackId, words, baseDoc),
   )
 }
 
@@ -336,9 +344,12 @@ export async function getTrackState(
     .where('trackId', '=', trackId)
     .select(['color'])
     .executeTakeFirstOrThrow()
-  const words = await readJSON(storePath.trackWords(trackId))
   const audio = await readJSON(storePath.trackChunks(trackId))
-  return { ...trackInfo, color, words, audio }
+  return { ...trackInfo, color, audio }
+}
+
+export async function getTrackWords(trackId: string) {
+  return await readJSON(storePath.trackWords(trackId))
 }
 
 export async function getProjectState(projectId: string): Promise<Project> {
@@ -349,9 +360,8 @@ export async function getProjectState(projectId: string): Promise<Project> {
 
   const tracks: Record<string, Track> = {}
   for (const [trackId, trackInfo] of Object.entries(info.tracks)) {
-    const words = await readJSON(storePath.trackWords(trackId))
     const audio = await readJSON(storePath.trackChunks(trackId))
-    tracks[trackId] = { ...trackInfo, words, audio }
+    tracks[trackId] = { ...trackInfo, audio }
   }
 
   const state: Project = {

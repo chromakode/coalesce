@@ -26,7 +26,6 @@ import { AnimatePresence } from 'framer-motion'
 import {
   cloneDeep,
   debounce,
-  every,
   get,
   groupBy,
   merge,
@@ -477,14 +476,11 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
 
   const bottomWavePadding = waves.length > 0 ? '10rem' : ''
 
-  const hasTranscription =
-    project != null &&
-    Object.keys(project.tracks).length > 0 &&
-    every(project.tracks, (t) => t.words != null)
+  const hasTracks = project && Object.keys(project.tracks).length > 0
 
   return (
     <Flex h="100vh" flexDir="column" bg="gray.100">
-      {(!project || (hasTranscription && !isInitialSynced)) && <LoadingCover />}
+      {(!project || (hasTracks && !isInitialSynced)) && <LoadingCover />}
       {showExport && (
         <ExportModal
           isExporting={isExporting}
@@ -558,7 +554,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                       {project.title}
                     </Text>
                   )}
-                  {hasTranscription && (
+                  {hasTracks && (
                     <IconButton
                       fontSize="2xl"
                       icon={
@@ -580,7 +576,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                     />
                   )}
                 </Flex>
-                {isEditingTracks && hasTranscription && (
+                {isEditingTracks && hasTracks && (
                   <Alert status="warning">
                     <AlertIcon />
                     <AlertTitle>
@@ -615,7 +611,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   },
                 }}
               >
-                {hasTranscription ? (
+                {hasTracks ? (
                   <Editor
                     ref={editorRef}
                     scrollerRef={scrollerRef}
