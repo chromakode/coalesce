@@ -19,7 +19,10 @@ async def handle_request(request):
         raise web.HTTPForbidden
     job_data = await request.json()
     job = ProcessAudioRequest(**job_data)
+
     await process_audio(job)
+
+    return web.Response(status=200)
 
 
 def main():
