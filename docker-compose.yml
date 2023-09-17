@@ -10,10 +10,16 @@ services:
     restart: unless-stopped
     volumes:
       - postgres:/var/lib/postgresql/data
+      - ./config/docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-coalesce}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD
+      - POSTGRES_COALESCE_DB
+      - POSTGRES_COALESCE_USER
+      - POSTGRES_COALESCE_PASSWORD
+      - POSTGRES_ORY_DB
+      - POSTGRES_ORY_USER
+      - POSTGRES_ORY_PASSWORD
 
   minio:
     image: quay.io/minio/minio
@@ -92,10 +98,10 @@ services:
       - AUDIO_QUEUE_NAME=${AUDIO_QUEUE_NAME:-audio_jobs}
       - AUDIO_PROCESSING_QUEUE_NAME=${AUDIO_PROCESSING_QUEUE_NAME:-audio_jobs_processing}
       - WORKER_KEY
-      - POSTGRES_DB
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_URL
+      - POSTGRES_DB=${POSTGRES_COALESCE_DB}
+      - POSTGRES_USER=${POSTGRES_COALESCE_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_COALESCE_PASSWORD}
+      - POSTGRES_URL=${POSTGRES_COALESCE_URL}
       - MINIO_ENDPOINT
 
 volumes:

@@ -1,0 +1,1 @@
+This directory contains config files used by the batteries-included docker compose setups.
