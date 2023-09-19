@@ -1,4 +1,12 @@
 services:
+  caddy:
+    image: caddy:2.7
+    restart: unless-stopped
+    ports:
+      - '3333:80'
+    volumes:
+      - ./config/docker/Caddyfile:/etc/caddy/Caddyfile
+
   redis:
     image: docker.io/library/redis:7
     restart: unless-stopped
@@ -17,9 +25,9 @@ services:
       - POSTGRES_COALESCE_DB
       - POSTGRES_COALESCE_USER
       - POSTGRES_COALESCE_PASSWORD
-      - POSTGRES_ORY_DB
-      - POSTGRES_ORY_USER
-      - POSTGRES_ORY_PASSWORD
+      - POSTGRES_KRATOS_DB
+      - POSTGRES_KRATOS_USER
+      - POSTGRES_KRATOS_PASSWORD
 
   minio:
     image: quay.io/minio/minio
@@ -27,11 +35,57 @@ services:
     command: server /data
     volumes:
       - minio:/data
-    ports:
-      - '127.0.0.1:9000:9000'
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minio}
       - MINIO_ROOT_PASSWORD
+
+  kratos-migrate:
+    image: oryd/kratos:v1.0.0
+    volumes:
+      - ./config/docker/kratos:/etc/config/kratos
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    environment:
+      - DSN=${KRATOS_POSTGRES_DSN}
+
+  kratos-selfservice-ui-node:
+    image: oryd/kratos-selfservice-ui-node:v1.0.0
+    environment:
+      - PORT=4455
+      - KRATOS_PUBLIC_URL=http://kratos:4433
+      - KRATOS_BROWSER_URL=${APP_ORIGIN}/auth/api
+
+  kratos:
+    depends_on:
+      - kratos-migrate
+      - mailslurper
+    image: oryd/kratos:v1.0.0
+    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    volumes:
+      - ./config/docker/kratos:/etc/config/kratos
+    environment:
+      - LOG_LEVEL=trace
+      - DSN=${KRATOS_POSTGRES_DSN}
+      - SERVE_PUBLIC_BASE_URL=${APP_ORIGIN}/auth/api
+      - SERVE_ADMIN_BASE_URL=http://kratos:4434
+      - SELFSERVICE_DEFAULT_BROWSER_RETURN_URL=${APP_ORIGIN}
+      - SELFSERVICE_ALLOWED_RETURN_URLS=${APP_ORIGIN}
+      - SELFSERVICE_FLOWS_ERROR_UI_URL=${APP_ORIGIN}/auth/error
+      - SELFSERVICE_FLOWS_SETTINGS_UI_URL=${APP_ORIGIN}/auth/settings
+      - SELFSERVICE_FLOWS_RECOVERY_UI_URL=${APP_ORIGIN}/auth/recovery
+      - SELFSERVICE_FLOWS_VERIFICATION_UI_URL=${APP_ORIGIN}/auth/verification
+      - SELFSERVICE_FLOWS_LOGIN_UI_URL=${APP_ORIGIN}/auth/login
+      - SELFSERVICE_FLOWS_REGISTRATION_UI_URL=${APP_ORIGIN}/auth/registration
+      - SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL=${APP_ORIGIN}/auth/login
+      - SECRETS_COOKIE=${KRATOS_COOKIE_SECRET}
+      - SECRETS_CIPHER=${KRATOS_CIPHER_SECRET}
+      - COURIER_SMTP_CONNECTION_URI=${KRATOS_SMTP_URL}
+
+  mailslurper:
+    profiles: ['mailslurper']
+    image: oryd/mailslurper:latest-smtps
+    ports:
+      - '127.0.0.1:4436:4436'
+      - '127.0.0.1:4437:4437'
 
   audio-processor:
     profiles: ['process-audio']
@@ -43,8 +97,6 @@ services:
       dockerfile: ./Dockerfile
     depends_on:
       - project-server
-    ports:
-      - '127.0.0.1:3030:3030'
     environment:
       - WORKER_PORT=${WORKER_PORT:-3030}
       - WORKER_KEY
@@ -59,8 +111,6 @@ services:
       dockerfile: ./Dockerfile.runpod
     depends_on:
       - project-server
-    ports:
-      - '127.0.0.1:3030:3030'
     environment:
       - WORKER_PORT=${WORKER_PORT:-3030}
 
@@ -71,11 +121,9 @@ services:
       context: .
       dockerfile: ./app/Dockerfile
       args:
-        - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:3001}
-    ports:
-      - '127.0.0.1:3000:3000'
+        - VITE_PROJECT_SERVER=${APP_ORIGIN}/api
     environment:
-      - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:3001}
+      - VITE_PROJECT_SERVER=${APP_ORIGIN}/api
 
   project-server:
     image: coalesce/project-server
@@ -87,11 +135,10 @@ services:
       - redis
       - postgres
       - minio
-    ports:
-      - '127.0.0.1:3001:3001'
+      - kratos
     environment:
       - PROJECT_SERVER_PORT=${PROJECT_SERVER_PORT:-3001}
-      - APP_ORIGIN=${APP_ORIGIN:-http://localhost:3000}
+      - APP_ORIGIN=${APP_ORIGIN}
       - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:3001}
       - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:3030}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}

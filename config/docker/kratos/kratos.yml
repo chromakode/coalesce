@@ -1,0 +1,51 @@
+version: v0.13.0
+
+dsn: memory
+
+selfservice:
+  methods:
+    password:
+      enabled: true
+
+  flows:
+    settings:
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+
+    recovery:
+      enabled: true
+      use: code
+
+    verification:
+      enabled: true
+      use: code
+
+    login:
+      lifespan: 10m
+
+    registration:
+      lifespan: 10m
+      after:
+        password:
+          hooks:
+            - hook: session
+            - hook: show_verification_ui
+
+log:
+  level: debug
+  format: text
+  leak_sensitive_values: true
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json

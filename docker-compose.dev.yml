@@ -3,33 +3,19 @@ services:
     command: poetry run python -m watchfiles coalesce_audio_processor.worker.http.main
     volumes:
       - ./audio-processor:/app
-    ports:
-      - '4040:4040'
-    environment:
-      - WORKER_PORT=${WORKER_PORT:-4040}
 
   app:
-    command: npm start -- --port 4000 --host
+    command: npm start -- --port 3000 --host
     volumes:
       - ./app:/app/frontend
       - ./shared:/app/shared
-    ports:
-      - '4000:4000'
-    environment:
-      - VITE_PROJECT_SERVER=${VITE_PROJECT_SERVER:-localhost:4001}
 
   project-server:
     command: run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno main.ts
     volumes:
       - ./project-server:/app/project-server
       - ./shared:/app/shared
-    ports:
-      - '4001:4001'
     environment:
-      - PROJECT_SERVER_PORT=${PROJECT_SERVER_PORT:-4001}
-      - APP_ORIGIN=${APP_ORIGIN:-http://localhost:4000}
-      - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:4001}
-      - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:4040}
       - COALESCE_DEV_FLAGS=reuse-track-by-filename
 
   minio-client:

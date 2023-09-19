@@ -1,0 +1,19 @@
+{
+  admin off
+}
+
+http:// {
+  handle_path /auth/api/* {
+    reverse_proxy http://kratos:4433
+  }
+
+  handle_path /auth/* {
+    reverse_proxy http://kratos-selfservice-ui-node:4455
+  }
+
+  handle_path /api/* {
+    reverse_proxy http://project-server:3001
+  }
+
+  reverse_proxy http://app:3000
+}

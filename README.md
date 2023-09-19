@@ -31,20 +31,16 @@ Next up:
 
 The easiest way to get started is to build and launch the containers:
 
-1. `DOCKER_BUILDKIT=1 docker-compose up --env-file docker-compose.env --profile process-audio`
-2. Browse to https://localhost:3000
+1. `DOCKER_BUILDKIT=1 docker-compose --env-file docker-compose.env --profile process-audio --profile mailslurper up`
+2. Browse to https://localhost:3333
+3. Access registration emails at https://localhost:4436
 
 ## Development
 
 To run all services in watch mode:
 
-1. `DOCKER_BUILDKIT=1 docker-compose --env-file docker-compose.env -f docker-compose.yml -f docker-compose.dev.yml up`
-2. Browse to https://localhost:4000
+`DOCKER_BUILDKIT=1 docker-compose --env-file docker-compose.env -f docker-compose.yml -f docker-compose.dev.yml --profile process-audio --profile mailslurper up`
 
 Tailing logs:
 
 `docker-compose -f docker-compose.yml -f docker-compose.dev.yml logs --follow`
-
-Running with a GPU:
-
-`DOCKER_BUILDKIT=1 docker-compose --env-file docker-compose.env -f docker-compose.yml -f docker-compose.gpu.yml up --profile process-audio`

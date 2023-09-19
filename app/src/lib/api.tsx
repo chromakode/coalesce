@@ -5,29 +5,30 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 
 export const server = import.meta.env.VITE_PROJECT_SERVER
 
-function socketProto(): string {
-  return window.location.protocol === 'https:' ? 'wss' : 'ws'
+function socketBase(): string {
+  const serverURL = new URL(server)
+  const socketProto = serverURL.protocol === 'https:' ? 'wss' : 'ws'
+  serverURL.protocol = socketProto
+  return serverURL.toString()
 }
 
 export function projectSocket(projectId: string): ReconnectingWebSocket {
-  return new ReconnectingWebSocket(
-    `${socketProto()}://${server}/project/${projectId}/ws`,
-  )
+  return new ReconnectingWebSocket(`${socketBase()}/project/${projectId}/ws`)
 }
 
 export function collabSocketBase(): string {
-  return `${socketProto()}://${server}/project/`
+  return `${socketBase()}/project/`
 }
 
 export async function listProjects(): Promise<ProjectInfo[]> {
-  const resp = await fetch(`//${server}/project/`)
+  const resp = await fetch(`${server}/project/`)
   return await resp.json()
 }
 
 export async function createProject(
   params: ProjectFieldsInput = {},
 ): Promise<ProjectInfo> {
-  const resp = await fetch(`//${server}/project/`, {
+  const resp = await fetch(`${server}/project/`, {
     method: 'POST',
     body: JSON.stringify(params),
     headers: { 'Content-Type': 'application/json' },
@@ -59,7 +60,7 @@ export function uploadTrack(
       })
       xhr.open(
         'POST',
-        `//${server}/project/${projectId}/track?filename=${file.name}`,
+        `${server}/project/${projectId}/track?filename=${file.name}`,
         true,
       )
       xhr.setRequestHeader('Content-Type', file.type)
@@ -73,7 +74,7 @@ export async function updateProject(
   projectId: string,
   params: ProjectFieldsInput,
 ): Promise<void> {
-  await fetch(`//${server}/project/${projectId}`, {
+  await fetch(`${server}/project/${projectId}`, {
     method: 'PUT',
     body: JSON.stringify(params),
     headers: { 'Content-Type': 'application/json' },
@@ -85,7 +86,7 @@ export async function updateTrack(
   trackId: string,
   params: TrackFieldsInput,
 ): Promise<void> {
-  await fetch(`//${server}/project/${projectId}/track/${trackId}`, {
+  await fetch(`${server}/project/${projectId}/track/${trackId}`, {
     method: 'PUT',
     body: JSON.stringify(params),
     headers: { 'Content-Type': 'application/json' },
@@ -96,7 +97,7 @@ export async function deleteTrack(
   projectId: string,
   trackId: string,
 ): Promise<void> {
-  await fetch(`//${server}/project/${projectId}/track/${trackId}`, {
+  await fetch(`${server}/project/${projectId}/track/${trackId}`, {
     method: 'DELETE',
   })
 }
@@ -106,7 +107,5 @@ export function chunkURL(
   trackId: string,
   chunkName: string,
 ) {
-  return (
-    `//${server}/` + join('project', projectId, 'track', trackId, chunkName)
-  )
+  return `${server}/` + join('project', projectId, 'track', trackId, chunkName)
 }
