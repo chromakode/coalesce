@@ -15,9 +15,10 @@ import {
   MigrationProvider,
   Migration,
   CamelCasePlugin,
+  ory,
 } from './deps.ts'
 
-import { REDIS_URL, MINIO_ENDPOINT, POSTGRES_URL } from './env.ts'
+import { REDIS_URL, MINIO_ENDPOINT, POSTGRES_URL, KRATOS_URL } from './env.ts'
 
 export interface DB {
   project: ProjectTable
@@ -106,4 +107,12 @@ export async function initMinio() {
   }
 
   return client
+}
+
+export function initOry() {
+  return new ory.FrontendApi(
+    new ory.Configuration({
+      basePath: KRATOS_URL,
+    }),
+  )
 }

@@ -524,6 +524,8 @@
       "@lexical/headless@^0.11.1": "@lexical/headless@0.11.1_lexical@0.11.1",
       "@lexical/rich-text@^0.11.1": "@lexical/rich-text@0.11.2_@lexical+clipboard@0.11.2__lexical@0.11.2_@lexical+selection@0.11.2__lexical@0.11.2_@lexical+utils@0.11.2__lexical@0.11.2_lexical@0.11.2",
       "@lexical/yjs@^0.11.1": "@lexical/yjs@0.11.2_lexical@0.11.2_yjs@13.6.6",
+      "@ory/client@1.2.6": "@ory/client@1.2.6",
+      "@ory/client@^1.2.6": "@ory/client@1.2.6",
       "@repeaterjs/repeater@^3.0.4": "@repeaterjs/repeater@3.0.4",
       "@types/lodash@^4.14.195": "@types/lodash@4.14.195",
       "@types/pg@^8.10.2": "@types/pg@8.10.2",
@@ -633,6 +635,12 @@
           "yjs": "yjs@13.6.6"
         }
       },
+      "@ory/client@1.2.6": {
+        "integrity": "sha512-/uNY/nG019fdIgm9KHvM2aPKMeR7YM9MO35EKO/0LxAyDeTcdAJ1TA0gY69RD6UqlhcJa5wighUjC8JcuS6fJw==",
+        "dependencies": {
+          "axios": "axios@0.21.4"
+        }
+      },
       "@redis/bloom@1.2.0_@redis+client@1.5.8": {
         "integrity": "sha512-HG2DFjYKbpNmVXsa0keLHp/3leGJz1mjh09f2RLGGLQZzSHpkmZWuwJbAvo3QcRY8p80m5+ZdXZdYOSBLlp7Cg==",
         "dependencies": {
@@ -732,6 +740,12 @@
         "integrity": "sha512-DMD0KiN46eipeziST1LPP/STfDU0sufISXmjSgvVsoU2tqxctQeASejWcfNtxYKqETM1UxQ8sp2OrSBWpHY6sw==",
         "dependencies": {}
       },
+      "axios@0.21.4": {
+        "integrity": "sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==",
+        "dependencies": {
+          "follow-redirects": "follow-redirects@1.15.2"
+        }
+      },
       "base64-js@1.5.1": {
         "integrity": "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==",
         "dependencies": {}
@@ -824,6 +838,10 @@
       },
       "filter-obj@1.1.0": {
         "integrity": "sha512-8rXg1ZnX7xzy2NGDVkBVaAy+lSlPNwad13BtgSlLuxfIslyt5Vg64U7tFcCt4WS1R0hvtnQybT/IyCkGZ3DpXQ==",
+        "dependencies": {}
+      },
+      "follow-redirects@1.15.2": {
+        "integrity": "sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==",
         "dependencies": {}
       },
       "for-each@0.3.3": {

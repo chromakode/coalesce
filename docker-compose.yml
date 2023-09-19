@@ -51,7 +51,7 @@ services:
     image: oryd/kratos-selfservice-ui-node:v1.0.0
     environment:
       - PORT=4455
-      - KRATOS_PUBLIC_URL=http://kratos:4433
+      - KRATOS_PUBLIC_URL=${KRATOS_URL:-http://kratos:4433}
       - KRATOS_BROWSER_URL=${APP_ORIGIN}/auth/api
 
   kratos:
@@ -122,8 +122,12 @@ services:
       dockerfile: ./app/Dockerfile
       args:
         - VITE_PROJECT_SERVER=${APP_ORIGIN}/api
+        - VITE_KRATOS_URL=${APP_ORIGIN}/auth/api
+        - VITE_AUTH_UI_URL=${APP_ORIGIN}/auth
     environment:
       - VITE_PROJECT_SERVER=${APP_ORIGIN}/api
+      - VITE_KRATOS_URL=${APP_ORIGIN}/auth/api
+      - VITE_AUTH_UI_URL=${APP_ORIGIN}/auth
 
   project-server:
     image: coalesce/project-server
@@ -139,6 +143,7 @@ services:
     environment:
       - PROJECT_SERVER_PORT=${PROJECT_SERVER_PORT:-3001}
       - APP_ORIGIN=${APP_ORIGIN}
+      - KRATOS_URL=${KRATOS_URL:-http://kratos:4433}
       - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:3001}
       - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:3030}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}

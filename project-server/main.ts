@@ -1,4 +1,4 @@
-import { Application, Router, oakCors } from './deps.ts'
+import { Application, Router, oakCors, ory } from './deps.ts'
 import { APP_ORIGIN, PROJECT_SERVER_PORT } from './env.ts'
 import {
   watchProject,
@@ -14,7 +14,7 @@ import {
   removeTrackFromProject,
 } from './store/index.ts'
 import { ProjectFields, TrackFields } from '../shared/schema.ts'
-import { initMinio, initPostgres, initRedis } from './service.ts'
+import { initMinio, initOry, initPostgres, initRedis } from './service.ts'
 import { pushProjectUpdates, runCollab } from './socket.ts'
 import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
 import { socketReady } from './utils.ts'
@@ -22,8 +22,14 @@ import { socketReady } from './utils.ts'
 export const db = await initPostgres()
 export const redisClient = await initRedis()
 export const minioClient = await initMinio()
+export const auth = initOry()
 
-const app = new Application()
+type ContextState = {
+  project: string
+  session: ory.Session
+}
+
+const app = new Application<ContextState>()
 
 const projectRouter = new Router()
   .get('/ws', async (ctx) => {
@@ -112,6 +118,19 @@ const router = new Router()
     projectRouter.routes(),
     projectRouter.allowedMethods(),
   )
+
+app.use(async function loadSession(ctx, next) {
+  try {
+    const resp = await auth.toSession({
+      cookie: ctx.request.headers.get('cookie') ?? '',
+    })
+    ctx.state.session = resp.data
+  } catch {
+    ctx.response.status = 401
+    return
+  }
+  await next()
+})
 
 app.use(oakCors({ origin: APP_ORIGIN }))
 app.use(router.routes())

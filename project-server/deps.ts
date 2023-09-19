@@ -62,3 +62,5 @@ export * as Y from 'yjs'
 export * as awarenessProtocol from 'npm:y-protocols@^1.0.5/awareness'
 export * as syncProtocol from 'npm:y-protocols@^1.0.5/sync'
 export * as lib0 from 'npm:lib0@^0.2.78'
+
+export * as ory from 'npm:@ory/client@1.2.6'
