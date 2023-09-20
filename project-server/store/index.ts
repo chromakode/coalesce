@@ -22,7 +22,7 @@ import {
   updateSpeakerInYDoc,
 } from '../editorState.ts'
 import { sendDocUpdate } from '../socket.ts'
-import { TRACK_COLOR_ORDER } from '@shared/constants'
+import { TRACK_COLOR_ORDER, USER_ROLE } from '@shared/constants'
 import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
 
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
@@ -300,10 +300,10 @@ export async function getTrackInfo(trackId: string): Promise<TrackInfo> {
 
 function projectQuery() {
   return db.selectFrom('project').select(({ selectFrom }) => [
-    'projectId',
-    'createdAt',
-    'title',
-    'hidden',
+    'project.projectId',
+    'project.createdAt',
+    'project.title',
+    'project.hidden',
     sql<Record<string, TrackInfo>>`(select coalesce(json_object_agg(
       ${sql.id('info', 'trackId')}, row_to_json(info)
     ), '{}') from ${selectFrom('track')
@@ -325,12 +325,15 @@ function projectQuery() {
 
 export async function getProjectInfo(projectId: string): Promise<ProjectInfo> {
   return await projectQuery()
-    .where('projectId', '=', projectId)
+    .where('project.projectId', '=', projectId)
     .executeTakeFirstOrThrow()
 }
 
-export async function listProjects(): Promise<ProjectInfo[]> {
-  return await projectQuery().execute()
+export async function listProjects(userId: string): Promise<ProjectInfo[]> {
+  return await projectQuery()
+    .innerJoin('projectUsers', 'projectUsers.projectId', 'project.projectId')
+    .where('projectUsers.userId', '=', userId)
+    .execute()
 }
 
 export async function getTrackState(
@@ -373,10 +376,23 @@ export async function getProjectState(projectId: string): Promise<Project> {
   return state
 }
 
-export async function projectExists(projectId: string) {
+export async function canAccessProject(projectId: string, userId: string) {
   const { count } = await db
     .selectFrom('project')
-    .where('projectId', '=', projectId)
+    .innerJoin('projectUsers', 'projectUsers.projectId', 'project.projectId')
+    .where('project.projectId', '=', projectId)
+    .where('projectUsers.userId', '=', userId)
+    .select(db.fn.countAll<number>().as('count'))
+    .executeTakeFirstOrThrow()
+  return count > 0
+}
+
+export async function projectContainsTrack(projectId: string, trackId: string) {
+  const { count } = await db
+    .selectFrom('project')
+    .innerJoin('projectTracks', 'projectTracks.projectId', 'project.projectId')
+    .where('project.projectId', '=', projectId)
+    .where('projectTracks.trackId', '=', trackId)
     .select(db.fn.countAll<number>().as('count'))
     .executeTakeFirstOrThrow()
   return count > 0
@@ -406,13 +422,23 @@ export async function updateProject(
   )
 }
 
-export async function createProject(fields: ProjectFields): Promise<string> {
+export async function createProject(
+  fields: ProjectFields,
+  ownerUserId: string,
+): Promise<string> {
   const projectId = generateShortId()
 
-  await db
-    .insertInto('project')
-    .values({ ...fields, projectId })
-    .executeTakeFirst()
+  await db.transaction().execute(async (trx) => {
+    await trx
+      .insertInto('project')
+      .values({ ...fields, projectId })
+      .executeTakeFirst()
+
+    await trx
+      .insertInto('projectUsers')
+      .values({ projectId, userId: ownerUserId, role: USER_ROLE.OWNER })
+      .executeTakeFirst()
+  })
 
   return projectId
 }

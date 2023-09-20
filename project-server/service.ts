@@ -2,6 +2,7 @@ import {
   ProjectTable,
   TrackTable,
   ProjectTracksTable,
+  ProjectUsersTable,
 } from '../shared/schema.ts'
 import {
   Kysely,
@@ -24,6 +25,7 @@ export interface DB {
   project: ProjectTable
   track: TrackTable
   projectTracks: ProjectTracksTable
+  projectUsers: ProjectUsersTable
 }
 
 class DenoFileMigrationProvider implements MigrationProvider {

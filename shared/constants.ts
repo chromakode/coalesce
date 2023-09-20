@@ -10,3 +10,7 @@ export const TRACK_COLOR_ORDER = [
   'pink',
   'black',
 ] as const
+
+export enum USER_ROLE {
+  OWNER = 'owner',
+}

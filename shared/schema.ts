@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { ColumnType, Selectable } from 'kysely'
-import { TRACK_COLOR_ORDER } from './constants.ts'
+import { TRACK_COLOR_ORDER, USER_ROLE } from './constants.ts'
 
 export const JobModel = z.object({
   jobId: z.string(),
@@ -69,3 +69,13 @@ export interface ProjectTracksTable extends ProjectTracksFields {
 }
 
 export type TrackResult = Selectable<TrackTable> & ProjectTracksFields
+
+export const ProjectUsersFields = z.object({
+  role: z.nativeEnum(USER_ROLE),
+})
+export type ProjectUsersFields = z.infer<typeof ProjectUsersFields>
+export type ProjectUsersFieldsInput = z.input<typeof ProjectUsersFields>
+export interface ProjectUsersTable extends ProjectUsersFields {
+  projectId: string
+  userId: string
+}
