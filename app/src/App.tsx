@@ -18,7 +18,7 @@ export default function App() {
     return (
       <Switch>
         <Route path="/">
-          <IndexPage />
+          <IndexPage session={session.value} />
         </Route>
         <Route path="/project/:projectId">
           {({ projectId }) => <ProjectPage projectId={projectId} />}

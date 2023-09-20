@@ -1,8 +1,9 @@
 import {
   Button,
   Center,
-  Heading,
+  Link as ChakraLink,
   HStack,
+  Heading,
   LinkBox,
   LinkOverlay,
   Spinner,
@@ -10,7 +11,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import { ProjectInfo } from '@shared/types'
+import { ProjectInfo, SessionInfo } from '@shared/types'
 import { useAsync, useAsyncFn } from 'react-use'
 import { Link, useLocation } from 'wouter'
 import { createProject, listProjects } from '../lib/api'
@@ -42,7 +43,7 @@ function ProjectItem({
   )
 }
 
-export default function IndexList() {
+export default function IndexPage({ session }: { session: SessionInfo }) {
   const [_, setLocation] = useLocation()
   const projects = useAsync(listProjects, [])
   const [createProjectStatus, handleCreateProject] = useAsyncFn(async () => {
@@ -52,6 +53,10 @@ export default function IndexList() {
 
   return (
     <Center h="100vh" bg="gray.50" flexDirection="column">
+      <HStack position="absolute" top="4" right="4">
+        <Text>Signed in as {session.email}.</Text>
+        <ChakraLink href={session.logoutURL}>Logout</ChakraLink>
+      </HStack>
       <Heading as="h1" size="2xl" mb="4">
         Coalesce
       </Heading>
