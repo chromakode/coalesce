@@ -19,6 +19,7 @@ import { initMinio, initOry, initPostgres, initRedis } from './service.ts'
 import { pushProjectUpdates, runCollab } from './socket.ts'
 import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
 import { socketReady } from './utils.ts'
+import { SessionInfo } from '@shared/types'
 
 export const db = await initPostgres()
 export const redisClient = await initRedis()
@@ -132,6 +133,18 @@ const projectRouter = new Router<ContextState & { project: string }>()
 
 const apiRouter = new Router<ContextState>()
   .use(loadSession)
+  .get('/session', async (ctx) => {
+    const { identity } = ctx.state
+    const { data: flow } = await auth.createBrowserLogoutFlow({
+      cookie: ctx.request.headers.get('cookie') ?? '',
+    })
+    const sessionInfo: SessionInfo = {
+      userId: identity.id,
+      email: identity.traits.email,
+      logoutURL: flow.logout_url,
+    }
+    ctx.response.body = sessionInfo
+  })
   .get('/project', async (ctx) => {
     const { identity } = ctx.state
     const projects = await listProjects(identity.id)

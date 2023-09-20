@@ -1,5 +1,5 @@
 import { ProjectFieldsInput, TrackFieldsInput } from '@shared/schema'
-import { ProjectInfo } from '@shared/types'
+import { ProjectInfo, SessionInfo } from '@shared/types'
 import { join } from 'path-browserify'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 
@@ -18,6 +18,11 @@ export function projectSocket(projectId: string): ReconnectingWebSocket {
 
 export function collabSocketBase(): string {
   return `${socketBase()}/project/`
+}
+
+export async function getSession(): Promise<SessionInfo> {
+  const resp = await fetch(`${server}/session`)
+  return await resp.json()
 }
 
 export async function listProjects(): Promise<ProjectInfo[]> {

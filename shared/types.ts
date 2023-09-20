@@ -1,5 +1,11 @@
 import { ProjectResult, TrackResult, Job, JobStatus } from './schema.ts'
 
+export interface SessionInfo {
+  userId: string
+  email: string
+  logoutURL: string
+}
+
 export interface Word {
   text: string
   start: number
