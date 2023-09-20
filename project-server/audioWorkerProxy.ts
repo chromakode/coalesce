@@ -97,10 +97,15 @@ async function runWorkerSocket(
       if (update.status === 'complete') {
         // If processing is successful, remove the message from the processing queue
         await redisClient.lrem(AUDIO_PROCESSING_QUEUE_NAME, 0, rawJob)
-        await deleteJobKey(jobKey)
         await addTrackToCollabDoc(projectId, trackId)
       } else if (update.status === 'failed') {
         console.error('Job failed:', update.error, job)
+      }
+
+      if (update.status === 'complete' || update.status === 'failed') {
+        await deleteJobKey(jobKey)
+        ws.close()
+        return
       }
     }
   } catch (err) {
