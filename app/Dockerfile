@@ -4,7 +4,9 @@ WORKDIR /app/frontend
 
 COPY ./app/package.json ./app/package-lock.json ./
 
-RUN npm install
+RUN --mount=type=cache,target=/npm-cache \
+    npm set cache /npm-cache && \
+    npm ci
 
 COPY ./app ./
 COPY ./shared ../shared/
@@ -13,6 +15,7 @@ ARG VITE_PROJECT_SERVER
 
 RUN npm run build
 
-RUN npm install serve
+RUN --mount=type=cache,target=/npm-cache \
+    npm install serve
 
 CMD ["npx", "serve", "-s", "dist"]
