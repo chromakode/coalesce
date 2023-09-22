@@ -54,7 +54,10 @@ export default function IndexPage({ session }: { session: SessionInfo }) {
   return (
     <Center h="100vh" bg="gray.50" flexDirection="column">
       <HStack position="absolute" top="4" right="4">
-        <Text>Signed in as {session.email}.</Text>
+        <Text>
+          Signed in as{' '}
+          <ChakraLink href="/auth/settings">{session.email}</ChakraLink>.
+        </Text>
         <ChakraLink href={session.logoutURL}>Logout</ChakraLink>
       </HStack>
       <Heading as="h1" size="2xl" mb="4">
