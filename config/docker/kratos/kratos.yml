@@ -48,3 +48,6 @@ identity:
   schemas:
     - id: default
       url: file:///etc/config/kratos/identity.schema.json
+
+session:
+  lifespan: 8640h
