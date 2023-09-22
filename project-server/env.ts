@@ -10,6 +10,7 @@ export const PROJECT_SERVER_PORT = Number(requireEnv('PROJECT_SERVER_PORT'))
 export const POSTGRES_URL = requireEnv('POSTGRES_URL')
 export const REDIS_URL = requireEnv('REDIS_URL')
 export const KRATOS_URL = requireEnv('KRATOS_URL')
+export const KRATOS_ADMIN_URL = requireEnv('KRATOS_ADMIN_URL')
 export const AUDIO_QUEUE_NAME = requireEnv('AUDIO_QUEUE_NAME')
 export const AUDIO_PROCESSING_QUEUE_NAME = requireEnv(
   'AUDIO_PROCESSING_QUEUE_NAME',

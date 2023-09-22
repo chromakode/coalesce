@@ -7,6 +7,9 @@ selfservice:
     password:
       enabled: true
 
+    link:
+      enabled: true
+
   flows:
     settings:
       privileged_session_max_age: 15m
