@@ -1,7 +1,6 @@
 import {
   debounce,
   castArray,
-  pThrottle,
   Y,
   awarenessProtocol,
   syncProtocol,
@@ -49,16 +48,9 @@ export async function runCollab(projectId: string, ws: WebSocket) {
     }
   }
 
-  // https://github.com/denoland/deno/issues/19851
-  const denoSocketThrottle = pThrottle({ limit: 1, interval: 0 })
-
-  const toWS: SendSink = denoSocketThrottle(async (data: Uint8Array) => {
+  const toWS: SendSink = (data: Uint8Array) => {
     if (ws.readyState !== ws.OPEN) {
       return
-    }
-    // Work around Deno buffering issue
-    while (ws.bufferedAmount) {
-      await new Promise((resolve) => setTimeout(resolve, 50))
     }
     try {
       ws.send(data)
@@ -66,7 +58,7 @@ export async function runCollab(projectId: string, ws: WebSocket) {
       console.warn('failed to send', err)
       // TODO: send error handling
     }
-  })
+  }
 
   const toPeers: SendSink = async (data: Uint8Array) =>
     await publishProjectCollab(projectId, awareness.clientID, data)

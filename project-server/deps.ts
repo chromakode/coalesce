@@ -55,8 +55,6 @@ export { default as pg } from 'npm:pg@^8.11.1'
 // @deno-types="npm:@types/lodash@^4.14.195"
 export { flatten, pick, sortBy, castArray } from 'npm:lodash-es@^4.17.21'
 
-export { default as pThrottle } from 'npm:p-throttle@^5.1.0'
-
 export { EventIterator } from 'npm:event-iterator@^2.0.0'
 
 export { abortableSource } from 'npm:abortable-iterator@^5.0.1'
