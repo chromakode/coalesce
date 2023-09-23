@@ -57,7 +57,6 @@ services:
   kratos:
     depends_on:
       - kratos-migrate
-      - mailslurper
     image: oryd/kratos:v1.0.0
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
     volumes:
