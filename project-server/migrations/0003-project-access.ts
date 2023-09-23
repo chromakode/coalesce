@@ -20,5 +20,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
 }
 
 export async function down(db: Kysely<DB>): Promise<void> {
+  await db.schema.dropType('user_role')
   await db.schema.dropTable('project_users').cascade().execute()
 }

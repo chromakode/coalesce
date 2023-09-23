@@ -1,4 +1,4 @@
-import { Kysely, sql } from '../deps.ts'
+import { Kysely } from '../deps.ts'
 import { DB } from '../service.ts'
 
 export async function up(db: Kysely<DB>): Promise<void> {
