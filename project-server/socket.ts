@@ -27,7 +27,7 @@ enum msgType {
 
 type TransactionOrigin = 'local' | 'peer' | 'client' | undefined
 
-type SendSink = (data: Uint8Array) => Promise<void>
+type SendSink = (data: Uint8Array) => void | Promise<void>
 
 export async function runCollab(projectId: string, ws: WebSocket) {
   const doc = new Y.Doc({ gc: true })
