@@ -5,6 +5,9 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 
 export const server = import.meta.env.VITE_PROJECT_SERVER
 
+export class UnexpectedServerError extends Error {}
+export class NeedsAuthError extends Error {}
+
 function socketBase(): string {
   const serverURL = new URL(server)
   const socketProto = serverURL.protocol === 'https:' ? 'wss' : 'ws'
@@ -22,6 +25,12 @@ export function collabSocketBase(): string {
 
 export async function getSession(): Promise<SessionInfo> {
   const resp = await fetch(`${server}/session`)
+  if (resp.status === 401) {
+    throw new NeedsAuthError()
+  }
+  if (!resp.ok) {
+    throw new UnexpectedServerError('Failed to fetch session')
+  }
   return await resp.json()
 }
 

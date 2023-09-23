@@ -1,20 +1,31 @@
 import { Center, Spinner } from '@chakra-ui/react'
+import { useEffect, useState } from 'react'
 import { useAsync } from 'react-use'
 import { Route, Switch } from 'wouter'
-import { getSession } from './lib/api'
+import { NeedsAuthError, UnexpectedServerError, getSession } from './lib/api'
 import IndexPage from './pages/IndexPage'
 import ProjectPage from './pages/ProjectPage'
 
 export default function App() {
-  const session = useAsync(getSession, [])
+  const [sessionTry, setSessionTry] = useState(0)
+  const session = useAsync(getSession, [sessionTry])
 
-  if (session.loading) {
-    return (
-      <Center h="100vh">
-        <Spinner />
-      </Center>
-    )
-  } else if (session.value) {
+  useEffect(() => {
+    if (session.error instanceof NeedsAuthError) {
+      window.location.href = `${
+        import.meta.env.VITE_AUTH_UI_URL
+      }/login?return_to=${window.location.toString()}`
+    } else if (session.error instanceof UnexpectedServerError) {
+      const timeout = setTimeout(() => {
+        setSessionTry((t) => t + 1)
+      }, 1000)
+      return () => {
+        clearTimeout(timeout)
+      }
+    }
+  }, [session.error])
+
+  if (session.value) {
     return (
       <Switch>
         <Route path="/">
@@ -25,9 +36,11 @@ export default function App() {
         </Route>
       </Switch>
     )
-  } else {
-    window.location.href = `${
-      import.meta.env.VITE_AUTH_UI_URL
-    }/login?return_to=${window.location.toString()}`
   }
+
+  return (
+    <Center h="100vh">
+      <Spinner />
+    </Center>
+  )
 }
