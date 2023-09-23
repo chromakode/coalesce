@@ -12,6 +12,8 @@ COPY ./app ./
 COPY ./shared ../shared/
 
 ARG VITE_PROJECT_SERVER
+ARG VITE_KRATOS_URL
+ARG VITE_AUTH_UI_URL
 
 RUN npm run build
 
