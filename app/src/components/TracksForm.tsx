@@ -1,4 +1,11 @@
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  Button,
   Center,
   Collapse,
   Flex,
@@ -8,6 +15,7 @@ import {
   Progress,
   Text,
   VStack,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { TRACK_COLOR_ORDER } from '@shared/constants'
 import { JobInfo, Project, Track } from '@shared/types'
@@ -90,6 +98,12 @@ function TrackUpload({
   onRemoveFile: (filename: string) => void
 }) {
   const { deleteTrack, updateTrack, uploadTrack } = useAPI()
+  const {
+    isOpen: isRemoveConfirmOpen,
+    onOpen: handleRemoveClick,
+    onClose: onDismissRemoveConfirm,
+  } = useDisclosure()
+  const cancelRemoveRef = useRef<HTMLButtonElement>(null)
 
   const trackIdRef = useRef<string>()
   const labelRef = useRef<string>()
@@ -204,9 +218,34 @@ function TrackUpload({
             aria-label="Remove Track"
             colorScheme="red"
             variant="ghost"
-            onClick={handleRemove}
+            onClick={handleRemoveClick}
           />
         )}
+        <AlertDialog
+          isOpen={isRemoveConfirmOpen}
+          leastDestructiveRef={cancelRemoveRef}
+          onClose={onDismissRemoveConfirm}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Remove track?
+              </AlertDialogHeader>
+              <AlertDialogBody>
+                Removing the track "{track?.label ?? track?.originalFilename}"
+                will remove the track's text from the document.
+              </AlertDialogBody>
+              <AlertDialogFooter>
+                <Button ref={cancelRemoveRef} onClick={onDismissRemoveConfirm}>
+                  Cancel
+                </Button>
+                <Button colorScheme="red" onClick={handleRemove} ml={3}>
+                  Remove track
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       </Flex>
       <Collapse in={isRunning}>
         <Progress

@@ -1,7 +1,4 @@
 import {
-  Alert,
-  AlertIcon,
-  AlertTitle,
   Box,
   Button,
   Center,
@@ -583,14 +580,6 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                     )}
                   </HStack>
                 </Flex>
-                {isEditingTracks && hasTracks && (
-                  <Alert status="warning">
-                    <AlertIcon />
-                    <AlertTitle>
-                      Removing tracks will delete the track's text.
-                    </AlertTitle>
-                  </Alert>
-                )}
                 <TracksForm project={project} isReadOnly={!isEditingTracks} />
               </VStack>
               <Box
