@@ -1,6 +1,8 @@
 import {
   Button,
   Collapse,
+  FormControl,
+  FormLabel,
   HStack,
   Icon,
   Input,
@@ -11,7 +13,6 @@ import {
   PopoverHeader,
   PopoverTrigger,
   Switch,
-  Text,
   VStack,
   useClipboard,
   useToast,
@@ -75,11 +76,15 @@ export function CollaborateButton({ project }: { project: Project }) {
         <PopoverBody>
           <VStack alignItems="stretch">
             <HStack w="full">
-              <Text flex="1">Guest editor link</Text>
-              <Switch
-                isChecked={Boolean(guestEditKey)}
-                onChange={handleSwitchChange}
-              />
+              <FormControl display="flex">
+                <FormLabel fontWeight="normal" flex="1">
+                  Allow guests with link to edit
+                </FormLabel>
+                <Switch
+                  isChecked={Boolean(guestEditKey)}
+                  onChange={handleSwitchChange}
+                />
+              </FormControl>
             </HStack>
             <Collapse in={!!guestEditURL}>
               <Input
