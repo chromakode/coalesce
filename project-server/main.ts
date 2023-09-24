@@ -99,7 +99,7 @@ const projectRouter = new Router<ContextState & { project: string }>()
     const body = await ctx.request.body({ type: 'json' }).value
     const fields = ProjectFields.parse(body)
     await updateProject(ctx.state.project, fields)
-    ctx.response.status = 200
+    ctx.response.body = await getProjectInfo(ctx.state.project)
   })
   .post(`/track`, async (ctx) => {
     const fileData = ctx.request.body({ type: 'stream' })
