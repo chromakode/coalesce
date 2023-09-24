@@ -189,7 +189,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
       return
     }
     const tracks = Object.values(project?.tracks)
-    if (tracks.length === 0 || tracks.some(({ words }) => words == null)) {
+    if (tracks.length === 0) {
       setEditingTracks.on()
     }
   }, [project, setEditingTracks])
