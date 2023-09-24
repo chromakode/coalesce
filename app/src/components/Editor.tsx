@@ -51,7 +51,7 @@ import {
   getNodeKeyToLoc,
   processLocations,
 } from '../lib/AudioEngine'
-import { collabSocketBase } from '../lib/api'
+import { useAPI } from './APIContext'
 
 const excludedProperties: ExcludedProperties = new Map()
 excludedProperties.set(SoundNode, new Set(['__isPlaying']))
@@ -184,6 +184,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   },
   ref,
 ) {
+  const { collabSocketProvider } = useAPI()
   const editorRef = useRef<LexicalEditor | null>(null)
   const prevSelection = useRef<ReturnType<typeof $getSelection>>(null)
 
@@ -312,9 +313,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       yjsDocMap.set(id, doc)
 
       // TODO: create a custom provider to combine YJS and project updates in one WebSocket
-      const provider = new WebsocketProvider(collabSocketBase(), id, doc, {
-        connect: false,
-      })
+      const provider = collabSocketProvider(id, doc, { connect: false })
 
       provider.on('sync', (isSynced: boolean) => {
         latestOnSync.current(isSynced)

@@ -17,7 +17,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { MdAudioFile, MdClose } from 'react-icons/md'
 import { useBeforeUnload } from 'react-use'
-import { deleteTrack, updateTrack, uploadTrack } from '../lib/api'
+import { useAPI } from './APIContext'
 
 function jobProgress(jobs: JobInfo[] | null, task: JobInfo['task']): number {
   if (!jobs) {
@@ -89,6 +89,8 @@ function TrackUpload({
   isReadOnly: boolean
   onRemoveFile: (filename: string) => void
 }) {
+  const { deleteTrack, updateTrack, uploadTrack } = useAPI()
+
   const trackIdRef = useRef<string>()
   const labelRef = useRef<string>()
 

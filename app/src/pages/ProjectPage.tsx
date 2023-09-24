@@ -3,6 +3,7 @@ import {
   AlertIcon,
   AlertTitle,
   Box,
+  Button,
   Center,
   Container,
   Flex,
@@ -56,6 +57,8 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import { WebsocketProvider } from 'y-websocket'
+import { useAPI } from '../components/APIContext'
+import { CollaborateButton } from '../components/CollaborateButton'
 import CollaboratorPosition from '../components/CollaboratorPosition'
 import { DisplayMS } from '../components/DisplayMS'
 import Editor, {
@@ -76,7 +79,6 @@ import AudioEngine, {
   padLocation,
 } from '../lib/AudioEngine'
 import { playLocations } from '../lib/AudioScheduler'
-import { projectSocket, updateProject } from '../lib/api'
 import './ProjectPage.css'
 
 const WAVE_PADDING = 0.5
@@ -91,6 +93,7 @@ export interface CollaboratorState {
 }
 
 function useSocket(projectId: string): Project | null {
+  const { projectSocket } = useAPI()
   const socketRef = useRef<{
     projectId: string
     ws: ReconnectingWebSocket
@@ -135,10 +138,11 @@ function useSocket(projectId: string): Project | null {
 }
 
 function useEngine(project: Project | null): AudioEngine | null {
+  const api = useAPI()
   const [engine, setEngine] = useState<AudioEngine | null>(null)
   useEffect(() => {
-    setEngine(project ? new AudioEngine(project) : null)
-  }, [project])
+    setEngine(project ? new AudioEngine(api, project) : null)
+  }, [project, api])
   return engine
 }
 
@@ -156,6 +160,7 @@ function useEngineStatus(engine: AudioEngine | null): AudioEngineStatus {
 }
 
 export default function ProjectPage({ projectId }: { projectId: string }) {
+  const { updateProject } = useAPI()
   const project = useSocket(projectId)
   const engine = useEngine(project)
   const engineStatus = useEngineStatus(engine)
@@ -554,27 +559,29 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                       {project.title}
                     </Text>
                   )}
-                  {hasTracks && (
-                    <IconButton
-                      fontSize="2xl"
-                      icon={
-                        isEditingTracks ? (
-                          <Icon as={MdCheck} />
-                        ) : (
-                          <Icon as={MdEdit} />
-                        )
-                      }
-                      colorScheme={isEditingTracks ? 'green' : 'gray'}
-                      variant={isEditingTracks ? 'solid' : 'ghost'}
-                      ml="4"
-                      aria-label={
-                        isEditingTracks
-                          ? 'Finish editing tracks'
-                          : 'Edit tracks'
-                      }
-                      onClick={setEditingTracks.toggle}
-                    />
-                  )}
+                  <HStack ml="4">
+                    <CollaborateButton project={project} />
+                    {hasTracks && (
+                      <Button
+                        leftIcon={
+                          isEditingTracks ? (
+                            <Icon fontSize="2xl" as={MdCheck} />
+                          ) : (
+                            <Icon fontSize="2xl" as={MdEdit} />
+                          )
+                        }
+                        colorScheme={isEditingTracks ? 'green' : 'gray'}
+                        aria-label={
+                          isEditingTracks
+                            ? 'Finish editing tracks'
+                            : 'Edit tracks'
+                        }
+                        onClick={setEditingTracks.toggle}
+                      >
+                        Edit tracks
+                      </Button>
+                    )}
+                  </HStack>
                 </Flex>
                 {isEditingTracks && hasTracks && (
                   <Alert status="warning">

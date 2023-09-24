@@ -4,7 +4,7 @@ import { groupBy, last, sortBy } from 'lodash-es'
 import { LRUCache } from 'lru-cache'
 import mitt from 'mitt'
 import { AudioScheduler, AudioTask, SCHEDULER_BUFFER_S } from './AudioScheduler'
-import { chunkURL } from './api'
+import { CoalesceAPIClient, chunkURL } from './api'
 import { emptyProject } from './project'
 
 export interface OffsetSoundLocation extends SoundLocation {
@@ -45,6 +45,7 @@ const TICK_MS = 1000
 // TODO: consider implementing backend for slicing wavs and lazy load into buffers
 export default class AudioEngine {
   ctx: AudioContext = new AudioContext()
+  api: CoalesceAPIClient
   project: Project = emptyProject()
   chunkCache = new LRUCache<string, Promise<AudioBuffer>>({
     max: MAX_CHUNKS_LOADED,
@@ -54,7 +55,8 @@ export default class AudioEngine {
   currentTask: RunningAudioTask | null = null
 
   // TODO: preload on initial load?
-  constructor(project: Project) {
+  constructor(api: CoalesceAPIClient, project: Project) {
+    this.api = api
     this.project = project
   }
 
@@ -89,7 +91,7 @@ export default class AudioEngine {
 
   async fetchChunk(src: string): Promise<AudioBuffer> {
     console.log(`downloading ${src}...`)
-    const resp = await fetch(src)
+    const resp = await this.api.fetch(src)
     const ab = await resp.arrayBuffer()
     console.log(`decoding ${src}...`)
     const buffer = await this.ctx.decodeAudioData(ab)

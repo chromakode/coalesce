@@ -35,6 +35,7 @@ export type ProcessAudioRequest = z.infer<typeof ProcessAudioRequestModel>
 export const ProjectFields = z.object({
   title: z.string().optional().default('Untitled'),
   hidden: z.boolean().optional().default(false),
+  guestEditKey: z.string().nullable().optional(),
 })
 export type ProjectFields = z.infer<typeof ProjectFields>
 export type ProjectFieldsInput = z.input<typeof ProjectFields>

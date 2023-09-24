@@ -1,7 +1,7 @@
 import { AudioJob, Job, JobStatus } from '@shared/schema'
 import { JobInfo, JobState } from '@shared/types'
 import { AUDIO_QUEUE_NAME } from '../env.ts'
-import { generateId, generateJobKey, storePath } from '../store/index.ts'
+import { generateId, generateKey, storePath } from '../store/index.ts'
 import { ZodOutput, ZodTypeAny, pick, path } from '../deps.ts'
 import { initRedis } from '../service.ts'
 import { minioClient, redisClient } from '../main.ts'
@@ -113,7 +113,7 @@ export async function getJobInfo(
 }
 
 export async function createJobKey(rawJob: string) {
-  const jobKey = generateJobKey()
+  const jobKey = generateKey()
   await redisClient.setex(`job.key:${jobKey}`, JOB_KEY_TTL, rawJob)
   return jobKey
 }

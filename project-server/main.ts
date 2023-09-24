@@ -13,6 +13,7 @@ import {
   getTrackInfo,
   removeTrackFromProject,
   projectContainsTrack,
+  isValidProjectGuestKey,
 } from './store/index.ts'
 import { ProjectFields, TrackFields } from '../shared/schema.ts'
 import { initMinio, initOry, initPostgres, initRedis } from './service.ts'
@@ -44,7 +45,18 @@ const loadSession: Middleware = async (ctx, next) => {
     }
 
     ctx.state.identity = identity
-  } catch {
+  } catch (err) {
+    if (err.response?.status !== 401) {
+      console.error('Unexpected error getting Kratos session', err)
+      ctx.response.status = 500
+      return
+    }
+  }
+  await next()
+}
+
+const requireSession: Middleware = async (ctx, next) => {
+  if (!ctx.state.identity) {
     ctx.response.status = 401
     return
   }
@@ -133,6 +145,35 @@ const projectRouter = new Router<ContextState & { project: string }>()
 
 const apiRouter = new Router<ContextState>()
   .use(loadSession)
+  .use(
+    '/project/:project(\\w+)',
+    async (ctx, next) => {
+      const project = ctx.params.project
+      const { identity } = ctx.state as ContextState // FIXME: why isn't this inferred?
+
+      const isValidUser =
+        identity && (await canAccessProject(project, identity.id))
+
+      const authHeader = ctx.request.headers.get('Authorization')
+      const guestKey =
+        authHeader && authHeader.startsWith('Bearer')
+          ? authHeader.split(' ')[1]
+          : ctx.request.url.searchParams.get('guestEditKey')
+      const isValidGuest =
+        guestKey && (await isValidProjectGuestKey(project, guestKey))
+
+      if (isValidUser || isValidGuest) {
+        ctx.state.project = project
+        await next()
+        return
+      }
+
+      ctx.response.status = 401
+    },
+    projectRouter.routes(),
+    projectRouter.allowedMethods(),
+  )
+  .use(requireSession)
   .get('/session', async (ctx) => {
     const { identity } = ctx.state
     const { data: flow } = await auth.createBrowserLogoutFlow({
@@ -160,25 +201,6 @@ const apiRouter = new Router<ContextState>()
 
     ctx.response.body = await getProjectInfo(projectId)
   })
-  .use(
-    '/project/:project(\\w+)',
-    async (ctx, next) => {
-      const project = ctx.params.project
-      const { identity } = ctx.state as ContextState // FIXME: why isn't this inferred?
-
-      const exists = await canAccessProject(project, identity.id)
-      if (!exists) {
-        ctx.response.status = 404
-        return
-      }
-
-      ctx.state.project = project
-
-      await next()
-    },
-    projectRouter.routes(),
-    projectRouter.allowedMethods(),
-  )
 
 app.use(oakCors({ origin: APP_ORIGIN }))
 app.use(apiRouter.routes())

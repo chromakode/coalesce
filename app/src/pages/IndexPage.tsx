@@ -11,10 +11,11 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import { ProjectInfo, SessionInfo } from '@shared/types'
+import { ProjectInfo } from '@shared/types'
 import { useAsync, useAsyncFn } from 'react-use'
 import { Link, useLocation } from 'wouter'
-import { createProject, listProjects } from '../lib/api'
+import { useAPI } from '../components/APIContext'
+import { useSession } from '../components/SessionContext'
 
 function ProjectItem({
   project: { projectId, title, tracks },
@@ -43,9 +44,12 @@ function ProjectItem({
   )
 }
 
-export default function IndexPage({ session }: { session: SessionInfo }) {
-  const [_, setLocation] = useLocation()
+export default function IndexPage() {
+  const session = useSession()
+  const { createProject, listProjects } = useAPI()
   const projects = useAsync(listProjects, [])
+
+  const [_, setLocation] = useLocation()
   const [createProjectStatus, handleCreateProject] = useAsyncFn(async () => {
     const newProject = await createProject()
     setLocation(`/project/${newProject.projectId}`)
@@ -53,13 +57,15 @@ export default function IndexPage({ session }: { session: SessionInfo }) {
 
   return (
     <Center h="100vh" bg="gray.50" flexDirection="column">
-      <HStack position="absolute" top="4" right="4">
-        <Text>
-          Signed in as{' '}
-          <ChakraLink href="/auth/settings">{session.email}</ChakraLink>.
-        </Text>
-        <ChakraLink href={session.logoutURL}>Logout</ChakraLink>
-      </HStack>
+      {session && (
+        <HStack position="absolute" top="4" right="4">
+          <Text>
+            Signed in as{' '}
+            <ChakraLink href="/auth/settings">{session.email}</ChakraLink>.
+          </Text>
+          <ChakraLink href={session.logoutURL}>Logout</ChakraLink>
+        </HStack>
+      )}
       <Heading as="h1" size="2xl" mb="4">
         Coalesce
       </Heading>

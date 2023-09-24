@@ -9,6 +9,7 @@ import {
   awarenessProtocol,
   Y,
   retry,
+  timingSafeEqual,
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from '../env.ts'
 import { ProjectInfo, Project, Track, TrackInfo, Words } from '@shared/types'
@@ -28,7 +29,7 @@ import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
 export const generateId = nanoidCustom(nanoidAlphabet, 20)
 export const generateShortId = nanoidCustom(nanoidAlphabet, 10)
-export const generateJobKey = nanoidCustom(nanoidAlphabet, 30)
+export const generateKey = nanoidCustom(nanoidAlphabet, 30)
 
 async function readJSON(path: string) {
   try {
@@ -304,6 +305,7 @@ function projectQuery() {
     'project.createdAt',
     'project.title',
     'project.hidden',
+    'project.guestEditKey',
     sql<Record<string, TrackInfo>>`(select coalesce(json_object_agg(
       ${sql.id('info', 'trackId')}, row_to_json(info)
     ), '{}') from ${selectFrom('track')
@@ -387,6 +389,27 @@ export async function canAccessProject(projectId: string, userId: string) {
   return count > 0
 }
 
+export async function isValidProjectGuestKey(
+  projectId: string,
+  actualGuestKey: string,
+) {
+  const { guestEditKey: expectedGuestKey } = await db
+    .selectFrom('project')
+    .select('guestEditKey')
+    .where('project.projectId', '=', projectId)
+    .executeTakeFirstOrThrow()
+
+  if (!expectedGuestKey) {
+    return false
+  }
+
+  const enc = new TextEncoder()
+  return timingSafeEqual(
+    enc.encode(expectedGuestKey),
+    enc.encode(actualGuestKey),
+  )
+}
+
 export async function projectContainsTrack(projectId: string, trackId: string) {
   const { count } = await db
     .selectFrom('project')
@@ -404,6 +427,14 @@ export async function updateProject(
 ) {
   if (Object.keys(update).length === 0) {
     return
+  }
+
+  if (update.guestEditKey != null && update.guestEditKey !== 'new') {
+    throw createHttpError(500, 'Cannot pick guest key')
+  }
+
+  if (update.guestEditKey === 'new') {
+    update.guestEditKey = generateKey()
   }
 
   await db
