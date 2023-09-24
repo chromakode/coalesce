@@ -1,4 +1,5 @@
 {
   "deno.enablePaths": ["./project-server"],
-  "deno.importMap": "./project-server/deno.jsonc"
+  "deno.importMap": "./project-server/deno.jsonc",
+  "typescript.preferences.importModuleSpecifier": "relative"
 }
