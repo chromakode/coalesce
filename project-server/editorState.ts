@@ -30,7 +30,11 @@ function allTaggedWords(words: Words, source: string, speakerName: string) {
   return result
 }
 
-function addTrackToEditor(track: Track, words: Words, editor: LexicalEditor): Promise<void> {
+function addTrackToEditor(
+  track: Track,
+  words: Words,
+  editor: LexicalEditor,
+): Promise<void> {
   const sortedWords = sortBy(
     allTaggedWords(words, track.trackId, track.label ?? 'Speaker'),
     'start',
@@ -234,7 +238,11 @@ export async function editCollabDoc(
   return doc
 }
 
-export function projectToYDoc(project: Project, trackWords: Record<string, Words>, baseDoc: Uint8Array | null) {
+export function projectToYDoc(
+  project: Project,
+  trackWords: Record<string, Words>,
+  baseDoc: Uint8Array | null,
+) {
   return editCollabDoc(project, baseDoc, async (editor) => {
     for (const track of Object.values(project.tracks)) {
       await addTrackToEditor(track, trackWords[track.trackId], editor)
