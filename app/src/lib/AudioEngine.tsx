@@ -303,7 +303,7 @@ export function coalesceLocations(
         start = loc.start
         end = loc.end
         offset = loc.offset
-        children = []
+        children = [loc]
       }
     }
 
