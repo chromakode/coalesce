@@ -88,9 +88,12 @@ export function playLocations(
       for (const loc of locs) {
         const { source, start, end, offset } = loc
 
+        // Clamp start fudge to beginning of audio data
+        const clampedStartFudge = Math.min(start, clipStartFudge)
+
         // Time the buffer begins playing (at start of pre-start fudge)
         let queueTime =
-          startTime + start + offset - minTime - startSeek - clipStartFudge
+          startTime + start + offset - minTime - startSeek - clampedStartFudge
 
         // If we've generated up to the buffer threshold, wait for all pending
         // fetches to finish and pause until generation is triggered again.
@@ -120,13 +123,13 @@ export function playLocations(
 
         const queueWhenLoaded = async () => {
           const { start: bufferStart, buffer } = await getBufferForLoc(
-            padLocation(loc, clipStartFudge, clipEndFudge),
+            padLocation(loc, clampedStartFudge, clipEndFudge),
             queueTime,
           )
 
           // The time the true clip region starts (after start fudge)
           // Paper over floating precision issues causing negative values
-          const clipTime = queueTime + clipStartFudge + 0.0001
+          const clipTime = queueTime + clampedStartFudge + 0.0001
 
           const wordGainNode = ctx.createGain()
           wordGainNode.connect(destination)
@@ -144,8 +147,8 @@ export function playLocations(
           )
           bufNode.start(
             queueTime,
-            clipStart - clipStartFudge - bufferStart,
-            clipDuration + clipStartFudge + clipEndFudge,
+            clipStart - clampedStartFudge - bufferStart,
+            clipDuration + clampedStartFudge + clipEndFudge,
           )
 
           if (onLocPlaying) {
