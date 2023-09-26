@@ -26,7 +26,10 @@ def prepare():
     print(f"Loading model...", flush=True)
     whisper_model = get_whisper_model()
     model = whisper_model.model
-    print(f"Model loaded. compute_type={model.compute_type} device={model.device}", flush=True)
+    print(
+        f"Model loaded. compute_type={model.compute_type} device={model.device}",
+        flush=True,
+    )
 
 
 class StatusSocket:
@@ -74,7 +77,7 @@ class StatusSocket:
 
                 while not self.ws.open:
                     print("Reconnecting to WebSocket...", flush=True)
-                    await asyncio.sleep(.5 * tries)
+                    await asyncio.sleep(0.5 * tries)
                     try:
                         await self._connect()
                     except Exception as exc:
@@ -86,6 +89,7 @@ class StatusSocket:
         while True:
             await self.send_status()
             await self.status_updated.wait()
+
 
 async def process_audio(job: ProcessAudioRequest):
     print("Processing job:", job.jobId, flush=True)
