@@ -11,44 +11,15 @@ packages = [{include = "coalesce_audio_processor"}]
 name = "PyPI"
 priority = "primary"
 
-[[tool.poetry.source]]
-name = "torch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-priority = "supplemental"
-
-[[tool.poetry.source]]
-name = "torch-gpu"
-url = "https://download.pytorch.org/whl/cu117"
-priority = "supplemental"
-
 [tool.poetry.dependencies]
 python = "^3.10"
-whisper-timestamped = {git = "https://github.com/linto-ai/whisper-timestamped"}
-tqdm = "^4.65.0"
 pydantic = "^1.10.9"
+faster-whisper = "^0.9.0"
 pydub = "^0.25.1"
-numpy = "^1.24.3"
-llvmlite = "^0.40.0"
-numba = "^0.57.0"
-onnxruntime = "^1.15.0"
 aiohttp = "^3.8.4"
 nanoid = "^2.0.0"
 websockets = "^11.0.3"
 aiohttp-retry = "^2.8.3"
-
-[tool.poetry.group.cpu]
-optional = true
-
-[tool.poetry.group.cpu.dependencies]
-torch = { version = "2.0.1", source="torch-cpu"}
-torchaudio = { version = "2.0.2", source="torch-cpu"}
-
-[tool.poetry.group.gpu]
-optional = true
-
-[tool.poetry.group.gpu.dependencies]
-torch = { version = "2.0.1", source="torch-gpu"}
-torchaudio = { version = "2.0.2", source="torch-gpu"}
 
 [tool.poetry.group.runpod]
 optional = true

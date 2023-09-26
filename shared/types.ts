@@ -10,7 +10,7 @@ export interface Word {
   text: string
   start: number
   end: number
-  confidence: number
+  probability: number
 }
 
 export interface Segment {
@@ -18,12 +18,10 @@ export interface Segment {
   start: number
   end: number
   text: string
-  confidence: number
   words: Word[]
 }
 
 export interface Words {
-  text: string
   segments: Segment[]
 }
 

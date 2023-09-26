@@ -3,7 +3,6 @@
 import os
 import argparse
 import hmac
-import torch
 from aiohttp import web
 from .base import ProcessAudioRequest, prepare, process_audio
 
@@ -26,10 +25,7 @@ async def handle_request(request):
 
 
 def main():
-    print(f"Loading model (GPU: {torch.cuda.is_available()})...", flush=True)
-
     prepare()
-    print("Model loaded", flush=True)
 
     app = web.Application()
     app.add_routes([web.post("/process-audio/{job_id}", handle_request)])

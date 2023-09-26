@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 
-import sys
-import os
-import argparse
 import json
 import functools
 import tempfile
-import whisper_timestamped as whisper
-import numpy as np
+from faster_whisper import WhisperModel
 from math import ceil
-from typing import List
-from os import path
 from pydub import AudioSegment
 
 
-from .tqdm_hook import HookTqdm
-from .util import tqdm_from_callback
-
-MODEL_NAME = "small"
+MODEL_NAME = "large-v2"
 
 CHUNK_DURATION_MS = 60000
 
@@ -66,29 +57,46 @@ def split_audio(
 
 @functools.cache
 def get_whisper_model(model_name=MODEL_NAME):
-    return whisper.load_model(model_name)
+    return WhisperModel(model_name, device="auto", compute_type="float32")
+
+
+def word_to_dict(word):
+    word_data = word._asdict()
+    word_data["text"] = word_data["word"]
+    del word_data["word"]
+    return word_data
+
+
+# via https://github.com/guillaumekln/faster-whisper/issues/94#issuecomment-1489916191
+def segment_to_dict(segment):
+    segment = segment._asdict()
+    if segment["words"] is not None:
+        segment["words"] = [word_to_dict(word) for word in segment["words"]]
+    return segment
 
 
 def transcribe_audio(
     input_path: str, output_sink, model_name=MODEL_NAME, progress_callback=None
 ):
-    audio = whisper.load_audio(input_path)
+    whisper_model = get_whisper_model(model_name)
 
-    model = get_whisper_model(model_name)
+    # Encourage model to transcribe pauses and disfluencies
+    # https://platform.openai.com/docs/guides/speech-to-text/prompting
+    initial_prompt = "Umm, let me think like, hmm... Okay, here's what I'm, like, thinking. I uh... I... mmhmm. Yeah. Yup."
 
-    accurate_opts = dict(
-        best_of=5,
+    segment_gen, info = whisper_model.transcribe(
+        input_path,
         beam_size=5,
-        # https://github.com/linto-ai/whisper-timestamped/blob/2c55305d6aa53f0c0fa1fe63fc85c33bfa60e963/whisper_timestamped/transcribe.py#LL2258C23-L2258C99
-        temperature=tuple(np.arange(0, 1.0 + 1e-6, 0.2)),
+        initial_prompt=initial_prompt,
+        word_timestamps=True,
+        vad_filter=True,
     )
 
-    def tqdm_update(tqdm):
+    segments = []
+    for segment in segment_gen:
+        segments.append(segment_to_dict(segment))
         if progress_callback:
-            state = tqdm.format_dict
-            progress_callback(state["n"], state["total"])
+            progress_callback(segment.start, info.duration)
 
-    with HookTqdm(tqdm_update):
-        result = whisper.transcribe(model, audio, vad=True, **accurate_opts)
-
+    result = {"segments": segments}
     output_sink("words.json", json.dumps(result))

@@ -58,7 +58,7 @@ function addTrackToEditor(
           }
 
           const newWordNode = $createSoundNode(
-            word.text,
+            word.text.trim(),
             pick(word, ['source', 'start', 'end']),
           )
 

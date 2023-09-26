@@ -23,7 +23,10 @@ class ProcessAudioRequest(BaseModel):
 
 
 def prepare():
-    get_whisper_model()
+    print(f"Loading model...", flush=True)
+    whisper_model = get_whisper_model()
+    model = whisper_model.model
+    print(f"Model loaded. compute_type={model.compute_type} device={model.device}", flush=True)
 
 
 class StatusSocket:
@@ -85,7 +88,7 @@ class StatusSocket:
             await self.status_updated.wait()
 
 async def process_audio(job: ProcessAudioRequest):
-    print("Processing job:", job.jobId)
+    print("Processing job:", job.jobId, flush=True)
 
     headers = {"Authorization": f"Bearer {job.jobKey}"}
     retry_options = ExponentialRetry(attempts=3, exceptions=(Exception,))
