@@ -82,7 +82,7 @@ def transcribe_audio(
 
     # Encourage model to transcribe pauses and disfluencies
     # https://platform.openai.com/docs/guides/speech-to-text/prompting
-    initial_prompt = "Umm, let me think like, hmm... Okay, here's what I'm, like, thinking. I uh... I... mmhmm. Yeah. Yup."
+    initial_prompt = "Umm, let me think um like, hmm... Okay, here's what um I'm, like, thinking. I uh... I... mmhmm. Yeah. Yup."
 
     segment_gen, info = whisper_model.transcribe(
         input_path,
