@@ -1,4 +1,4 @@
-import { Router, timingSafeEqual } from './deps.ts'
+import { Router, timingSafeEqual, unreachable } from './deps.ts'
 import {
   AUDIO_PROCESSING_QUEUE_NAME,
   AUDIO_QUEUE_NAME,
@@ -9,7 +9,7 @@ import {
 import {
   AudioJob,
   AudioJobModel,
-  JobStatusUpdate,
+  JobMsgModel,
   ProcessAudioRequest,
 } from '../shared/schema.ts'
 import { initRedis } from './service.ts'
@@ -22,7 +22,7 @@ import {
   getSignedWorkerUploadURL,
   updateJobStatus,
 } from './store/worker.ts'
-import { addTrackToCollabDoc } from './store/index.ts'
+import { addWordsToCollabDoc, setTrackMetadata } from './store/index.ts'
 import { iterSocket, socketReady } from './utils.ts'
 
 export const redisClient = await initRedis()
@@ -90,22 +90,34 @@ async function runWorkerSocket(
   try {
     for await (const ev of iterSocket(ws)) {
       const data = JSON.parse(ev.data)
-      const update = JobStatusUpdate.parse(data)
+      const msg = JobMsgModel.parse(data)
 
-      await updateJobStatus(job, update)
+      // TODO: for reconnect reliability, ack received segments, have worker
+      // replay non-acked segments on reconnect.
+      if (msg.kind === 'metadata') {
+        await setTrackMetadata(projectId, trackId, msg.data)
+      } else if (msg.kind === 'segment') {
+        const segment = msg.data
+        await addWordsToCollabDoc(projectId, trackId, { segments: [segment] })
+      } else if (msg.kind === 'status') {
+        const update = msg.data
 
-      if (update.status === 'complete') {
-        // If processing is successful, remove the message from the processing queue
-        await redisClient.lrem(AUDIO_PROCESSING_QUEUE_NAME, 0, rawJob)
-        await addTrackToCollabDoc(projectId, trackId)
-      } else if (update.status === 'failed') {
-        console.error('Job failed:', update.error, job)
-      }
+        await updateJobStatus(job, update)
 
-      if (update.status === 'complete' || update.status === 'failed') {
-        await deleteJobKey(jobKey)
-        ws.close()
-        return
+        if (update.status === 'complete') {
+          // If processing is successful, remove the message from the processing queue
+          await redisClient.lrem(AUDIO_PROCESSING_QUEUE_NAME, 0, rawJob)
+        } else if (update.status === 'failed') {
+          console.error('Job failed:', update.error, job)
+        }
+
+        if (update.status === 'complete' || update.status === 'failed') {
+          await deleteJobKey(jobKey)
+          ws.close()
+          return
+        }
+      } else {
+        unreachable()
       }
     }
   } catch (err) {

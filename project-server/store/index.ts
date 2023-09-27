@@ -13,11 +13,11 @@ import {
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from '../env.ts'
 import { ProjectInfo, Project, Track, TrackInfo, Words } from '@shared/types'
-import { ProjectFields, TrackFields } from '@shared/schema'
+import { ProjectFields, TrackAudioMetadata, TrackFields } from '@shared/schema'
 import { db, redisClient, minioClient } from '../main.ts'
 import { initRedis } from '../service.ts'
 import {
-  addTrackToYDoc,
+  addWordsToYDoc,
   projectToYDoc,
   removeTrackFromYDoc,
   updateSpeakerInYDoc,
@@ -50,7 +50,8 @@ export const storePath = {
   trackUploadPath: (trackId: string) => path.join('track', trackId, 'upload'),
   trackDir: (trackId: string) => path.join('track', trackId) + '/',
   trackWords: (trackId: string) => path.join('track', trackId, 'words.json'),
-  trackChunks: (trackId: string) => path.join('track', trackId, 'chunks.json'),
+  trackAudioMetadata: (trackId: string) =>
+    path.join('track', trackId, 'audio.json'),
   trackChunkFile: (trackId: string, chunkName: string) =>
     path.join('track', trackId, chunkName),
 }
@@ -59,6 +60,8 @@ export async function* watchProject(projectId: string) {
   const redisPubSub = await initRedis()
 
   try {
+    // TODO: namespace track update publishes independently from projects,
+    // propagate if track in project.
     const sub = await redisPubSub.psubscribe(`project:${projectId}*`)
 
     // TODO: Manual partial updates to project object. Replace with JSON diff and
@@ -76,13 +79,6 @@ export async function* watchProject(projectId: string) {
           path: `jobs.${job.jobId}.state`,
           data: job.state,
         })
-        if (job.state.status === 'complete') {
-          yield JSON.stringify({
-            type: 'project:update',
-            path: `tracks.${job.trackId}`,
-            data: await getTrackState(job.projectId, job.trackId),
-          })
-        }
       } else if (msg.type === 'job-created') {
         const { job } = msg
         yield JSON.stringify({
@@ -99,7 +95,7 @@ export async function* watchProject(projectId: string) {
         yield JSON.stringify({
           type: 'project:update',
           path: `tracks.${msg.trackId}`,
-          data: { trackId: msg.trackId, ...msg.update },
+          data: msg.update,
         })
       } else if (msg.type === 'track-removed') {
         deletedTracks.add(msg.id)
@@ -266,11 +262,19 @@ async function _updateCollabDoc(
   )
 }
 
+export async function addWordsToCollabDoc(
+  projectId: string,
+  trackId: string,
+  words: Words,
+) {
+  await _updateCollabDoc(projectId, (project, baseDoc) =>
+    addWordsToYDoc(project, trackId, words, baseDoc),
+  )
+}
+
 export async function addTrackToCollabDoc(projectId: string, trackId: string) {
   const words = await getTrackWords(trackId)
-  await _updateCollabDoc(projectId, (project, baseDoc) =>
-    addTrackToYDoc(project, trackId, words, baseDoc),
-  )
+  return await addWordsToCollabDoc(projectId, trackId, words)
 }
 
 export async function removeTrackFromCollabDoc(
@@ -349,7 +353,7 @@ export async function getTrackState(
     .where('trackId', '=', trackId)
     .select(['color'])
     .executeTakeFirstOrThrow()
-  const audio = await readJSON(storePath.trackChunks(trackId))
+  const audio = await readJSON(storePath.trackAudioMetadata(trackId))
   return { ...trackInfo, color, audio }
 }
 
@@ -365,7 +369,7 @@ export async function getProjectState(projectId: string): Promise<Project> {
 
   const tracks: Record<string, Track> = {}
   for (const [trackId, trackInfo] of Object.entries(info.tracks)) {
-    const audio = await readJSON(storePath.trackChunks(trackId))
+    const audio = await readJSON(storePath.trackAudioMetadata(trackId))
     tracks[trackId] = { ...trackInfo, audio }
   }
 
@@ -499,6 +503,26 @@ export async function updateTrack(
   )
 
   await updateSpeakerInCollabDoc(projectId, trackId)
+}
+
+export async function setTrackMetadata(
+  projectId: string,
+  trackId: string,
+  metadata: TrackAudioMetadata,
+) {
+  await minioClient.putObject(
+    storePath.trackAudioMetadata(trackId),
+    JSON.stringify(metadata),
+  )
+
+  await redisClient.publish(
+    `project:${projectId}`,
+    JSON.stringify({
+      type: 'track-updated',
+      trackId,
+      update: { audio: metadata },
+    }),
+  )
 }
 
 export async function createTrack(

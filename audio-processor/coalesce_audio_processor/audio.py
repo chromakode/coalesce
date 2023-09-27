@@ -14,13 +14,26 @@ CHUNK_DURATION_MS = 60000
 
 
 def split_audio(
-    input_path: str, output_sink, chunk_ms=CHUNK_DURATION_MS, progress_callback=None
+    input_path: str,
+    output_sink,
+    chunk_ms=CHUNK_DURATION_MS,
+    progress_callback=None,
+    metadata_callback=None,
 ):
     audio = AudioSegment.from_file(input_path)
 
     chunk_len = audio.frame_count(chunk_ms)
     if chunk_len % 1 != 0:
         raise ValueError("chunk_ms must muliply into an integer number of samples")
+
+    metadata = {
+        "numberOfChannels": audio.channels,
+        "sampleRate": audio.frame_rate,
+        "sampleCount": int(audio.frame_count()),
+        "chunkLength": int(chunk_len),
+    }
+    if metadata_callback:
+        metadata_callback(metadata)
 
     duration_ms = len(audio)
     start = 0
@@ -45,15 +58,6 @@ def split_audio(
         if progress_callback:
             progress_callback(counter, total)
 
-    index_data = {
-        "numberOfChannels": audio.channels,
-        "sampleRate": audio.frame_rate,
-        "sampleCount": int(audio.frame_count()),
-        "chunkLength": int(chunk_len),
-        "chunks": audio_chunks,
-    }
-    output_sink("chunks.json", json.dumps(index_data))
-
 
 @functools.cache
 def get_whisper_model(model_name=MODEL_NAME):
@@ -76,7 +80,11 @@ def segment_to_dict(segment):
 
 
 def transcribe_audio(
-    input_path: str, output_sink, model_name=MODEL_NAME, progress_callback=None
+    input_path: str,
+    output_sink,
+    model_name=MODEL_NAME,
+    progress_callback=None,
+    segment_callback=None,
 ):
     whisper_model = get_whisper_model(model_name)
 
@@ -94,7 +102,10 @@ def transcribe_audio(
 
     segments = []
     for segment in segment_gen:
-        segments.append(segment_to_dict(segment))
+        segment_dict = segment_to_dict(segment)
+        segments.append(segment_dict)
+        if segment_callback:
+            segment_callback(segment_dict)
         if progress_callback:
             progress_callback(segment.start, info.duration)
 

@@ -1,6 +1,5 @@
 import { ProjectFieldsInput, TrackFieldsInput } from '@shared/schema'
 import { ProjectInfo, SessionInfo } from '@shared/types'
-import { join } from 'path-browserify'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
@@ -17,12 +16,8 @@ function socketBase(): string {
   return serverURL.toString()
 }
 
-export function chunkURL(
-  projectId: string,
-  trackId: string,
-  chunkName: string,
-) {
-  return `${server}/` + join('project', projectId, 'track', trackId, chunkName)
+export function chunkURL(projectId: string, trackId: string, idx: number) {
+  return `${server}/project/${projectId}/track/${trackId}/${idx}.flac`
 }
 
 export class CoalesceAPIClient {

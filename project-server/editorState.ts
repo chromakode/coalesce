@@ -30,7 +30,7 @@ function allTaggedWords(words: Words, source: string, speakerName: string) {
   return result
 }
 
-function addTrackToEditor(
+function addWordsToEditor(
   track: Track,
   words: Words,
   editor: LexicalEditor,
@@ -48,13 +48,22 @@ function addTrackToEditor(
         const soundNodes = $nodesOfTypeInOrder(SoundNode)
 
         let prevWordNode: SoundNode = soundNodes[0]
-        for (const word of sortedWords) {
+        wordLoop: for (const word of sortedWords) {
           // TODO: should we be smarter about resolving ties so adjacent words aren't broken up?
           while (
             soundNodes.length &&
             soundNodes[0].getSoundLocation().start <= word.start
           ) {
             prevWordNode = soundNodes.shift()!
+
+            const prevWordLocation = prevWordNode.getSoundLocation()
+            if (
+              prevWordLocation.start === word.start &&
+              prevWordLocation.end === word.end
+            ) {
+              // Skip adding dupe of an existing word
+              continue wordLoop
+            }
           }
 
           const newWordNode = $createSoundNode(
@@ -245,19 +254,19 @@ export function projectToYDoc(
 ) {
   return editCollabDoc(project, baseDoc, async (editor) => {
     for (const track of Object.values(project.tracks)) {
-      await addTrackToEditor(track, trackWords[track.trackId], editor)
+      await addWordsToEditor(track, trackWords[track.trackId], editor)
     }
   })
 }
 
-export function addTrackToYDoc(
+export function addWordsToYDoc(
   project: Project,
   trackId: string,
   words: Words,
   baseDoc: Uint8Array | null,
 ) {
   return editCollabDoc(project, baseDoc, async (editor) => {
-    await addTrackToEditor(project.tracks[trackId], words, editor)
+    await addWordsToEditor(project.tracks[trackId], words, editor)
   })
 }
 

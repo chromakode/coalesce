@@ -18,6 +18,38 @@ export const JobStatusUpdate = z.discriminatedUnion('status', [
 ])
 export type JobStatus = z.infer<typeof JobStatusUpdate>
 
+export const WordModel = z.object({
+  text: z.string(),
+  start: z.number(),
+  end: z.number(),
+  probability: z.number(),
+})
+export type Word = z.infer<typeof WordModel>
+
+export const TrackAudioMetadataModel = z.object({
+  numberOfChannels: z.number(),
+  sampleRate: z.number(),
+  sampleCount: z.number(),
+  chunkLength: z.number(),
+})
+export type TrackAudioMetadata = z.infer<typeof TrackAudioMetadataModel>
+
+export const SegmentModel = z.object({
+  id: z.number(),
+  start: z.number(),
+  end: z.number(),
+  text: z.string(),
+  words: z.array(WordModel),
+})
+export type Segment = z.infer<typeof SegmentModel>
+
+export const JobMsgModel = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('status'), data: JobStatusUpdate }),
+  z.object({ kind: z.literal('metadata'), data: TrackAudioMetadataModel }),
+  z.object({ kind: z.literal('segment'), data: SegmentModel }),
+])
+export type JobMsg = z.infer<typeof JobMsgModel>
+
 export const AudioJobModel = JobModel.extend({
   task: z.literal('process'),
 })

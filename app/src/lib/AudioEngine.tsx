@@ -70,11 +70,7 @@ export default class AudioEngine {
 
   getChunkURL(trackId: string, idx: number): string {
     const trackInfo = this.getTrackInfo(trackId)
-    return chunkURL(
-      this.project.projectId,
-      trackId,
-      trackInfo.audio.chunks[idx],
-    )
+    return chunkURL(this.project.projectId, trackId, idx)
   }
 
   async getChunk(trackId: string, idx: number): Promise<AudioBuffer> {

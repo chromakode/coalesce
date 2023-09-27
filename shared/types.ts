@@ -1,28 +1,20 @@
-import { ProjectResult, TrackResult, Job, JobStatus } from './schema.ts'
+import {
+  ProjectResult,
+  TrackResult,
+  Job,
+  JobStatus,
+  Segment,
+  TrackAudioMetadata,
+} from './schema.ts'
+
+export interface Words {
+  segments: Segment[]
+}
 
 export interface SessionInfo {
   userId: string
   email: string
   logoutURL: string
-}
-
-export interface Word {
-  text: string
-  start: number
-  end: number
-  probability: number
-}
-
-export interface Segment {
-  id: number
-  start: number
-  end: number
-  text: string
-  words: Word[]
-}
-
-export interface Words {
-  segments: Segment[]
 }
 
 export type TrackInfo = TrackResult
@@ -37,15 +29,7 @@ export interface Project extends Omit<ProjectInfo, 'tracks'> {
 }
 
 export interface Track extends TrackInfo {
-  audio: TrackChunks
-}
-
-export interface TrackChunks {
-  numberOfChannels: number
-  sampleRate: number
-  sampleCount: number
-  chunkLength: number
-  chunks: string[]
+  audio: TrackAudioMetadata
 }
 
 export interface JobState extends Job {

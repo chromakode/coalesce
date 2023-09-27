@@ -2,6 +2,7 @@ export * as path from 'https://deno.land/std@0.191.0/path/mod.ts'
 export * as fs from 'https://deno.land/std@0.191.0/fs/mod.ts'
 export { debounce, retry } from 'https://deno.land/std@0.191.0/async/mod.ts'
 export { timingSafeEqual } from 'https://deno.land/std@0.191.0/crypto/mod.ts'
+export { unreachable } from 'https://deno.land/std@0.191.0/testing/asserts.ts'
 
 export {
   Application,
