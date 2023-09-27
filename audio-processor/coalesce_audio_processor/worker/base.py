@@ -203,6 +203,7 @@ async def process_audio(job: ProcessAudioRequest):
                 )
             else:
                 await socket.queue_send("status", {"status": "complete"})
+                print("Finished job:", job.jobId, flush=True)
 
 
 if __name__ == "__main__":
