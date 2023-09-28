@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run --watch main.ts"
+    "api:dev": "deno run --watch api/main.ts"
   },
   "fmt": {
     "semiColons": false

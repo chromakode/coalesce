@@ -18,7 +18,7 @@ import {
   createHeadlessEditor,
   LexicalEditor,
   Y,
-} from './deps.ts'
+} from '../deps.ts'
 
 function allTaggedWords(words: Words, source: string, speakerName: string) {
   const result = []

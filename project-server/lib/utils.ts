@@ -1,4 +1,4 @@
-import { EventIterator, abortableSource } from './deps.ts'
+import { EventIterator, abortableSource } from '../deps.ts'
 
 export async function socketReady(ws: WebSocket) {
   if (ws.readyState !== ws.OPEN) {
@@ -42,4 +42,12 @@ export function cancelable<T>(
   doIter()
 
   return () => controller.abort()
+}
+
+export function requireEnv(name: string): string {
+  const val = Deno.env.get(name)
+  if (!val) {
+    throw new Error(`required env variable "${name}" unset`)
+  }
+  return val
 }

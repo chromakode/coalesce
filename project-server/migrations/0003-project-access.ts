@@ -1,6 +1,6 @@
 import { USER_ROLE } from '@shared/constants'
 import { Kysely, sql } from '../deps.ts'
-import { DB } from '../service.ts'
+import { DB } from '../lib/service.ts'
 
 export async function up(db: Kysely<DB>): Promise<void> {
   await db.schema

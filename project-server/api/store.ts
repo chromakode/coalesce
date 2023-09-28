@@ -11,18 +11,18 @@ import {
   retry,
   timingSafeEqual,
 } from '../deps.ts'
-import { COALESCE_DEV_FLAGS } from '../env.ts'
+import { COALESCE_DEV_FLAGS } from './env.ts'
 import { ProjectInfo, Project, Track, TrackInfo, Words } from '@shared/types'
 import { ProjectFields, TrackAudioMetadata, TrackFields } from '@shared/schema'
-import { db, redisClient, minioClient } from '../main.ts'
-import { initRedis } from '../service.ts'
+import { db, redisClient, minioClient } from './main.ts'
+import { initRedis } from '../lib/service.ts'
 import {
   addWordsToYDoc,
   projectToYDoc,
   removeTrackFromYDoc,
   updateSpeakerInYDoc,
-} from '../editorState.ts'
-import { sendDocUpdate } from '../socket.ts'
+} from '../lib/editorState.ts'
+import { sendDocUpdate } from './socket.ts'
 import { TRACK_COLOR_ORDER, USER_ROLE } from '@shared/constants'
 import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
 

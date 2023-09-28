@@ -1,4 +1,4 @@
-import { Application, Middleware, Router, oakCors, ory } from './deps.ts'
+import { Application, Middleware, Router, oakCors, ory } from '../deps.ts'
 import { APP_ORIGIN, PROJECT_SERVER_PORT } from './env.ts'
 import {
   watchProject,
@@ -14,12 +14,12 @@ import {
   removeTrackFromProject,
   projectContainsTrack,
   isValidProjectGuestKey,
-} from './store/index.ts'
-import { ProjectFields, TrackFields } from '../shared/schema.ts'
-import { initMinio, initOry, initPostgres, initRedis } from './service.ts'
+} from './store.ts'
+import { ProjectFields, TrackFields } from '@shared/schema'
+import { initMinio, initOry, initPostgres, initRedis } from '../lib/service.ts'
 import { pushProjectUpdates, runCollab } from './socket.ts'
 import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
-import { socketReady } from './utils.ts'
+import { socketReady } from '../lib/utils.ts'
 import { SessionInfo } from '@shared/types'
 
 export const db = await initPostgres()

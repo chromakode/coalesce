@@ -10,6 +10,6 @@ RUN deno cache deps.ts
 COPY ./project-server ./
 COPY ./shared ../shared/
 
-RUN deno cache main.ts
+RUN deno cache ./api/main.ts
 
-CMD ["run", "--allow-net", "--allow-env", "--allow-read=/app/project-server/,/usr/bin/deno", "main.ts"]
+CMD ["run", "--allow-net", "--allow-env", "--allow-read=/app/project-server/,/usr/bin/deno", "api/main.ts"]

@@ -3,7 +3,7 @@ import {
   TrackTable,
   ProjectTracksTable,
   ProjectUsersTable,
-} from '../shared/schema.ts'
+} from '@shared/schema'
 import {
   Kysely,
   Migrator,
@@ -17,15 +17,9 @@ import {
   Migration,
   CamelCasePlugin,
   ory,
-} from './deps.ts'
+} from '../deps.ts'
 
-import {
-  REDIS_URL,
-  MINIO_ENDPOINT,
-  POSTGRES_URL,
-  KRATOS_URL,
-  KRATOS_ADMIN_URL,
-} from './env.ts'
+import { requireEnv } from './utils.ts'
 
 export interface DB {
   project: ProjectTable
@@ -39,7 +33,7 @@ class DenoFileMigrationProvider implements MigrationProvider {
     const migrations: Record<string, Migration> = {}
     const dirPath = path.join(
       path.dirname(path.fromFileUrl(import.meta.url)),
-      'migrations',
+      '../migrations',
     )
 
     for await (const file of await Deno.readDir(dirPath)) {
@@ -51,6 +45,8 @@ class DenoFileMigrationProvider implements MigrationProvider {
 }
 
 export async function initPostgres() {
+  const POSTGRES_URL = requireEnv('POSTGRES_URL')
+
   const dialect = new PostgresDialect({
     pool: new pg.Pool({ connectionString: POSTGRES_URL }),
   })
@@ -78,13 +74,15 @@ export async function initPostgres() {
 }
 
 export async function initRedis() {
+  const REDIS_URL = requireEnv('REDIS_URL')
   return await redis.connect(redis.parseURL(REDIS_URL))
 }
 
-const minioURL = new URL(MINIO_ENDPOINT)
-export const bucket = minioURL.pathname.substring(1)
-
 export async function initMinio() {
+  const MINIO_ENDPOINT = requireEnv('MINIO_ENDPOINT')
+  const minioURL = new URL(MINIO_ENDPOINT)
+  const bucket = minioURL.pathname.substring(1)
+
   const client = await new S3Client({
     endPoint: minioURL.hostname,
     port: minioURL.port ? Number(minioURL.port) : undefined,
@@ -118,6 +116,7 @@ export async function initMinio() {
 }
 
 export function initOry() {
+  const KRATOS_URL = requireEnv('KRATOS_URL')
   return new ory.FrontendApi(
     new ory.Configuration({
       basePath: KRATOS_URL,
@@ -126,6 +125,7 @@ export function initOry() {
 }
 
 export function initOryAdmin() {
+  const KRATOS_ADMIN_URL = requireEnv('KRATOS_ADMIN_URL')
   return new ory.IdentityApi(
     new ory.Configuration({
       basePath: KRATOS_ADMIN_URL,

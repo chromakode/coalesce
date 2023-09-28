@@ -1,4 +1,4 @@
-import { Router, timingSafeEqual, unreachable } from './deps.ts'
+import { Router, timingSafeEqual, unreachable } from '../deps.ts'
 import {
   AUDIO_PROCESSING_QUEUE_NAME,
   AUDIO_QUEUE_NAME,
@@ -11,8 +11,8 @@ import {
   AudioJobModel,
   JobMsgModel,
   ProcessAudioRequest,
-} from '../shared/schema.ts'
-import { initRedis } from './service.ts'
+} from '@shared/schema'
+import { initRedis } from '../lib/service.ts'
 import {
   consumeJobs,
   createJobKey,
@@ -21,9 +21,9 @@ import {
   getSignedWorkerSourceAudioURL,
   getSignedWorkerUploadURL,
   updateJobStatus,
-} from './store/worker.ts'
-import { addWordsToCollabDoc, setTrackMetadata } from './store/index.ts'
-import { iterSocket, socketReady } from './utils.ts'
+} from './worker.ts'
+import { addWordsToCollabDoc, setTrackMetadata } from './store.ts'
+import { iterSocket, socketReady } from '../lib/utils.ts'
 
 export const redisClient = await initRedis()
 

@@ -11,7 +11,7 @@ services:
       - ./shared:/app/shared
 
   project-server:
-    command: run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno main.ts
+    command: run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno api/main.ts
     volumes:
       - ./project-server:/app/project-server
       - ./shared:/app/shared

@@ -5,7 +5,7 @@ import {
   awarenessProtocol,
   syncProtocol,
   lib0,
-} from './deps.ts'
+} from '../deps.ts'
 import {
   getAwarenessData,
   coalesceCollabDoc,
@@ -15,8 +15,8 @@ import {
   watchProject,
   watchProjectCollab,
   saveAwarenessData,
-} from './store/index.ts'
-import { iterSocket, cancelable } from './utils.ts'
+} from './store.ts'
+import { iterSocket, cancelable } from '../lib/utils.ts'
 
 const { encoding, decoding } = lib0
 

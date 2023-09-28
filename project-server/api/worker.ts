@@ -1,10 +1,10 @@
 import { AudioJob, Job, JobStatus } from '@shared/schema'
 import { JobInfo, JobState } from '@shared/types'
-import { AUDIO_QUEUE_NAME } from '../env.ts'
-import { generateId, generateKey, storePath } from '../store/index.ts'
+import { AUDIO_QUEUE_NAME } from './env.ts'
+import { generateId, generateKey, storePath } from './store.ts'
 import { ZodOutput, ZodTypeAny, pick, path } from '../deps.ts'
-import { initRedis } from '../service.ts'
-import { minioClient, redisClient } from '../main.ts'
+import { initRedis } from '../lib/service.ts'
+import { minioClient, redisClient } from './main.ts'
 
 export const JOB_STATE_TTL = 60 * 60
 export const JOB_KEY_TTL = JOB_STATE_TTL
