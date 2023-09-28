@@ -6,7 +6,6 @@ import {
   lexicalNodes,
   $nodesOfTypeInOrder,
 } from '@shared/lexical'
-import type { Project, Track, Words } from '@shared/types'
 import {
   pick,
   sortBy,
@@ -19,10 +18,15 @@ import {
   LexicalEditor,
   Y,
 } from '../deps.ts'
+import { Segment } from '@shared/schema'
 
-function allTaggedWords(words: Words, source: string, speakerName: string) {
+function allTaggedWords(
+  segments: Segment[],
+  source: string,
+  speakerName: string,
+) {
   const result = []
-  for (const segment of words.segments) {
+  for (const segment of segments) {
     for (const word of segment.words) {
       result.push({ source, speakerName, ...word })
     }
@@ -30,16 +34,24 @@ function allTaggedWords(words: Words, source: string, speakerName: string) {
   return result
 }
 
-function addWordsToEditor(
-  track: Track,
-  words: Words,
-  editor: LexicalEditor,
-): Promise<void> {
+export function addWordsToEditor({
+  editor,
+  trackId,
+  trackLabel,
+  trackColor,
+  segments,
+}: {
+  editor: LexicalEditor
+  trackId: string
+  trackLabel?: string
+  trackColor?: string
+  segments: Segment[]
+}): Promise<void> {
   const sortedWords = sortBy(
-    allTaggedWords(words, track.trackId, track.label ?? 'Speaker'),
+    allTaggedWords(segments, trackId, trackLabel ?? 'Speaker'),
     'start',
   )
-  const color = track.color ?? 'black'
+  const color = trackColor ?? 'black'
 
   return new Promise((resolve) => {
     editor.update(
@@ -123,10 +135,13 @@ function addWordsToEditor(
   })
 }
 
-function removeTrackFromEditor(
-  trackId: string,
-  editor: LexicalEditor,
-): Promise<void> {
+export function removeTrackFromEditor({
+  editor,
+  trackId,
+}: {
+  trackId: string
+  editor: LexicalEditor
+}): Promise<void> {
   return new Promise((resolve) => {
     editor.update(
       () => {
@@ -142,17 +157,24 @@ function removeTrackFromEditor(
   })
 }
 
-function updateSpeakerInEditor(
-  track: Track,
-  editor: LexicalEditor,
-): Promise<void> {
+export function updateSpeakerInEditor({
+  editor,
+  trackId,
+  trackLabel,
+  trackColor,
+}: {
+  editor: LexicalEditor
+  trackId: string
+  trackLabel?: string
+  trackColor?: string
+}): Promise<void> {
   return new Promise((resolve) => {
     editor.update(
       () => {
         const speakerNodes = $nodesOfTypeInOrder(SpeakerNode)
         for (const node of speakerNodes) {
-          if (node.getSource() === track.trackId) {
-            node.setLabel(track.label ?? 'Speaker', track.color ?? 'black')
+          if (node.getSource() === trackId) {
+            node.setLabel(trackLabel ?? 'Speaker', trackColor ?? 'black')
           }
         }
       },
@@ -178,11 +200,10 @@ function dummyProvider(): lexicalYjs.Provider {
 }
 
 // Thanks to https://github.com/facebook/lexical/discussions/4442#discussioncomment-5785644 for providing an example of this.
-export async function editCollabDoc(
-  project: Project,
-  baseDoc: Uint8Array | null,
-  applyUpdate: (editor: LexicalEditor) => Promise<void>,
-): Promise<Y.Doc> {
+export function editCollabDoc(
+  projectId: string,
+  doc: Y.Doc,
+): { editor: LexicalEditor; dispose: () => void } {
   const editor: LexicalEditor = createHeadlessEditor({
     namespace: 'coalesce',
     nodes: lexicalNodes,
@@ -192,8 +213,7 @@ export async function editCollabDoc(
     },
   })
 
-  const doc = new Y.Doc()
-  const docId = `${project.projectId}/collab`
+  const docId = `${projectId}/collab`
   const provider = dummyProvider()
   const binding = lexicalYjs.createBinding(
     editor,
@@ -233,59 +253,12 @@ export async function editCollabDoc(
     }
   })
 
-  if (baseDoc) {
-    Y.applyUpdate(binding.doc, baseDoc)
-  }
-
   // Unclear why this is necessary (see linked lexical discussion above)
   editor.update(() => {}, { discrete: true })
 
-  await applyUpdate(editor)
+  function dispose() {
+    removeListener()
+  }
 
-  removeListener()
-
-  return doc
-}
-
-export function projectToYDoc(
-  project: Project,
-  trackWords: Record<string, Words>,
-  baseDoc: Uint8Array | null,
-) {
-  return editCollabDoc(project, baseDoc, async (editor) => {
-    for (const track of Object.values(project.tracks)) {
-      await addWordsToEditor(track, trackWords[track.trackId], editor)
-    }
-  })
-}
-
-export function addWordsToYDoc(
-  project: Project,
-  trackId: string,
-  words: Words,
-  baseDoc: Uint8Array | null,
-) {
-  return editCollabDoc(project, baseDoc, async (editor) => {
-    await addWordsToEditor(project.tracks[trackId], words, editor)
-  })
-}
-
-export function removeTrackFromYDoc(
-  project: Project,
-  trackId: string,
-  baseDoc: Uint8Array | null,
-) {
-  return editCollabDoc(project, baseDoc, async (editor) => {
-    await removeTrackFromEditor(trackId, editor)
-  })
-}
-
-export function updateSpeakerInYDoc(
-  project: Project,
-  trackId: string,
-  baseDoc: Uint8Array | null,
-) {
-  return editCollabDoc(project, baseDoc, async (editor) => {
-    await updateSpeakerInEditor(project.tracks[trackId], editor)
-  })
+  return { editor, dispose }
 }

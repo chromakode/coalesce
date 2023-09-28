@@ -8,6 +8,8 @@
       "npm:@ory/client@1.2.6": "npm:@ory/client@1.2.6",
       "npm:@ory/client@^1.2.6": "npm:@ory/client@1.2.6",
       "npm:@repeaterjs/repeater@^3.0.4": "npm:@repeaterjs/repeater@3.0.4",
+      "npm:@trpc/client@^10.38.5": "npm:@trpc/client@10.38.5_@trpc+server@10.38.5",
+      "npm:@trpc/server@^10.38.5": "npm:@trpc/server@10.38.5",
       "npm:@types/lodash@^4.14.195": "npm:@types/lodash@4.14.195",
       "npm:@types/pg@^8.10.2": "npm:@types/pg@8.10.2",
       "npm:abortable-iterator@^5.0.1": "npm:abortable-iterator@5.0.1",
@@ -162,6 +164,16 @@
       },
       "@repeaterjs/repeater@3.0.4": {
         "integrity": "sha512-AW8PKd6iX3vAZ0vA43nOUOnbq/X5ihgU+mSXXqunMkeQADGiqw/PY0JNeYtD5sr0PAy51YPgAPbDoeapv9r8WA==",
+        "dependencies": {}
+      },
+      "@trpc/client@10.38.5_@trpc+server@10.38.5": {
+        "integrity": "sha512-tpGUsoAP+3CD/1KRqMdWZ+zebvB68/86SaVPAYHaEDozTFLQdNqTe98DS/T0S4hfh7WCKbMSObj40SCzE8amKQ==",
+        "dependencies": {
+          "@trpc/server": "@trpc/server@10.38.5"
+        }
+      },
+      "@trpc/server@10.38.5": {
+        "integrity": "sha512-J0d2Y3Gpt2bMohOshPBfuzDqVrPaE3OKEDtJYgTmLk5t1pZy3kXHQep4rP2LEIr+ELbmkelhcrSvvFLA+4/w/Q==",
         "dependencies": {}
       },
       "@types/lodash@4.14.195": {

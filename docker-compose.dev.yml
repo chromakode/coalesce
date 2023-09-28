@@ -10,13 +10,19 @@ services:
       - ./app:/app/frontend
       - ./shared:/app/shared
 
-  project-server:
+  api-server:
     command: run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno api/main.ts
     volumes:
       - ./project-server:/app/project-server
       - ./shared:/app/shared
     environment:
       - COALESCE_DEV_FLAGS=reuse-track-by-filename
+
+  collab-server:
+    command: run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno collab/main.ts
+    volumes:
+      - ./project-server:/app/project-server
+      - ./shared:/app/shared
 
   minio-client:
     profiles: ['tools']

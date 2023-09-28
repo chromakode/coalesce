@@ -1,6 +1,6 @@
 export * as path from 'https://deno.land/std@0.191.0/path/mod.ts'
 export * as fs from 'https://deno.land/std@0.191.0/fs/mod.ts'
-export { debounce, retry } from 'https://deno.land/std@0.191.0/async/mod.ts'
+export { retry } from 'https://deno.land/std@0.191.0/async/mod.ts'
 export { timingSafeEqual } from 'https://deno.land/std@0.191.0/crypto/mod.ts'
 export { unreachable } from 'https://deno.land/std@0.191.0/testing/asserts.ts'
 
@@ -31,7 +31,7 @@ export {
 export { Kysely, PostgresDialect, Migrator, CamelCasePlugin, sql } from 'kysely'
 export type { Migration, MigrationProvider } from 'kysely'
 
-export type { ZodTypeAny, output as ZodOutput } from 'zod'
+export { z, type ZodTypeAny, type output as ZodOutput } from 'zod'
 
 // @deno-types="https://esm.sh/lexical@0.11.3?pin=130"
 export {
@@ -58,11 +58,16 @@ export { flatten, pick, sortBy, castArray } from 'npm:lodash-es@^4.17.21'
 
 export { EventIterator } from 'npm:event-iterator@^2.0.0'
 
-export { abortableSource } from 'npm:abortable-iterator@^5.0.1'
-
 export * as Y from 'yjs'
 export * as awarenessProtocol from 'npm:y-protocols@^1.0.5/awareness'
 export * as syncProtocol from 'npm:y-protocols@^1.0.5/sync'
 export * as lib0 from 'npm:lib0@^0.2.78'
 
 export * as ory from 'npm:@ory/client@1.2.6'
+
+export { createTRPCProxyClient, httpLink } from 'npm:@trpc/client@^10.38.5'
+export { initTRPC } from 'npm:@trpc/server@^10.38.5'
+export {
+  fetchRequestHandler,
+  type FetchCreateContextFnOptions,
+} from 'npm:@trpc/server@^10.38.5/adapters/fetch'

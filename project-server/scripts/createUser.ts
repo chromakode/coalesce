@@ -1,6 +1,6 @@
 import { ory } from '../deps.ts'
-import { APP_ORIGIN } from '../env.ts'
-import { initOryAdmin } from '../service.ts'
+import { APP_ORIGIN } from '../api/env.ts'
+import { initOryAdmin } from '../lib/service.ts'
 
 const [email, password] = Deno.args
 if (!email) {

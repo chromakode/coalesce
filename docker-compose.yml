@@ -98,7 +98,7 @@ services:
       context: ./audio-processor
       dockerfile: ./Dockerfile
     depends_on:
-      - project-server
+      - api-server
     environment:
       - WORKER_PORT=${WORKER_PORT:-3030}
       - WORKER_KEY
@@ -112,7 +112,7 @@ services:
       context: ./audio-processor
       dockerfile: ./Dockerfile.runpod
     depends_on:
-      - project-server
+      - api-server
     environment:
       - WORKER_PORT=${WORKER_PORT:-3030}
 
@@ -131,9 +131,10 @@ services:
       - VITE_KRATOS_URL=${APP_ORIGIN}/auth/api
       - VITE_AUTH_UI_URL=${APP_ORIGIN}/auth
 
-  project-server:
+  api-server:
     image: coalesce/project-server
     restart: unless-stopped
+    command: run --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno api/main.ts
     build:
       context: .
       dockerfile: ./project-server/Dockerfile
@@ -142,12 +143,15 @@ services:
       - postgres
       - minio
       - kratos
+      - collab-server
     environment:
       - PROJECT_SERVER_PORT=${PROJECT_SERVER_PORT:-3001}
       - APP_ORIGIN=${APP_ORIGIN}
+      - COLLAB_RPC_ENDPOINT=${COLLAB_RPC_ENDPOINT:-http://collab-server:3002/trpc}
+      - COLLAB_WS_ENDPOINT=${COLLAB_RPC_ENDPOINT:-http://collab-server:3002/ws}
       - KRATOS_URL=${KRATOS_URL:-http://kratos:4433}
       - KRATOS_ADMIN_URL=${KRATOS_ADMIN_URL:-http://kratos:4434}
-      - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://project-server:3001}
+      - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://api-server:3001}
       - WORKER_ENDPOINT=${WORKER_ENDPOINT:-http://audio-processor:3030}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - AUDIO_QUEUE_NAME=${AUDIO_QUEUE_NAME:-audio_jobs}
@@ -157,6 +161,21 @@ services:
       - POSTGRES_USER=${POSTGRES_COALESCE_USER}
       - POSTGRES_PASSWORD=${POSTGRES_COALESCE_PASSWORD}
       - POSTGRES_URL=${POSTGRES_COALESCE_URL}
+      - MINIO_ENDPOINT
+
+  collab-server:
+    image: coalesce/project-server
+    restart: unless-stopped
+    command: run --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno collab/main.ts
+    build:
+      context: .
+      dockerfile: ./project-server/Dockerfile
+    depends_on:
+      - redis
+      - minio
+    environment:
+      - COLLAB_SERVER_PORT=${COLLAB_SERVER_PORT:-3002}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - MINIO_ENDPOINT
 
 volumes:

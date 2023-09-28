@@ -1,4 +1,9 @@
-import { EventIterator, abortableSource } from '../deps.ts'
+import { EventIterator, nanoidCustom } from '../deps.ts'
+
+const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
+export const generateId = nanoidCustom(nanoidAlphabet, 20)
+export const generateShortId = nanoidCustom(nanoidAlphabet, 10)
+export const generateKey = nanoidCustom(nanoidAlphabet, 30)
 
 export async function socketReady(ws: WebSocket) {
   if (ws.readyState !== ws.OPEN) {
@@ -17,31 +22,6 @@ export function iterSocket(ws: WebSocket) {
       ws.close()
     }
   })
-}
-
-export function cancelable<T>(
-  iter: AsyncIterable<T>,
-  fn: (val: T) => Promise<void>,
-): () => void {
-  const controller = new AbortController()
-
-  async function doIter() {
-    try {
-      // @ts-expect-error(Deno's AbortSignal type doesn't have all the DOM event methods abortable-iterator expects)
-      for await (const msg of abortableSource(iter, controller.signal)) {
-        fn(msg)
-      }
-    } catch (err) {
-      if (err.code === 'ABORT_ERR') {
-        return
-      }
-      throw err
-    }
-  }
-
-  doIter()
-
-  return () => controller.abort()
 }
 
 export function requireEnv(name: string): string {

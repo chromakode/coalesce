@@ -7,10 +7,6 @@ import {
   TrackAudioMetadata,
 } from './schema.ts'
 
-export interface Words {
-  segments: Segment[]
-}
-
 export interface SessionInfo {
   userId: string
   email: string

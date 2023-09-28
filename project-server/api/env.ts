@@ -7,6 +7,8 @@ export const AUDIO_PROCESSING_QUEUE_NAME = requireEnv(
 )
 export const APP_ORIGIN = requireEnv('APP_ORIGIN')
 
+export const COLLAB_WS_ENDPOINT = requireEnv('COLLAB_WS_ENDPOINT')
+
 export const WORKER_PROXY_ORIGIN = requireEnv('WORKER_PROXY_ORIGIN')
 export const WORKER_ENDPOINT = requireEnv('WORKER_ENDPOINT')
 export const WORKER_KEY = requireEnv('WORKER_KEY')

@@ -1,35 +1,25 @@
-import { Buffer as NodeBuffer } from 'node:buffer'
 import {
-  path,
-  nanoidCustom,
   BodyStream,
   S3Errors,
   createHttpError,
   sql,
-  awarenessProtocol,
-  Y,
   retry,
   timingSafeEqual,
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from './env.ts'
-import { ProjectInfo, Project, Track, TrackInfo, Words } from '@shared/types'
-import { ProjectFields, TrackAudioMetadata, TrackFields } from '@shared/schema'
-import { db, redisClient, minioClient } from './main.ts'
-import { initRedis } from '../lib/service.ts'
+import { ProjectInfo, Project, Track, TrackInfo } from '@shared/types'
 import {
-  addWordsToYDoc,
-  projectToYDoc,
-  removeTrackFromYDoc,
-  updateSpeakerInYDoc,
-} from '../lib/editorState.ts'
-import { sendDocUpdate } from './socket.ts'
+  ProjectFields,
+  Segment,
+  TrackAudioMetadata,
+  TrackFields,
+} from '@shared/schema'
+import { db, redisClient, minioClient, collab } from './main.ts'
+import { initRedis } from '../lib/service.ts'
 import { TRACK_COLOR_ORDER, USER_ROLE } from '@shared/constants'
 import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
-
-const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
-export const generateId = nanoidCustom(nanoidAlphabet, 20)
-export const generateShortId = nanoidCustom(nanoidAlphabet, 10)
-export const generateKey = nanoidCustom(nanoidAlphabet, 30)
+import { storePath } from '../lib/constants.ts'
+import { generateId, generateKey, generateShortId } from '../lib/utils.ts'
 
 async function readJSON(path: string) {
   try {
@@ -42,18 +32,6 @@ async function readJSON(path: string) {
       throw err
     }
   }
-}
-
-export const storePath = {
-  projectDocPath: (projectId: string, versionId: string) =>
-    path.join('project', projectId, 'doc', versionId),
-  trackUploadPath: (trackId: string) => path.join('track', trackId, 'upload'),
-  trackDir: (trackId: string) => path.join('track', trackId) + '/',
-  trackWords: (trackId: string) => path.join('track', trackId, 'words.json'),
-  trackAudioMetadata: (trackId: string) =>
-    path.join('track', trackId, 'audio.json'),
-  trackChunkFile: (trackId: string, chunkName: string) =>
-    path.join('track', trackId, chunkName),
 }
 
 export async function* watchProject(projectId: string) {
@@ -111,195 +89,22 @@ export async function* watchProject(projectId: string) {
   }
 }
 
-export async function getAwarenessData(
-  projectId: string,
-): Promise<Uint8Array | null> {
-  return (await redisClient.sendCommand(
-    'GET',
-    [`project:${projectId}.awareness`],
-    { returnUint8Arrays: true },
-  )) as Uint8Array
-}
-
-export async function saveAwarenessData(projectId: string, data: Uint8Array) {
-  await redisClient.setex(
-    `project:${projectId}.awareness`,
-    awarenessProtocol.outdatedTimeout,
-    NodeBuffer.from(data),
-  )
-}
-
-export async function coalesceCollabDoc(
-  projectId: string,
-): Promise<Uint8Array | null> {
-  // Merging fetcher to allow lock-free persistince.
-  //
-  // Minio guarantees strict list-after-write behavior:
-  // https://github.com/minio/minio/blob/master/docs/distributed/README.md#consistency-guarantees
-  //
-  // To get the latest version of the doc:
-  // 1. Fetch all versions in the bucket and merge together
-  // 2. Write new merged version
-  // 3. Delete seen old versions
-  const seenKeys = []
-  const versions = []
-
-  for await (const entry of minioClient.listObjects({
-    prefix: storePath.projectDocPath(projectId, ''),
-  })) {
-    try {
-      const resp = await minioClient.getObject(entry.key)
-      const ab = await resp.arrayBuffer()
-      versions.push(new Uint8Array(ab))
-      seenKeys.push(entry.key)
-    } catch (err) {
-      console.warn('Error fetching collab doc version', entry.key, err)
-      continue
-    }
-  }
-
-  if (versions.length === 0) {
-    return null
-  } else if (versions.length === 1) {
-    // If only one version exists, no need to merge.
-    return versions[0]
-  }
-
-  const mergeDoc = new Y.Doc({ gc: true })
-  for (const version of versions) {
-    Y.applyUpdate(mergeDoc, version)
-  }
-
-  const mergeData = Y.encodeStateAsUpdate(mergeDoc)
-
-  await minioClient.putObject(
-    storePath.projectDocPath(projectId, generateId()),
-    mergeData,
-  )
-
-  for (const seenKey of seenKeys) {
-    try {
-      await minioClient.deleteObject(seenKey)
-    } catch (err) {
-      console.warn('Error deleting collab doc version', seenKey, err)
-      continue
-    }
-  }
-
-  return mergeData
-}
-
-export async function generateCollabDoc(
-  projectId: string,
-  baseDoc: Uint8Array | null = null,
-): Promise<Uint8Array> {
-  const project = await getProjectState(projectId)
-
-  const trackWords: Record<string, Words> = {}
-  for (const [trackId] of Object.keys(project.tracks)) {
-    const words = await getTrackWords(trackId)
-    trackWords[trackId] = words
-  }
-
-  const doc = await projectToYDoc(project, trackWords, baseDoc)
-  return Y.encodeStateAsUpdate(doc)
-}
-
-export async function saveCollabDoc(projectId: string, data: Uint8Array) {
-  // Store the doc w/ a random version id
-  await minioClient.putObject(
-    storePath.projectDocPath(projectId, generateId()),
-    data,
-  )
-
-  // Merge existing versions together
-  coalesceCollabDoc(projectId)
-}
-
-export async function* watchProjectCollab(
-  projectId: string,
-  awarenessId: number,
-) {
-  const redisPubSub = await initRedis()
-  const ownChannel = `project-collab:${projectId}@${awarenessId}`
-
-  try {
-    const sub = await redisPubSub.psubscribe(`project-collab:${projectId}*`)
-
-    for await (const { channel, message } of sub.receiveBuffers()) {
-      if (channel === ownChannel) {
-        continue
-      }
-      yield message
-    }
-  } finally {
-    redisPubSub.close()
-  }
-}
-
-export async function publishProjectCollab(
-  projectId: string,
-  awarenessId: number | string,
-  data: ArrayBuffer,
-) {
-  await redisClient.publish(
-    `project-collab:${projectId}@${awarenessId}`,
-    NodeBuffer.from(data),
-  )
-}
-
-async function _updateCollabDoc(
-  projectId: string,
-  updater: (project: Project, baseDoc: Uint8Array | null) => Promise<Y.Doc>,
-) {
-  const project = await getProjectState(projectId)
-  const baseDoc = await coalesceCollabDoc(projectId)
-  const doc = await updater(project, baseDoc)
-  await saveCollabDoc(projectId, Y.encodeStateAsUpdate(doc))
-  await sendDocUpdate(
-    projectId,
-    Y.encodeStateAsUpdate(doc, baseDoc ?? undefined),
-  )
-}
-
-export async function addWordsToCollabDoc(
+export async function getTrackInfo(
   projectId: string,
   trackId: string,
-  words: Words,
-) {
-  await _updateCollabDoc(projectId, (project, baseDoc) =>
-    addWordsToYDoc(project, trackId, words, baseDoc),
-  )
-}
-
-export async function addTrackToCollabDoc(projectId: string, trackId: string) {
-  const words = await getTrackWords(trackId)
-  return await addWordsToCollabDoc(projectId, trackId, words)
-}
-
-export async function removeTrackFromCollabDoc(
-  projectId: string,
-  trackId: string,
-) {
-  await _updateCollabDoc(projectId, (project, baseDoc) =>
-    removeTrackFromYDoc(project, trackId, baseDoc),
-  )
-}
-
-export async function updateSpeakerInCollabDoc(
-  projectId: string,
-  trackId: string,
-) {
-  await _updateCollabDoc(projectId, (project, baseDoc) =>
-    updateSpeakerInYDoc(project, trackId, baseDoc),
-  )
-}
-
-export async function getTrackInfo(trackId: string): Promise<TrackInfo> {
+): Promise<TrackInfo> {
   return await db
     .selectFrom('track')
-    .where('trackId', '=', trackId)
-    .select(['trackId', 'createdAt', 'label', 'originalFilename'])
+    .innerJoin('projectTracks', 'projectTracks.trackId', 'track.trackId')
+    .where('projectTracks.projectId', '=', projectId)
+    .where('track.trackId', '=', trackId)
+    .select([
+      'track.trackId',
+      'track.createdAt',
+      'track.label',
+      'track.originalFilename',
+      'projectTracks.color',
+    ])
     .executeTakeFirstOrThrow()
 }
 
@@ -346,18 +151,14 @@ export async function getTrackState(
   projectId: string,
   trackId: string,
 ): Promise<Track> {
-  const trackInfo = await getTrackInfo(trackId)
-  const { color } = await db
-    .selectFrom('projectTracks')
-    .where('projectId', '=', projectId)
-    .where('trackId', '=', trackId)
-    .select(['color'])
-    .executeTakeFirstOrThrow()
+  const trackInfo = await getTrackInfo(projectId, trackId)
   const audio = await readJSON(storePath.trackAudioMetadata(trackId))
-  return { ...trackInfo, color, audio }
+  return { ...trackInfo, audio }
 }
 
-export async function getTrackWords(trackId: string) {
+export async function getTrackWords(
+  trackId: string,
+): Promise<{ segments: Segment[] }> {
   return await readJSON(storePath.trackWords(trackId))
 }
 
@@ -502,7 +303,15 @@ export async function updateTrack(
     }),
   )
 
-  await updateSpeakerInCollabDoc(projectId, trackId)
+  const trackInfo = await getTrackInfo(projectId, trackId)
+  await collab.updateSpeaker.mutate(
+    {
+      trackId,
+      trackLabel: trackInfo.label,
+      trackColor: trackInfo.color,
+    },
+    { context: { projectId } },
+  )
 }
 
 export async function setTrackMetadata(
@@ -612,7 +421,16 @@ export async function createTrack(
 
   if (isReusingTrack) {
     // No need to wait for processing to finish
-    await addTrackToCollabDoc(projectId, trackId)
+    const { segments } = await getTrackWords(trackId)
+    await collab.addWordsToTrack.mutate(
+      {
+        trackId,
+        trackLabel: trackState.label,
+        trackColor: trackState.color,
+        segments: segments,
+      },
+      { context: { projectId } },
+    )
   }
 
   return trackId
@@ -651,7 +469,7 @@ export async function removeTrackFromProject(
     }),
   )
 
-  await removeTrackFromCollabDoc(projectId, trackId)
+  await collab.removeTrack.mutate({ trackId }, { context: { projectId } })
 }
 
 export async function streamTrackChunk(

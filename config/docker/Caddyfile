@@ -12,7 +12,7 @@ http:// {
   }
 
   handle_path /api/* {
-    reverse_proxy http://project-server:3001
+    reverse_proxy http://api-server:3001
   }
 
   reverse_proxy http://app:3000

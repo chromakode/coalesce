@@ -12,7 +12,6 @@ import {
   JobMsgModel,
   ProcessAudioRequest,
 } from '@shared/schema'
-import { initRedis } from '../lib/service.ts'
 import {
   consumeJobs,
   createJobKey,
@@ -22,10 +21,9 @@ import {
   getSignedWorkerUploadURL,
   updateJobStatus,
 } from './worker.ts'
-import { addWordsToCollabDoc, setTrackMetadata } from './store.ts'
+import { redisClient, collab } from './main.ts'
+import { getTrackInfo, setTrackMetadata } from './store.ts'
 import { iterSocket, socketReady } from '../lib/utils.ts'
-
-export const redisClient = await initRedis()
 
 async function requestHTTPWorker(req: ProcessAudioRequest): Promise<Response> {
   const workerURL = `${WORKER_ENDPOINT}/process-audio/${req.jobId}`
@@ -98,7 +96,16 @@ async function runWorkerSocket(
         await setTrackMetadata(projectId, trackId, msg.data)
       } else if (msg.kind === 'segment') {
         const segment = msg.data
-        await addWordsToCollabDoc(projectId, trackId, { segments: [segment] })
+        const trackInfo = await getTrackInfo(projectId, trackId)
+        await collab.addWordsToTrack.mutate(
+          {
+            trackId,
+            trackLabel: trackInfo.label ?? 'Speaker',
+            trackColor: trackInfo.color,
+            segments: [segment],
+          },
+          { context: { projectId } },
+        )
       } else if (msg.kind === 'status') {
         const update = msg.data
 

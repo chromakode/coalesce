@@ -90,8 +90,10 @@ export interface TrackTable extends TrackFields {
   originalFilename: string
 }
 
+export const TrackColorModel = z.enum(TRACK_COLOR_ORDER)
+
 export const ProjectTracksFields = z.object({
-  color: z.enum(TRACK_COLOR_ORDER).optional(),
+  color: TrackColorModel.optional(),
 })
 export type ProjectTracksFields = z.infer<typeof ProjectTracksFields>
 export type ProjectTracksFieldsInput = z.input<typeof ProjectTracksFields>

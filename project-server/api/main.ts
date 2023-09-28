@@ -1,5 +1,5 @@
 import { Application, Middleware, Router, oakCors, ory } from '../deps.ts'
-import { APP_ORIGIN, PROJECT_SERVER_PORT } from './env.ts'
+import { APP_ORIGIN, COLLAB_WS_ENDPOINT, PROJECT_SERVER_PORT } from './env.ts'
 import {
   watchProject,
   getProjectInfo,
@@ -14,10 +14,16 @@ import {
   removeTrackFromProject,
   projectContainsTrack,
   isValidProjectGuestKey,
+  getProjectState,
 } from './store.ts'
 import { ProjectFields, TrackFields } from '@shared/schema'
-import { initMinio, initOry, initPostgres, initRedis } from '../lib/service.ts'
-import { pushProjectUpdates, runCollab } from './socket.ts'
+import {
+  initCollab,
+  initMinio,
+  initOry,
+  initPostgres,
+  initRedis,
+} from '../lib/service.ts'
 import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
 import { socketReady } from '../lib/utils.ts'
 import { SessionInfo } from '@shared/types'
@@ -26,6 +32,7 @@ export const db = await initPostgres()
 export const redisClient = await initRedis()
 export const minioClient = await initMinio()
 export const auth = initOry()
+export const collab = initCollab()
 
 interface ContextState {
   identity: ory.Identity
@@ -94,7 +101,13 @@ const projectRouter = new Router<ContextState & { project: string }>()
 
     const ws = ctx.upgrade()
     await socketReady(ws)
-    await pushProjectUpdates(project, ws)
+
+    const projectState = await getProjectState(project)
+    ws.send(JSON.stringify({ type: 'project:data', data: projectState }))
+
+    for await (const message of watchProject(project)) {
+      ws.send(message)
+    }
   })
   .get('/collab', async (ctx) => {
     const { project } = ctx.state
@@ -105,7 +118,22 @@ const projectRouter = new Router<ContextState & { project: string }>()
 
     const ws = ctx.upgrade()
     await socketReady(ws)
-    await runCollab(project, ws)
+
+    const upstreamWS = new WebSocket(COLLAB_WS_ENDPOINT + `?project=${project}`)
+    await socketReady(upstreamWS)
+
+    upstreamWS.onmessage = (ev) => {
+      ws.send(ev.data)
+    }
+    upstreamWS.onclose = () => {
+      ws.close()
+    }
+    ws.onmessage = (ev) => {
+      upstreamWS.send(ev.data)
+    }
+    ws.onclose = () => {
+      upstreamWS.close()
+    }
   })
   .put('/', async (ctx) => {
     const body = await ctx.request.body({ type: 'json' }).value
@@ -120,7 +148,7 @@ const projectRouter = new Router<ContextState & { project: string }>()
       fileData,
       ctx.request.url.searchParams.get('filename') ?? 'unknown',
     )
-    ctx.response.body = await getTrackInfo(trackId)
+    ctx.response.body = await getTrackInfo(ctx.state.project, trackId)
   })
   .use(
     '/track/:track(\\w+)',
@@ -204,7 +232,9 @@ const apiRouter = new Router<ContextState>()
 
 app.use(oakCors({ origin: APP_ORIGIN }))
 app.use(apiRouter.routes())
+app.use(apiRouter.allowedMethods())
 app.use(workerProxyRouter.routes())
+app.use(workerProxyRouter.allowedMethods())
 
 await Promise.all([
   app.listen({ port: PROJECT_SERVER_PORT }),
