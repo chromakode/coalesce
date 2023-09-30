@@ -90,6 +90,7 @@ const trackRouter = new Router<
     const resp = await streamTrackChunk(track, chunk)
 
     ctx.response.body = resp.body
+    ctx.response.headers.set('Cache-Control', 'max-age=604800, immutable')
     for (const header of [
       'Content-Length',
       'Content-Type',
