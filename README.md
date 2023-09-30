@@ -8,11 +8,11 @@ Coalesce is an audio editor which makes slicing dialogue as easy as editing text
 
 ## Project Status
 
-🚧 Barebones Demo 🚧
+🚧 Alpha 🚧
 
 Features:
 
-- AI transcription using [whisper-timestamped](https://github.com/linto-ai/whisper-timestamped)
+- AI transcription using [faster-whisper](https://github.com/guillaumekln/faster-whisper)
 - Nondestructive text editing: remove and reorder spoken words as text
 - Visually refine word timings with a waveform editor
 - Export mixed down mono 48khz audio
