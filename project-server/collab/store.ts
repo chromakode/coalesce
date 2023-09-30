@@ -88,7 +88,4 @@ export async function saveCollabDoc(projectId: string, data: Uint8Array) {
     storePath.projectDocPath(projectId, generateId()),
     data,
   )
-
-  // Merge existing versions together
-  coalesceCollabDoc(projectId)
 }
