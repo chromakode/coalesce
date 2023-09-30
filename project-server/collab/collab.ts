@@ -80,7 +80,13 @@ class CollabProvider {
     this._disposeEditor = dispose
 
     if (storedDoc) {
-      Y.applyUpdate(this.doc, storedDoc)
+      try {
+        Y.applyUpdateV2(this.doc, storedDoc)
+      } catch (err) {
+        // TODO remove after projects migrated
+        console.warn('Error loading doc', err)
+        Y.applyUpdate(this.doc, storedDoc)
+      }
       this.lastDocState = Y.encodeStateVector(this.doc)
     }
 
@@ -121,7 +127,7 @@ class CollabProvider {
 
   async saveDoc() {
     const stateVector = Y.encodeStateVector(this.doc)
-    const update = Y.encodeStateAsUpdate(this.doc, this.lastDocState)
+    const update = Y.encodeStateAsUpdateV2(this.doc, this.lastDocState)
     await saveCollabDoc(this.projectId, update)
     this.lastDocState = stateVector
     console.log('Saved project', this.projectId)

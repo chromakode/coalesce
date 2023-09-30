@@ -60,10 +60,16 @@ export async function coalesceCollabDoc(
 
   const mergeDoc = new Y.Doc({ gc: true })
   for (const version of versions) {
-    Y.applyUpdate(mergeDoc, version)
+    try {
+      Y.applyUpdateV2(mergeDoc, version)
+    } catch (err) {
+      // TODO remove after projects migrated
+      console.warn('Error loading doc', err)
+      Y.applyUpdate(mergeDoc, version)
+    }
   }
 
-  const mergeData = Y.encodeStateAsUpdate(mergeDoc)
+  const mergeData = Y.encodeStateAsUpdateV2(mergeDoc)
 
   await minioClient.putObject(
     storePath.projectDocPath(projectId, generateId()),
