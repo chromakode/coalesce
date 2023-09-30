@@ -30,7 +30,7 @@ import { SessionInfo } from '@shared/types'
 
 export const db = await initPostgres()
 export const redisClient = await initRedis()
-export const minioClient = await initMinio()
+export const { minioClient, minioBucket } = await initMinio()
 export const auth = initOry()
 export const collab = initCollab()
 
@@ -87,9 +87,9 @@ const trackRouter = new Router<
   })
   .get(`/:chunk(\\d+\.flac)`, async (ctx) => {
     const { track, chunk } = ctx.params
-    const resp = await streamTrackChunk(track, chunk)
+    const { stream, headers } = await streamTrackChunk(track, chunk)
 
-    ctx.response.body = resp.body
+    ctx.response.body = stream
     ctx.response.headers.set('Cache-Control', 'max-age=604800, immutable')
     for (const header of [
       'Content-Length',
@@ -97,7 +97,7 @@ const trackRouter = new Router<
       'Last-Modified',
       'ETag',
     ]) {
-      const headerValue = resp.headers.get(header)
+      const headerValue = headers[header]
       if (headerValue) {
         ctx.response.headers.set(header, headerValue)
       }

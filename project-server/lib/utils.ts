@@ -1,3 +1,5 @@
+import * as NodeStream from 'node:stream'
+import * as NodeStreamWeb from 'node:stream/web'
 import { EventIterator, nanoidCustom } from '../deps.ts'
 
 const nanoidAlphabet = '6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwz'
@@ -30,4 +32,13 @@ export function requireEnv(name: string): string {
     throw new Error(`required env variable "${name}" unset`)
   }
   return val
+}
+
+export function fromNodeStream(stream: NodeStream.Readable) {
+  // The node:stream ReadableStream is missing the byob reader types so we need to cast :(
+  return NodeStream.Readable.toWeb(stream) as ReadableStream
+}
+
+export function toNodeStream(stream: ReadableStream) {
+  return NodeStream.Readable.fromWeb(stream as NodeStreamWeb.ReadableStream)
 }

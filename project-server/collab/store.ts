@@ -1,8 +1,8 @@
 import { Buffer as NodeBuffer } from 'node:buffer'
-import { awarenessProtocol, Y } from '../deps.ts'
-import { redisClient, minioClient } from './main.ts'
+import { awarenessProtocol, Y, streams } from '../deps.ts'
+import { redisClient, minioClient, minioBucket } from './main.ts'
 import { storePath } from '../lib/constants.ts'
-import { generateId } from '../lib/utils.ts'
+import { fromNodeStream, generateId } from '../lib/utils.ts'
 
 export async function getAwarenessData(
   projectId: string,
@@ -37,12 +37,15 @@ export async function coalesceCollabDoc(
   const seenKeys = []
   const versions = []
 
-  for await (const entry of minioClient.listObjects({
-    prefix: storePath.projectDocPath(projectId, ''),
-  })) {
+  for await (const entry of fromNodeStream(
+    minioClient.listObjects(
+      minioBucket,
+      storePath.projectDocPath(projectId, ''),
+    ),
+  )) {
     try {
-      const resp = await minioClient.getObject(entry.key)
-      const ab = await resp.arrayBuffer()
+      const resp = await minioClient.getObject(minioBucket, entry.key)
+      const ab = await streams.toArrayBuffer(fromNodeStream(resp))
       versions.push(new Uint8Array(ab))
       seenKeys.push(entry.key)
     } catch (err) {
@@ -72,13 +75,14 @@ export async function coalesceCollabDoc(
   const mergeData = Y.encodeStateAsUpdateV2(mergeDoc)
 
   await minioClient.putObject(
+    minioBucket,
     storePath.projectDocPath(projectId, generateId()),
-    mergeData,
+    NodeBuffer.from(mergeData),
   )
 
   for (const seenKey of seenKeys) {
     try {
-      await minioClient.deleteObject(seenKey)
+      await minioClient.removeObject(minioBucket, seenKey)
     } catch (err) {
       console.warn('Error deleting collab doc version', seenKey, err)
       continue
@@ -91,7 +95,8 @@ export async function coalesceCollabDoc(
 export async function saveCollabDoc(projectId: string, data: Uint8Array) {
   // Store the doc w/ a random version id
   await minioClient.putObject(
+    minioBucket,
     storePath.projectDocPath(projectId, generateId()),
-    data,
+    NodeBuffer.from(data),
   )
 }

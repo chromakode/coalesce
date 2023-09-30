@@ -15,7 +15,7 @@ import { initMinio, initRedis } from '../lib/service.ts'
 const COLLAB_SERVER_PORT = Number(requireEnv('COLLAB_SERVER_PORT'))
 
 export const redisClient = await initRedis()
-export const minioClient = await initMinio()
+export const { minioClient, minioBucket } = await initMinio()
 
 interface ContextState {
   projectId: string

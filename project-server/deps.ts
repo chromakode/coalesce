@@ -1,5 +1,6 @@
 export * as path from 'https://deno.land/std@0.191.0/path/mod.ts'
 export * as fs from 'https://deno.land/std@0.191.0/fs/mod.ts'
+export * as streams from 'https://deno.land/std@0.203.0/streams/mod.ts'
 export { retry } from 'https://deno.land/std@0.191.0/async/mod.ts'
 export { timingSafeEqual } from 'https://deno.land/std@0.191.0/crypto/mod.ts'
 export { unreachable } from 'https://deno.land/std@0.191.0/testing/asserts.ts'
@@ -23,10 +24,7 @@ export { slug } from 'https://deno.land/x/slug@v1.1.0/mod.ts'
 
 export { oakCors } from 'https://deno.land/x/cors@v1.2.2/mod.ts'
 
-export {
-  S3Client,
-  S3Errors,
-} from 'https://deno.land/x/s3_lite_client@0.6.1/mod.ts'
+export * as Minio from 'npm:minio@^7.1.3'
 
 export { Kysely, PostgresDialect, Migrator, CamelCasePlugin, sql } from 'kysely'
 export type { Migration, MigrationProvider } from 'kysely'

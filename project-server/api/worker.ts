@@ -5,7 +5,7 @@ import { generateId, generateKey } from '../lib/utils.ts'
 import { storePath } from '../lib/constants.ts'
 import { ZodOutput, ZodTypeAny, pick, path } from '../deps.ts'
 import { initRedis } from '../lib/service.ts'
-import { minioClient, redisClient } from './main.ts'
+import { minioBucket, minioClient, redisClient } from './main.ts'
 
 export const JOB_STATE_TTL = 60 * 60
 export const JOB_KEY_TTL = JOB_STATE_TTL
@@ -132,9 +132,7 @@ export async function getSignedWorkerSourceAudioURL(
   ttl = 300,
 ): Promise<string> {
   const sourceAudioPath = storePath.trackUploadPath(trackId)
-  return await minioClient.getPresignedUrl('GET', sourceAudioPath, {
-    expirySeconds: ttl,
-  })
+  return await minioClient.presignedGetObject(minioBucket, sourceAudioPath, ttl)
 }
 
 export async function getSignedWorkerUploadURL(
@@ -144,7 +142,5 @@ export async function getSignedWorkerUploadURL(
 ): Promise<string> {
   const trackDir = storePath.trackDir(trackId)
   const uploadPath = path.join(trackDir, filename)
-  return await minioClient.getPresignedUrl('PUT', uploadPath, {
-    expirySeconds: ttl,
-  })
+  return await minioClient.presignedPutObject(minioBucket, uploadPath, ttl)
 }

@@ -1,10 +1,10 @@
 import {
   BodyStream,
-  S3Errors,
   createHttpError,
   sql,
   retry,
   timingSafeEqual,
+  streams,
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from './env.ts'
 import { ProjectInfo, Project, Track, TrackInfo } from '@shared/types'
@@ -14,19 +14,25 @@ import {
   TrackAudioMetadata,
   TrackFields,
 } from '@shared/schema'
-import { db, redisClient, minioClient, collab } from './main.ts'
+import { db, redisClient, minioClient, minioBucket, collab } from './main.ts'
 import { initRedis } from '../lib/service.ts'
 import { TRACK_COLOR_ORDER, USER_ROLE } from '@shared/constants'
 import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
 import { storePath } from '../lib/constants.ts'
-import { generateId, generateKey, generateShortId } from '../lib/utils.ts'
+import {
+  generateId,
+  generateKey,
+  generateShortId,
+  fromNodeStream,
+  toNodeStream,
+} from '../lib/utils.ts'
 
-async function readJSON(path: string) {
+async function readJSON(path: string): Promise<any> {
   try {
-    const resp = await minioClient.getObject(path)
-    return await resp.json()
+    const resp = await minioClient.getObject(minioBucket, path)
+    return await streams.toJson(fromNodeStream(resp))
   } catch (err) {
-    if (err instanceof S3Errors.ServerError && err.code === 'NoSuchKey') {
+    if (err.code === 'NoSuchKey') {
       return null
     } else {
       throw err
@@ -320,6 +326,7 @@ export async function setTrackMetadata(
   metadata: TrackAudioMetadata,
 ) {
   await minioClient.putObject(
+    minioBucket,
     storePath.trackAudioMetadata(trackId),
     JSON.stringify(metadata),
   )
@@ -367,9 +374,11 @@ export async function createTrack(
     trackId = generateId()
 
     const uploadPath = storePath.trackUploadPath(trackId)
-    await minioClient.putObject(uploadPath, fileData.value, {
-      partSize: 16 * 1024 * 1024,
-    })
+    await minioClient.putObject(
+      minioBucket,
+      uploadPath,
+      toNodeStream(fileData.value),
+    )
 
     await db
       .insertInto('track')
@@ -456,8 +465,10 @@ export async function removeTrackFromProject(
     await db.deleteFrom('track').where('trackId', '=', trackId).execute()
 
     const trackDir = storePath.trackDir(trackId)
-    for await (const entry of minioClient.listObjects({ prefix: trackDir })) {
-      await minioClient.deleteObject(entry.key)
+    for await (const entry of fromNodeStream(
+      minioClient.listObjects(minioBucket, trackDir),
+    )) {
+      await minioClient.removeObject(minioBucket, entry.key)
     }
   }
 
@@ -475,16 +486,14 @@ export async function removeTrackFromProject(
 export async function streamTrackChunk(
   trackId: string,
   chunkName: string,
-): Promise<Response> {
+): Promise<{ stream: ReadableStream; headers: Record<string, string> }> {
   const chunkKey = storePath.trackChunkFile(trackId, chunkName)
   try {
-    const resp = await minioClient.getObject(chunkKey)
-    if (resp.body == null) {
-      throw createHttpError(500)
-    }
-    return resp
+    const resp = await minioClient.getObject(minioBucket, chunkKey)
+    // @ts-expect-error minio client types missing response headers
+    return { stream: fromNodeStream(resp), headers: resp.headers }
   } catch (err) {
-    if (err instanceof S3Errors.ServerError && err.code === 'NoSuchKey') {
+    if (err.code === 'NoSuchKey') {
       throw createHttpError(404)
     } else {
       throw err

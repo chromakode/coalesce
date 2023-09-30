@@ -8,8 +8,7 @@ import {
   Kysely,
   Migrator,
   PostgresDialect,
-  S3Client,
-  S3Errors,
+  Minio,
   pg,
   redis,
   path,
@@ -84,30 +83,23 @@ export async function initRedis() {
 export async function initMinio() {
   const MINIO_ENDPOINT = requireEnv('MINIO_ENDPOINT')
   const minioURL = new URL(MINIO_ENDPOINT)
-  const bucket = minioURL.pathname.substring(1)
+  const minioBucket = minioURL.pathname.substring(1)
 
-  const client = await new S3Client({
+  const minioClient = new Minio.Client({
     endPoint: minioURL.hostname,
     port: minioURL.port ? Number(minioURL.port) : undefined,
-    accessKey: minioURL.username,
-    secretKey: minioURL.password,
+    accessKey: decodeURIComponent(minioURL.username),
+    secretKey: decodeURIComponent(minioURL.password),
     region: '',
-    bucket,
     useSSL: minioURL.protocol === 'https:',
   })
 
   try {
-    await client.makeRequest({
-      method: 'PUT',
-      payload: '',
-      bucketName: bucket,
-      objectName: '',
-    })
+    await minioClient.makeBucket(minioBucket)
   } catch (err) {
     if (
-      err instanceof S3Errors.ServerError &&
-      (err.code === 'BucketAlreadyOwnedByYou' || // Minio
-        err.code === 'AccessDenied') // B2
+      err.code === 'BucketAlreadyOwnedByYou' || // Minio
+      err.code === 'AccessDenied' // B2
     ) {
       // Bucket already exists, that's ok!
     } else {
@@ -115,7 +107,7 @@ export async function initMinio() {
     }
   }
 
-  return client
+  return { minioClient, minioBucket }
 }
 
 export function initOry() {
