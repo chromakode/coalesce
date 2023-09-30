@@ -40,16 +40,16 @@ export async function coalesceCollabDoc(
   for await (const entry of fromNodeStream(
     minioClient.listObjects(
       minioBucket,
-      storePath.projectDocPath(projectId, ''),
+      storePath.projectDocPath(projectId, '/'),
     ),
   )) {
     try {
-      const resp = await minioClient.getObject(minioBucket, entry.key)
+      const resp = await minioClient.getObject(minioBucket, entry.name)
       const ab = await streams.toArrayBuffer(fromNodeStream(resp))
       versions.push(new Uint8Array(ab))
-      seenKeys.push(entry.key)
+      seenKeys.push(entry.name)
     } catch (err) {
-      console.warn('Error fetching collab doc version', entry.key, err)
+      console.warn('Error fetching collab doc version', entry.name, err)
       continue
     }
   }

@@ -468,7 +468,7 @@ export async function removeTrackFromProject(
     for await (const entry of fromNodeStream(
       minioClient.listObjects(minioBucket, trackDir),
     )) {
-      await minioClient.removeObject(minioBucket, entry.key)
+      await minioClient.removeObject(minioBucket, entry.name)
     }
   }
 
