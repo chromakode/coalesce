@@ -70,10 +70,13 @@ class CollabProvider {
   }
 
   async load() {
+    const title = `Fetched project ${this.projectId}`
+    console.time(title)
     const [awarenessData, storedDoc] = await Promise.all([
       getAwarenessData(this.projectId),
       coalesceCollabDoc(this.projectId),
     ])
+    console.timeEnd(title)
 
     const { editor, dispose } = editCollabDoc(this.projectId, this.doc)
     this.editor = editor
@@ -126,11 +129,13 @@ class CollabProvider {
   }
 
   async saveDoc() {
+    const title = `Saved project ${this.projectId}`
+    console.time(title)
     const stateVector = Y.encodeStateVector(this.doc)
     const update = Y.encodeStateAsUpdateV2(this.doc, this.lastDocState)
     await saveCollabDoc(this.projectId, update)
     this.lastDocState = stateVector
-    console.log('Saved project', this.projectId)
+    console.timeEnd(title)
   }
 
   queueDispose() {
