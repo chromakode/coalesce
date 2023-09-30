@@ -1,5 +1,10 @@
 import { Application, Middleware, Router, oakCors, ory } from '../deps.ts'
-import { APP_ORIGIN, COLLAB_WS_ENDPOINT, PROJECT_SERVER_PORT } from './env.ts'
+import {
+  APP_ORIGIN,
+  COLLAB_WS_ENDPOINT,
+  PROJECT_SERVER_PORT,
+  TRACK_CDN_HOST,
+} from './env.ts'
 import {
   watchProject,
   getProjectInfo,
@@ -15,6 +20,7 @@ import {
   projectContainsTrack,
   isValidProjectGuestKey,
   getProjectState,
+  getSignedTrackChunkURL,
 } from './store.ts'
 import { ProjectFields, TrackFields } from '@shared/schema'
 import {
@@ -87,6 +93,14 @@ const trackRouter = new Router<
   })
   .get(`/:chunk(\\d+\.flac)`, async (ctx) => {
     const { track, chunk } = ctx.params
+    if (TRACK_CDN_HOST) {
+      const signedURL = await getSignedTrackChunkURL(track, chunk)
+      const trackURL = new URL(signedURL)
+      trackURL.host = TRACK_CDN_HOST
+      ctx.response.redirect(trackURL.toString())
+      return
+    }
+
     const { stream, headers } = await streamTrackChunk(track, chunk)
 
     ctx.response.body = stream

@@ -500,3 +500,12 @@ export async function streamTrackChunk(
     }
   }
 }
+
+export async function getSignedTrackChunkURL(
+  trackId: string,
+  chunkName: string,
+  ttl = 300,
+): Promise<string> {
+  const chunkKey = storePath.trackChunkFile(trackId, chunkName)
+  return await minioClient.presignedGetObject(minioBucket, chunkKey, ttl)
+}

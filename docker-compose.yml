@@ -162,6 +162,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_COALESCE_PASSWORD}
       - POSTGRES_URL=${POSTGRES_COALESCE_URL}
       - MINIO_ENDPOINT
+      - TRACK_CDN_HOST
 
   collab-server:
     image: coalesce/project-server

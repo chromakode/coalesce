@@ -13,6 +13,8 @@ export const WORKER_PROXY_ORIGIN = requireEnv('WORKER_PROXY_ORIGIN')
 export const WORKER_ENDPOINT = requireEnv('WORKER_ENDPOINT')
 export const WORKER_KEY = requireEnv('WORKER_KEY')
 
+export const TRACK_CDN_HOST = Deno.env.get('TRACK_CDN_HOST')
+
 export type DevFlag = 'reuse-track-by-filename'
 const devFlagsRaw = Deno.env.get('COALESCE_DEV_FLAGS') ?? ''
 export const COALESCE_DEV_FLAGS = new Set(devFlagsRaw.split(',') as DevFlag[])
