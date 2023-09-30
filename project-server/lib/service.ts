@@ -92,6 +92,7 @@ export async function initMinio() {
     secretKey: decodeURIComponent(minioURL.password),
     region: '',
     useSSL: minioURL.protocol === 'https:',
+    pathStyle: minioURL.searchParams.get('useVHostStyleURLs') ? false : true,
   })
 
   try {
