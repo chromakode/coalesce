@@ -27,24 +27,30 @@ enum msgType {
 type TransactionOrigin = WebSocket | undefined
 type SendSink = (data: Uint8Array) => void | Promise<void>
 
-const liveCollabs = new Map<string, CollabProvider>()
+const liveCollabs = new Map<string, Promise<CollabProvider>>()
 
 /**
  * Get a live collab project, or create if not running.
  */
-export async function getCollab(projectId: string) {
+export function getCollab(projectId: string) {
+  async function loadCollab() {
+    const collab = new CollabProvider(projectId)
+    await collab.load()
+    return collab
+  }
+
   let collab = liveCollabs.get(projectId)
   if (!collab) {
-    collab = new CollabProvider(projectId)
+    collab = loadCollab()
     liveCollabs.set(projectId, collab)
-    await collab.load()
   }
   return collab
 }
 
 Deno.addSignalListener('SIGTERM', async () => {
   console.log('Saving live collabs before exiting...')
-  for (const collab of liveCollabs.values()) {
+  for (const collabPromise of liveCollabs.values()) {
+    const collab = await collabPromise
     await collab.dispose()
   }
   console.log('Saved.')
