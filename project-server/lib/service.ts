@@ -99,7 +99,8 @@ export async function initMinio() {
   } catch (err) {
     if (
       err.code === 'BucketAlreadyOwnedByYou' || // Minio
-      err.code === 'AccessDenied' // B2
+      err.code === 'AccessDenied' || // B2
+      err.code === 'BucketAlreadyExists' // DigitalOcean Space
     ) {
       // Bucket already exists, that's ok!
     } else {
