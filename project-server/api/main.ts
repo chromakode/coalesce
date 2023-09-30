@@ -88,7 +88,19 @@ const trackRouter = new Router<
   .get(`/:chunk(\\d+\.flac)`, async (ctx) => {
     const { track, chunk } = ctx.params
     const resp = await streamTrackChunk(track, chunk)
-    ctx.response.body = resp
+
+    ctx.response.body = resp.body
+    for (const header of [
+      'Content-Length',
+      'Content-Type',
+      'Last-Modified',
+      'ETag',
+    ]) {
+      const headerValue = resp.headers.get(header)
+      if (headerValue) {
+        ctx.response.headers.set(header, headerValue)
+      }
+    }
   })
 
 const projectRouter = new Router<ContextState & { project: string }>()

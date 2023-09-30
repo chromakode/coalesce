@@ -475,14 +475,14 @@ export async function removeTrackFromProject(
 export async function streamTrackChunk(
   trackId: string,
   chunkName: string,
-): Promise<ReadableStream> {
+): Promise<Response> {
   const chunkKey = storePath.trackChunkFile(trackId, chunkName)
   try {
     const resp = await minioClient.getObject(chunkKey)
     if (resp.body == null) {
       throw createHttpError(500)
     }
-    return resp.body
+    return resp
   } catch (err) {
     if (err instanceof S3Errors.ServerError && err.code === 'NoSuchKey') {
       throw createHttpError(404)
