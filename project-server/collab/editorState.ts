@@ -102,41 +102,39 @@ export function addWordsToEditor({
               spaceNode.insertAfter(newWordNode)
             }
           } else {
-            const [beforeParent, afterParent] = $splitNode(
-              docNode.getParent()!,
-              docNode.getIndexWithinParent() + (insertBefore ? 0 : 1),
-            )
-
             const parentNode = $createSpeakerNode(
               word.speakerName,
               color,
               word.source,
             )
-            afterParent.insertBefore(parentNode)
             parentNode.append(newWordNode)
 
-            // Trim leading space
-            // TODO: If the whitespace handling gets reworked so we don't always
-            // add a space after, perhaps this and the afterParent cleanup can
-            // be reworked to skip the extra split and remove.
-            const firstAfterNode = afterParent.getFirstChild()
-            if (
-              firstAfterNode &&
-              $isTextNode(firstAfterNode) &&
-              firstAfterNode.getTextContent().trim() === ''
-            ) {
-              firstAfterNode.remove()
-            }
+            const docNodeParent = docNode.getParent()!
+            if (insertBefore && !docNode.getPreviousSibling()) {
+              // If the doc node is at the beginning of its parent, insert the
+              // new speaker parent before.
+              docNodeParent.insertBefore(parentNode)
+            } else if (!insertBefore && !docNode.getNextSibling()) {
+              // Similarly, if at the end, insert the new speaker parent after.
+              docNodeParent.insertAfter(parentNode)
+            } else {
+              // Otherwise, we need to split the doc node's parent and insert
+              // the new speaker parent in between.
+              const [_, afterParent] = $splitNode(
+                docNodeParent,
+                docNode.getIndexWithinParent() + (insertBefore ? 0 : 1),
+              )
+              afterParent.insertBefore(parentNode)
 
-            if (afterParent.getTextContent().trim().length === 0) {
-              afterParent.remove()
-            }
-
-            if (
-              beforeParent &&
-              beforeParent.getTextContent().trim().length === 0
-            ) {
-              beforeParent.remove()
+              // Trim leading space
+              const firstAfterNode = afterParent.getFirstChild()
+              if (
+                firstAfterNode &&
+                $isTextNode(firstAfterNode) &&
+                firstAfterNode.getTextContent().trim() === ''
+              ) {
+                firstAfterNode.remove()
+              }
             }
           }
 
