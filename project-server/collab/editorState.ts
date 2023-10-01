@@ -43,7 +43,7 @@ export function addWordsToEditor({
 }: {
   editor: LexicalEditor
   trackId: string
-  trackLabel?: string
+  trackLabel?: string | null
   trackColor?: string
   segments: Segment[]
 }): Promise<void> {
@@ -165,7 +165,7 @@ export function updateSpeakerInEditor({
 }: {
   editor: LexicalEditor
   trackId: string
-  trackLabel?: string
+  trackLabel?: string | null
   trackColor?: string
 }): Promise<void> {
   return new Promise((resolve) => {
