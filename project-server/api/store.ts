@@ -417,14 +417,14 @@ export async function createTrack(
     { minTimeout: 50, maxTimeout: 1000 },
   )
 
-  const trackState = await getTrackState(projectId, trackId)
+  const trackInfo = await getTrackInfo(projectId, trackId)
 
   await redisClient.publish(
     `project:${projectId}`,
     JSON.stringify({
       type: 'track-updated',
       trackId,
-      update: trackState,
+      update: trackInfo,
     }),
   )
 
@@ -434,8 +434,8 @@ export async function createTrack(
     await collab.addWordsToTrack.mutate(
       {
         trackId,
-        trackLabel: trackState.label,
-        trackColor: trackState.color,
+        trackLabel: trackInfo.label,
+        trackColor: trackInfo.color,
         segments: segments,
       },
       { context: { projectId } },

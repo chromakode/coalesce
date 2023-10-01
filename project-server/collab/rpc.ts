@@ -24,7 +24,7 @@ export const rpcRouter = router({
     .input(
       z.object({
         trackId: z.string(),
-        trackLabel: z.string().optional(),
+        trackLabel: z.string().nullable().optional(),
         trackColor: TrackColorModel.optional(),
         segments: z.array(SegmentModel),
       }),
@@ -66,7 +66,7 @@ export const rpcRouter = router({
     .input(
       z.object({
         trackId: z.string(),
-        trackLabel: z.string().optional(),
+        trackLabel: z.string().nullable().optional(),
         trackColor: TrackColorModel.optional(),
       }),
     )
