@@ -59,19 +59,19 @@ export function addWordsToEditor({
         const root = $getRoot()
         const soundNodes = $nodesOfTypeInOrder(SoundNode)
 
-        let prevWordNode: SoundNode = soundNodes[0]
+        let docNode: SoundNode = soundNodes[0]
         wordLoop: for (const word of sortedWords) {
           // TODO: should we be smarter about resolving ties so adjacent words aren't broken up?
           while (
             soundNodes.length &&
             soundNodes[0].getSoundLocation().start <= word.start
           ) {
-            prevWordNode = soundNodes.shift()!
+            docNode = soundNodes.shift()!
 
-            const prevWordLocation = prevWordNode.getSoundLocation()
+            const docNodeLocation = docNode.getSoundLocation()
             if (
-              prevWordLocation.start === word.start &&
-              prevWordLocation.end === word.end
+              docNodeLocation.start === word.start &&
+              docNodeLocation.end === word.end
             ) {
               // Skip adding dupe of an existing word
               continue wordLoop
@@ -82,8 +82,9 @@ export function addWordsToEditor({
             word.text.trim(),
             pick(word, ['source', 'start', 'end']),
           )
+          const insertBefore = docNode?.getSoundLocation().start > word.start
 
-          if (prevWordNode === undefined) {
+          if (docNode === undefined) {
             const parentNode = $createSpeakerNode(
               word.speakerName,
               color,
@@ -91,14 +92,19 @@ export function addWordsToEditor({
             )
             parentNode.append(newWordNode)
             root.append(parentNode)
-          } else if (prevWordNode.getSoundLocation().source === word.source) {
+          } else if (docNode.getSoundLocation().source === word.source) {
             const spaceNode = $createTextNode(' ')
-            prevWordNode.insertAfter(spaceNode)
-            spaceNode.insertAfter(newWordNode)
+            if (insertBefore) {
+              docNode.insertBefore(spaceNode)
+              spaceNode.insertBefore(newWordNode)
+            } else {
+              docNode.insertAfter(spaceNode)
+              spaceNode.insertAfter(newWordNode)
+            }
           } else {
             const [beforeParent, afterParent] = $splitNode(
-              prevWordNode.getParent()!,
-              prevWordNode.getIndexWithinParent(),
+              docNode.getParent()!,
+              docNode.getIndexWithinParent() + (insertBefore ? 0 : 1),
             )
 
             const parentNode = $createSpeakerNode(
@@ -110,6 +116,9 @@ export function addWordsToEditor({
             parentNode.append(newWordNode)
 
             // Trim leading space
+            // TODO: If the whitespace handling gets reworked so we don't always
+            // add a space after, perhaps this and the afterParent cleanup can
+            // be reworked to skip the extra split and remove.
             const firstAfterNode = afterParent.getFirstChild()
             if (
               firstAfterNode &&
@@ -117,6 +126,10 @@ export function addWordsToEditor({
               firstAfterNode.getTextContent().trim() === ''
             ) {
               firstAfterNode.remove()
+            }
+
+            if (afterParent.getTextContent().trim().length === 0) {
+              afterParent.remove()
             }
 
             if (
@@ -127,7 +140,7 @@ export function addWordsToEditor({
             }
           }
 
-          prevWordNode = newWordNode
+          docNode = newWordNode
         }
       },
       { onUpdate: resolve },
