@@ -59,11 +59,13 @@ export async function coalesceCollabDoc(
     }
   }
 
-  if (versions.length === 0) {
-    return null
-  } else if (versions.length === 1 && !update) {
-    // If only one version exists and no update, no need to merge.
-    return versions[0]
+  if (!update) {
+    if (versions.length === 0) {
+      return null
+    } else if (versions.length === 1) {
+      // If only one version exists and no update, no need to merge.
+      return versions[0]
+    }
   }
 
   const mergeDoc = new Y.Doc({ gc: true })
