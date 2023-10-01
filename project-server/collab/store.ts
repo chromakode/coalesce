@@ -24,6 +24,7 @@ export async function saveAwarenessData(projectId: string, data: Uint8Array) {
 
 export async function coalesceCollabDoc(
   projectId: string,
+  update?: Uint8Array,
 ): Promise<Uint8Array | null> {
   // Merging fetcher to allow lock-free persistince.
   //
@@ -45,7 +46,11 @@ export async function coalesceCollabDoc(
   )) {
     try {
       const resp = await minioClient.getObject(minioBucket, entry.name)
-      const ab = await streams.toArrayBuffer(fromNodeStream(resp))
+      let inStream = fromNodeStream(resp)
+      if (entry.name.endsWith('.gz')) {
+        inStream = inStream.pipeThrough(new DecompressionStream('gzip'))
+      }
+      const ab = await streams.toArrayBuffer(inStream)
       versions.push(new Uint8Array(ab))
       seenKeys.push(entry.name)
     } catch (err) {
@@ -56,8 +61,8 @@ export async function coalesceCollabDoc(
 
   if (versions.length === 0) {
     return null
-  } else if (versions.length === 1) {
-    // If only one version exists, no need to merge.
+  } else if (versions.length === 1 && !update) {
+    // If only one version exists and no update, no need to merge.
     return versions[0]
   }
 
@@ -71,13 +76,23 @@ export async function coalesceCollabDoc(
       Y.applyUpdate(mergeDoc, version)
     }
   }
+  if (update) {
+    Y.applyUpdateV2(mergeDoc, update)
+  }
 
   const mergeData = Y.encodeStateAsUpdateV2(mergeDoc)
-
+  const gzipData = await streams.toArrayBuffer(
+    new Blob([mergeData]).stream().pipeThrough(new CompressionStream('gzip')),
+  )
+  const destName = generateId() + '.gz'
   await minioClient.putObject(
     minioBucket,
-    storePath.projectDocPath(projectId, generateId()),
-    NodeBuffer.from(mergeData),
+    storePath.projectDocPath(projectId, destName),
+    NodeBuffer.from(gzipData),
+  )
+
+  console.log(
+    `Stored project ${projectId} to ${destName} (${gzipData.byteLength} bytes)`,
   )
 
   for (const seenKey of seenKeys) {
@@ -90,13 +105,4 @@ export async function coalesceCollabDoc(
   }
 
   return mergeData
-}
-
-export async function saveCollabDoc(projectId: string, data: Uint8Array) {
-  // Store the doc w/ a random version id
-  await minioClient.putObject(
-    minioBucket,
-    storePath.projectDocPath(projectId, generateId()),
-    NodeBuffer.from(data),
-  )
 }
