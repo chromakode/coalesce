@@ -135,13 +135,16 @@ class CollabProvider {
   }
 
   async saveDoc() {
-    const title = `Saved project ${this.projectId}`
-    console.time(title)
+    const startTime = performance.now()
     const stateVector = Y.encodeStateVector(this.doc)
     const update = Y.encodeStateAsUpdateV2(this.doc, this.lastDocState)
     await saveCollabDoc(this.projectId, update)
     this.lastDocState = stateVector
-    console.timeEnd(title)
+    console.log(
+      `Saved project ${this.projectId}: ${performance.now() - startTime}ms (${
+        update.length
+      } bytes)`,
+    )
   }
 
   queueDispose() {
