@@ -1,4 +1,4 @@
-import { Router, timingSafeEqual, unreachable } from '../deps.ts'
+import { Router, throttle, timingSafeEqual, unreachable } from '../deps.ts'
 import {
   AUDIO_PROCESSING_QUEUE_NAME,
   AUDIO_QUEUE_NAME,
@@ -11,6 +11,7 @@ import {
   AudioJobModel,
   JobMsgModel,
   ProcessAudioRequest,
+  Segment,
 } from '@shared/schema'
 import {
   consumeJobs,
@@ -84,6 +85,23 @@ async function runWorkerSocket(
   rawJob: string,
 ) {
   const { projectId, trackId } = job
+  let segmentQueue: Segment[] = []
+
+  const queueAddSegments = throttle(async () => {
+    const segments = segmentQueue
+    segmentQueue = []
+
+    const trackInfo = await getTrackInfo(projectId, trackId)
+    await collab.addWordsToTrack.mutate(
+      {
+        trackId,
+        trackLabel: trackInfo.label ?? 'Speaker',
+        trackColor: trackInfo.color,
+        segments: segments,
+      },
+      { context: { projectId } },
+    )
+  }, 10 * 1000)
 
   try {
     for await (const ev of iterSocket(ws)) {
@@ -96,16 +114,8 @@ async function runWorkerSocket(
         await setTrackMetadata(projectId, trackId, msg.data)
       } else if (msg.kind === 'segment') {
         const segment = msg.data
-        const trackInfo = await getTrackInfo(projectId, trackId)
-        await collab.addWordsToTrack.mutate(
-          {
-            trackId,
-            trackLabel: trackInfo.label ?? 'Speaker',
-            trackColor: trackInfo.color,
-            segments: [segment],
-          },
-          { context: { projectId } },
-        )
+        segmentQueue.push(segment)
+        queueAddSegments()
       } else if (msg.kind === 'status') {
         const update = msg.data
 
