@@ -1,10 +1,9 @@
 import {
   $createSoundNode,
-  SoundNode,
   $createSpeakerNode,
-  SpeakerNode,
   lexicalNodes,
-  $nodesOfTypeInOrder,
+  $isSpeakerNode,
+  $isSoundNode,
 } from '@shared/lexical'
 import {
   pick,
@@ -17,6 +16,9 @@ import {
   createHeadlessEditor,
   LexicalEditor,
   Y,
+  LexicalNode,
+  $isElementNode,
+  partial,
 } from '../deps.ts'
 import { Segment } from '@shared/schema'
 
@@ -33,6 +35,48 @@ function allTaggedWords(
   }
   return result
 }
+
+// Patterned off LexicalUtils.$dfs
+function* $walk(
+  isForward: boolean,
+  startNode: LexicalNode | null = isForward
+    ? $getRoot().getFirstDescendant()
+    : $getRoot().getLastDescendant(),
+  skip?: (node: LexicalNode) => boolean,
+): Generator<LexicalNode> {
+  const end = $getRoot()
+  let node: LexicalNode | null = startNode
+
+  while (node !== null && !node.is(end)) {
+    if (!skip?.(node) && $isElementNode(node) && node.getChildrenSize() > 0) {
+      node = isForward ? node.getFirstDescendant() : node.getLastDescendant()
+    } else {
+      yield node
+
+      // Find immediate sibling or nearest parent sibling
+      let sibling = null
+      while (sibling === null && node !== null) {
+        sibling = isForward ? node.getNextSibling() : node.getPreviousSibling()
+
+        if (sibling === null) {
+          node = node.getParent()
+          if (node !== null) {
+            yield node
+          }
+        } else {
+          node = sibling
+        }
+      }
+    }
+  }
+
+  if (node !== null && node.is(end)) {
+    yield node
+  }
+}
+
+export const $walkForward = partial($walk, true)
+export const $walkBackward = partial($walk, false)
 
 export function addWordsToEditor({
   editor,
@@ -57,24 +101,42 @@ export function addWordsToEditor({
     editor.update(
       () => {
         const root = $getRoot()
-        const soundNodes = $nodesOfTypeInOrder(SoundNode)
+        let docNode: LexicalNode | null = null
 
-        let docNode: SoundNode = soundNodes[0]
-        wordLoop: for (const word of sortedWords) {
+        for (const node of $walkBackward()) {
+          if (!$isSoundNode(node)) {
+            continue
+          }
+
+          docNode = node
+
+          if (node.getSoundLocation().start <= sortedWords[0].start) {
+            break
+          }
+        }
+
+        word: for (const word of sortedWords) {
           // TODO: should we be smarter about resolving ties so adjacent words aren't broken up?
-          while (
-            soundNodes.length &&
-            soundNodes[0].getSoundLocation().start <= word.start
-          ) {
-            docNode = soundNodes.shift()!
+          if (docNode !== null) {
+            walk: for (const node of $walkForward(docNode)) {
+              if (!$isSoundNode(node)) {
+                continue walk
+              }
 
-            const docNodeLocation = docNode.getSoundLocation()
-            if (
-              docNodeLocation.start === word.start &&
-              docNodeLocation.end === word.end
-            ) {
-              // Skip adding dupe of an existing word
-              continue wordLoop
+              const docNodeLocation = node.getSoundLocation()
+              if (
+                docNodeLocation.start === word.start &&
+                docNodeLocation.end === word.end
+              ) {
+                // Skip adding dupe of an existing word
+                continue word
+              }
+
+              if (docNodeLocation.start > word.start) {
+                break walk
+              }
+
+              docNode = node
             }
           }
 
@@ -82,9 +144,8 @@ export function addWordsToEditor({
             word.text.trim(),
             pick(word, ['source', 'start', 'end']),
           )
-          const insertBefore = docNode?.getSoundLocation().start > word.start
 
-          if (docNode === undefined) {
+          if (docNode === null) {
             const parentNode = $createSpeakerNode(
               word.speakerName,
               color,
@@ -92,48 +153,52 @@ export function addWordsToEditor({
             )
             parentNode.append(newWordNode)
             root.append(parentNode)
-          } else if (docNode.getSoundLocation().source === word.source) {
-            const spaceNode = $createTextNode(' ')
-            if (insertBefore) {
-              docNode.insertBefore(spaceNode)
-              spaceNode.insertBefore(newWordNode)
-            } else {
-              docNode.insertAfter(spaceNode)
-              spaceNode.insertAfter(newWordNode)
-            }
           } else {
-            const parentNode = $createSpeakerNode(
-              word.speakerName,
-              color,
-              word.source,
-            )
-            parentNode.append(newWordNode)
-
-            const docNodeParent = docNode.getParent()!
-            if (insertBefore && !docNode.getPreviousSibling()) {
-              // If the doc node is at the beginning of its parent, insert the
-              // new speaker parent before.
-              docNodeParent.insertBefore(parentNode)
-            } else if (!insertBefore && !docNode.getNextSibling()) {
-              // Similarly, if at the end, insert the new speaker parent after.
-              docNodeParent.insertAfter(parentNode)
+            const docNodeLocation = docNode.getSoundLocation()
+            const insertBefore = docNodeLocation.start > word.start
+            if (docNodeLocation.source === word.source) {
+              const spaceNode = $createTextNode(' ')
+              if (insertBefore) {
+                docNode.insertBefore(spaceNode)
+                spaceNode.insertBefore(newWordNode)
+              } else {
+                docNode.insertAfter(spaceNode)
+                spaceNode.insertAfter(newWordNode)
+              }
             } else {
-              // Otherwise, we need to split the doc node's parent and insert
-              // the new speaker parent in between.
-              const [_, afterParent] = $splitNode(
-                docNodeParent,
-                docNode.getIndexWithinParent() + (insertBefore ? 0 : 1),
+              const parentNode = $createSpeakerNode(
+                word.speakerName,
+                color,
+                word.source,
               )
-              afterParent.insertBefore(parentNode)
+              parentNode.append(newWordNode)
 
-              // Trim leading space
-              const firstAfterNode = afterParent.getFirstChild()
-              if (
-                firstAfterNode &&
-                $isTextNode(firstAfterNode) &&
-                firstAfterNode.getTextContent().trim() === ''
-              ) {
-                firstAfterNode.remove()
+              const docNodeParent = docNode.getParent()!
+              if (insertBefore && !docNode.getPreviousSibling()) {
+                // If the doc node is at the beginning of its parent, insert the
+                // new speaker parent before.
+                docNodeParent.insertBefore(parentNode)
+              } else if (!insertBefore && !docNode.getNextSibling()) {
+                // Similarly, if at the end, insert the new speaker parent after.
+                docNodeParent.insertAfter(parentNode)
+              } else {
+                // Otherwise, we need to split the doc node's parent and insert
+                // the new speaker parent in between.
+                const [_, afterParent] = $splitNode(
+                  docNodeParent,
+                  docNode.getIndexWithinParent() + (insertBefore ? 0 : 1),
+                )
+                afterParent.insertBefore(parentNode)
+
+                // Trim leading space
+                const firstAfterNode = afterParent.getFirstChild()
+                if (
+                  firstAfterNode &&
+                  $isTextNode(firstAfterNode) &&
+                  firstAfterNode.getTextContent().trim() === ''
+                ) {
+                  firstAfterNode.remove()
+                }
               }
             }
           }
@@ -156,11 +221,17 @@ export function removeTrackFromEditor({
   return new Promise((resolve) => {
     editor.update(
       () => {
-        const speakerNodes = $nodesOfTypeInOrder(SpeakerNode)
-        for (const node of speakerNodes) {
-          if (node.getSource() === trackId) {
-            node.remove()
+        const toRemove = []
+        for (const node of $walkBackward()) {
+          if (!$isSpeakerNode(node)) {
+            continue
           }
+          if (node.getSource() === trackId) {
+            toRemove.push(node)
+          }
+        }
+        for (const node of toRemove) {
+          node.remove()
         }
       },
       { onUpdate: resolve },
@@ -182,8 +253,10 @@ export function updateSpeakerInEditor({
   return new Promise((resolve) => {
     editor.update(
       () => {
-        const speakerNodes = $nodesOfTypeInOrder(SpeakerNode)
-        for (const node of speakerNodes) {
+        for (const node of $walkBackward()) {
+          if (!$isSpeakerNode(node)) {
+            continue
+          }
           if (node.getSource() === trackId) {
             node.setLabel(trackLabel ?? 'Speaker', trackColor ?? 'black')
           }

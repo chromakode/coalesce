@@ -38,6 +38,7 @@ export {
   $getRoot,
   $splitNode,
   $isTextNode,
+  $isElementNode,
 } from 'lexical'
 export type { LexicalEditor, LexicalNode } from 'lexical'
 
@@ -58,6 +59,7 @@ export {
   sortBy,
   castArray,
   throttle,
+  partial,
 } from 'npm:lodash-es@^4.17.21'
 
 export { EventIterator } from 'npm:event-iterator@^2.0.0'
