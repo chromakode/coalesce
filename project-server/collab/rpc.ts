@@ -44,6 +44,7 @@ export const rpcRouter = router({
         segments,
       })
     }),
+
   removeTrack: publicProcedure
     .input(
       z.object({
@@ -62,6 +63,7 @@ export const rpcRouter = router({
         trackId,
       })
     }),
+
   updateSpeaker: publicProcedure
     .input(
       z.object({
