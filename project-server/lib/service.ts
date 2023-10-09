@@ -46,7 +46,9 @@ class DenoFileMigrationProvider implements MigrationProvider {
   }
 }
 
-export async function initPostgres() {
+export type ProjectDB = Kysely<DB>
+
+export async function initPostgres(): Promise<ProjectDB> {
   const POSTGRES_URL = requireEnv('POSTGRES_URL')
 
   const dialect = new PostgresDialect({

@@ -20,21 +20,8 @@ import {
   $isElementNode,
   partial,
 } from '../deps.ts'
-import { Segment } from '@shared/schema'
-
-function allTaggedWords(
-  segments: Segment[],
-  source: string,
-  speakerName: string,
-) {
-  const result = []
-  for (const segment of segments) {
-    for (const word of segment.words) {
-      result.push({ source, speakerName, ...word })
-    }
-  }
-  return result
-}
+import { Word } from '@shared/schema'
+import { TrackInfo } from '@shared/types'
 
 // Patterned off LexicalUtils.$dfs
 function* $walk(
@@ -80,19 +67,19 @@ export const $walkBackward = partial($walk, false)
 
 export function addWordsToEditor({
   editor,
-  trackId,
-  trackLabel,
-  trackColor,
-  segments,
+  trackInfo: { trackId, label: trackLabel, color: trackColor },
+  words,
 }: {
   editor: LexicalEditor
-  trackId: string
-  trackLabel?: string | null
-  trackColor?: string
-  segments: Segment[]
+  trackInfo: TrackInfo
+  words: Word[]
 }): Promise<void> {
   const sortedWords = sortBy(
-    allTaggedWords(segments, trackId, trackLabel ?? 'Speaker'),
+    words.map((word) => ({
+      source: trackId,
+      speakerName: trackLabel ?? 'Speaker',
+      ...word,
+    })),
     'start',
   )
   const color = trackColor ?? 'black'
@@ -241,14 +228,10 @@ export function removeTrackFromEditor({
 
 export function updateSpeakerInEditor({
   editor,
-  trackId,
-  trackLabel,
-  trackColor,
+  trackInfo: { trackId, label: trackLabel, color: trackColor },
 }: {
   editor: LexicalEditor
-  trackId: string
-  trackLabel?: string | null
-  trackColor?: string
+  trackInfo: TrackInfo
 }): Promise<void> {
   return new Promise((resolve) => {
     editor.update(

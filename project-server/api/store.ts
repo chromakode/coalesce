@@ -1,20 +1,19 @@
 import {
   BodyStream,
   createHttpError,
-  sql,
   retry,
   timingSafeEqual,
   streams,
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from './env.ts'
-import { ProjectInfo, Project, Track, TrackInfo } from '@shared/types'
+import { Project, Track } from '@shared/types'
 import {
   ProjectFields,
   Segment,
   TrackAudioMetadata,
   TrackFields,
 } from '@shared/schema'
-import { db, redisClient, minioClient, minioBucket, collab } from './main.ts'
+import { redisClient, minioClient, minioBucket, collab } from './main.ts'
 import { initRedis } from '../lib/service.ts'
 import { TRACK_COLOR_ORDER, USER_ROLE } from '@shared/constants'
 import { getJobInfo, queueAudioJob, serializeJobInfo } from './worker.ts'
@@ -26,6 +25,7 @@ import {
   fromNodeStream,
   toNodeStream,
 } from '../lib/utils.ts'
+import { db, getProjectInfo, getTrackInfo } from '../lib/queries.ts'
 
 async function readJSON(path: string): Promise<any> {
   try {
@@ -93,64 +93,6 @@ export async function* watchProject(projectId: string) {
   } finally {
     redisPubSub.close()
   }
-}
-
-export async function getTrackInfo(
-  projectId: string,
-  trackId: string,
-): Promise<TrackInfo> {
-  return await db
-    .selectFrom('track')
-    .innerJoin('projectTracks', 'projectTracks.trackId', 'track.trackId')
-    .where('projectTracks.projectId', '=', projectId)
-    .where('track.trackId', '=', trackId)
-    .select([
-      'track.trackId',
-      'track.createdAt',
-      'track.label',
-      'track.originalFilename',
-      'projectTracks.color',
-    ])
-    .executeTakeFirstOrThrow()
-}
-
-function projectQuery() {
-  return db.selectFrom('project').select(({ selectFrom }) => [
-    'project.projectId',
-    'project.createdAt',
-    'project.title',
-    'project.hidden',
-    'project.guestEditKey',
-    sql<Record<string, TrackInfo>>`(select coalesce(json_object_agg(
-      ${sql.id('info', 'trackId')}, row_to_json(info)
-    ), '{}') from ${selectFrom('track')
-      .innerJoin('projectTracks', (join) =>
-        join
-          .onRef('track.trackId', '=', 'projectTracks.trackId')
-          .onRef('project.projectId', '=', 'projectTracks.projectId'),
-      )
-      .select([
-        'track.trackId',
-        'track.createdAt',
-        'track.label',
-        'track.originalFilename',
-        'projectTracks.color',
-      ])
-      .as('info')})`.as('tracks'),
-  ])
-}
-
-export async function getProjectInfo(projectId: string): Promise<ProjectInfo> {
-  return await projectQuery()
-    .where('project.projectId', '=', projectId)
-    .executeTakeFirstOrThrow()
-}
-
-export async function listProjects(userId: string): Promise<ProjectInfo[]> {
-  return await projectQuery()
-    .innerJoin('projectUsers', 'projectUsers.projectId', 'project.projectId')
-    .where('projectUsers.userId', '=', userId)
-    .execute()
 }
 
 export async function getTrackState(
@@ -310,14 +252,7 @@ export async function updateTrack(
   )
 
   const trackInfo = await getTrackInfo(projectId, trackId)
-  await collab.updateSpeaker.mutate(
-    {
-      trackId,
-      trackLabel: trackInfo.label,
-      trackColor: trackInfo.color,
-    },
-    { context: { projectId } },
-  )
+  await collab.updateSpeaker.mutate({ trackInfo }, { context: { projectId } })
 }
 
 export async function setTrackMetadata(
@@ -432,12 +367,7 @@ export async function createTrack(
     // No need to wait for processing to finish
     const { segments } = await getTrackWords(trackId)
     await collab.addWordsToTrack.mutate(
-      {
-        trackId,
-        trackLabel: trackInfo.label,
-        trackColor: trackInfo.color,
-        segments: segments,
-      },
+      { trackInfo, segments },
       { context: { projectId } },
     )
   }

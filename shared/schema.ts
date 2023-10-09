@@ -86,7 +86,7 @@ export type TrackFieldsInput = z.input<typeof TrackFields>
 
 export interface TrackTable extends TrackFields {
   trackId: string
-  createdAt: ColumnType<Date, undefined, never>
+  createdAt: ColumnType<string, undefined, never>
   originalFilename: string
 }
 
@@ -104,6 +104,16 @@ export interface ProjectTracksTable extends ProjectTracksFields {
 }
 
 export type TrackResult = Selectable<TrackTable> & ProjectTracksFields
+
+// Duplicates the table result type, but distinct as this is the shape we pass around APIs.
+export const TrackInfoModel = TrackFields.merge(ProjectTracksFields).merge(
+  z.object({
+    trackId: z.string(),
+    createdAt: z.string(),
+    originalFilename: z.string(),
+  }),
+)
+export type TrackInfo = z.infer<typeof TrackInfoModel>
 
 export const ProjectUsersFields = z.object({
   role: z.nativeEnum(USER_ROLE),

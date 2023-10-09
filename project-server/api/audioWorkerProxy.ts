@@ -23,7 +23,7 @@ import {
   updateJobStatus,
 } from './worker.ts'
 import { redisClient, collab } from './main.ts'
-import { getTrackInfo, setTrackMetadata } from './store.ts'
+import { setTrackMetadata } from './store.ts'
 import { iterSocket, socketReady } from '../lib/utils.ts'
 
 async function requestHTTPWorker(req: ProcessAudioRequest): Promise<Response> {
@@ -53,7 +53,7 @@ async function requestRunPodWorker(
 }
 
 async function startWorker(job: AudioJob, rawJob: string) {
-  const { jobId } = job
+  const { jobId, projectId, trackId } = job
   const jobKey = await createJobKey(rawJob)
   const baseURI = `${WORKER_PROXY_ORIGIN}/worker/job/${job.jobId}`
 
@@ -76,6 +76,11 @@ async function startWorker(job: AudioJob, rawJob: string) {
       `Error status from worker: ${result.status} ${result.statusText} (${result.url})`,
     )
   }
+
+  await collab.handleTranscribeStatus.mutate(
+    { trackId, status: 'running' },
+    { context: { projectId } },
+  )
 }
 
 async function runWorkerSocket(
@@ -90,18 +95,11 @@ async function runWorkerSocket(
   const queueAddSegments = throttle(async () => {
     const segments = segmentQueue
     segmentQueue = []
-
-    const trackInfo = await getTrackInfo(projectId, trackId)
-    await collab.addWordsToTrack.mutate(
-      {
-        trackId,
-        trackLabel: trackInfo.label ?? 'Speaker',
-        trackColor: trackInfo.color,
-        segments: segments,
-      },
+    await collab.handleTranscribeWords.mutate(
+      { trackId, segments },
       { context: { projectId } },
     )
-  }, 10 * 1000)
+  }, 5 * 1000)
 
   try {
     for await (const ev of iterSocket(ws)) {
@@ -129,6 +127,10 @@ async function runWorkerSocket(
         }
 
         if (update.status === 'complete' || update.status === 'failed') {
+          await collab.handleTranscribeStatus.mutate(
+            { trackId, status: update.status },
+            { context: { projectId } },
+          )
           await deleteJobKey(jobKey)
           ws.close()
           return

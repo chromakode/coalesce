@@ -7,34 +7,25 @@ import {
 } from './env.ts'
 import {
   watchProject,
-  getProjectInfo,
   updateProject,
   updateTrack,
   createTrack,
   canAccessProject,
   streamTrackChunk,
   createProject,
-  listProjects,
-  getTrackInfo,
   removeTrackFromProject,
   projectContainsTrack,
   isValidProjectGuestKey,
   getProjectState,
   getSignedTrackChunkURL,
 } from './store.ts'
+import { getProjectInfo, listProjects, getTrackInfo } from '../lib/queries.ts'
 import { ProjectFields, TrackFields } from '@shared/schema'
-import {
-  initCollab,
-  initMinio,
-  initOry,
-  initPostgres,
-  initRedis,
-} from '../lib/service.ts'
+import { initCollab, initMinio, initOry, initRedis } from '../lib/service.ts'
 import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
 import { socketReady } from '../lib/utils.ts'
 import { SessionInfo } from '@shared/types'
 
-export const db = await initPostgres()
 export const redisClient = await initRedis()
 export const { minioClient, minioBucket } = await initMinio()
 export const auth = initOry()

@@ -1,4 +1,4 @@
-import { SegmentModel, TrackColorModel } from '@shared/schema'
+import { SegmentModel, TrackInfoModel } from '@shared/schema'
 import { FetchCreateContextFnOptions, initTRPC, z } from '../deps.ts'
 import {
   addWordsToEditor,
@@ -9,8 +9,7 @@ import { getCollab } from './collab.ts'
 
 export const createContext = (opts: FetchCreateContextFnOptions) => ({
   projectId: opts.req.headers.get('Coalesce-Project')!,
-  getEditor: async (projectId: string) =>
-    (await getCollab(projectId)).getEditor(),
+  getCollab: async (projectId: string) => await getCollab(projectId),
 })
 
 const t = initTRPC.context<typeof createContext>().create()
@@ -23,25 +22,65 @@ export const rpcRouter = router({
   addWordsToTrack: publicProcedure
     .input(
       z.object({
-        trackId: z.string(),
-        trackLabel: z.string().nullable().optional(),
-        trackColor: TrackColorModel.optional(),
+        trackInfo: TrackInfoModel,
         segments: z.array(SegmentModel),
       }),
     )
     .mutation(async (opts) => {
       const {
-        input: { trackId, trackLabel, trackColor, segments },
-        ctx: { projectId, getEditor },
+        input: { trackInfo, segments },
+        ctx: { projectId, getCollab },
       } = opts
 
-      const editor = await getEditor(projectId)
+      const collab = await getCollab(projectId)
       await addWordsToEditor({
-        editor,
+        editor: collab.getEditor(),
+        trackInfo,
+        words: segments.flatMap((s) => s.words),
+      })
+    }),
+
+  handleTranscribeWords: publicProcedure
+    .input(
+      z.object({
+        trackId: z.string(),
+        segments: z.array(SegmentModel),
+      }),
+    )
+    .mutation(async (opts) => {
+      const {
+        input: { trackId, segments },
+        ctx: { projectId, getCollab },
+      } = opts
+
+      const collab = await getCollab(projectId)
+      await collab.getTranscribeBuffer().handleTrackWords({
         trackId,
-        trackLabel,
-        trackColor,
         segments,
+      })
+    }),
+
+  handleTranscribeStatus: publicProcedure
+    .input(
+      z.object({
+        trackId: z.string(),
+        status: z.union([
+          z.literal('running'),
+          z.literal('complete'),
+          z.literal('failed'),
+        ]),
+      }),
+    )
+    .mutation(async (opts) => {
+      const {
+        input: { trackId, status },
+        ctx: { projectId, getCollab },
+      } = opts
+
+      const collab = await getCollab(projectId)
+      await collab.getTranscribeBuffer().handleTrackStatus({
+        trackId,
+        status,
       })
     }),
 
@@ -54,12 +93,12 @@ export const rpcRouter = router({
     .mutation(async (opts) => {
       const {
         input: { trackId },
-        ctx: { projectId, getEditor },
+        ctx: { projectId, getCollab },
       } = opts
 
-      const editor = await getEditor(projectId)
+      const collab = await getCollab(projectId)
       await removeTrackFromEditor({
-        editor,
+        editor: collab.getEditor(),
         trackId,
       })
     }),
@@ -67,22 +106,18 @@ export const rpcRouter = router({
   updateSpeaker: publicProcedure
     .input(
       z.object({
-        trackId: z.string(),
-        trackLabel: z.string().nullable().optional(),
-        trackColor: TrackColorModel.optional(),
+        trackInfo: TrackInfoModel,
       }),
     )
     .mutation(async (opts) => {
       const {
-        input: { trackId, trackLabel, trackColor },
-        ctx: { projectId, getEditor },
+        input: { trackInfo },
+        ctx: { projectId, getCollab },
       } = opts
-      const editor = await getEditor(projectId)
+      const collab = await getCollab(projectId)
       await updateSpeakerInEditor({
-        editor,
-        trackId,
-        trackLabel,
-        trackColor,
+        editor: collab.getEditor(),
+        trackInfo,
       })
     }),
 })

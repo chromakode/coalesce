@@ -1,19 +1,18 @@
 import {
   ProjectResult,
-  TrackResult,
+  TrackInfo,
   Job,
   JobStatus,
-  Segment,
   TrackAudioMetadata,
 } from './schema.ts'
+
+export type { TrackInfo }
 
 export interface SessionInfo {
   userId: string
   email: string
   logoutURL: string
 }
-
-export type TrackInfo = TrackResult
 
 export type ProjectInfo = ProjectResult & {
   tracks: Record<string, TrackInfo>

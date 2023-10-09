@@ -13,6 +13,7 @@ import {
 } from './store.ts'
 import { iterSocket } from '../lib/utils.ts'
 import { editCollabDoc } from './editorState.ts'
+import { TranscribeBuffer } from './transcribeBuffer.ts'
 
 const { encoding, decoding } = lib0
 
@@ -62,7 +63,8 @@ class CollabProvider {
   lastDocState: Uint8Array | undefined
   awareness = new awarenessProtocol.Awareness(this.doc)
 
-  editor: LexicalEditor | undefined
+  _editor: LexicalEditor | undefined
+  _transcribeBuffer: TranscribeBuffer | undefined
   _disposeEditor: (() => void) | undefined
 
   disposed = false
@@ -84,7 +86,7 @@ class CollabProvider {
     console.timeEnd(title)
 
     const { editor, dispose } = editCollabDoc(this.projectId, this.doc)
-    this.editor = editor
+    this._editor = editor
     this._disposeEditor = dispose
 
     if (storedDoc) {
@@ -172,10 +174,18 @@ class CollabProvider {
     if (this.disposed) {
       throw new Error('getEditor on disposed Collab')
     }
-    if (!this.editor) {
+    if (!this._editor) {
       throw new Error('getEditor on non-loaded Collab')
     }
-    return this.editor
+    return this._editor
+  }
+
+  getTranscribeBuffer() {
+    if (!this._transcribeBuffer) {
+      const editor = this.getEditor()
+      this._transcribeBuffer = new TranscribeBuffer(this.projectId, editor)
+    }
+    return this._transcribeBuffer
   }
 
   async runCollabSocket(ws: WebSocket) {
