@@ -71,14 +71,20 @@ function* $walk(
 export const $walkForward = partial($walk, true)
 export const $walkBackward = partial($walk, false)
 
-function lastNonSoundNode(startNode: LexicalNode) {
-  let node = startNode
-  let next = startNode.getNextSibling()
+/**
+ * Get the index to insert at before/after a SoundNode, skipping to the boundary
+ * before the next SoundNode.
+ */
+function insertionIndex(startNode: SoundNode, insertBefore: boolean) {
+  let node: LexicalNode = startNode
+  let next: LexicalNode | null = insertBefore
+    ? startNode.getPreviousSibling()
+    : startNode.getNextSibling()
   while (next && !$isSoundNode(next)) {
     node = next
-    next = node.getNextSibling()
+    next = insertBefore ? node.getPreviousSibling() : node.getNextSibling()
   }
-  return node
+  return node.getIndexWithinParent() + (insertBefore ? 0 : 1)
 }
 
 export function addWordsToEditor({
@@ -104,7 +110,7 @@ export function addWordsToEditor({
     editor.update(
       () => {
         const root = $getRoot()
-        let docNode: LexicalNode | null = null
+        let docNode: SoundNode | null = null
 
         for (const node of $walkBackward()) {
           if (!$isSoundNode(node)) {
@@ -176,12 +182,9 @@ export function addWordsToEditor({
                 const spaceNode = $createTextNode(' ')
                 newNodes.unshift(spaceNode)
               }
-
-              const docNodeIdx =
-                lastNonSoundNode(docNode).getIndexWithinParent()
               docNode
                 .getParent()!
-                .splice(docNodeIdx + (insertBefore ? 0 : 1), 0, newNodes)
+                .splice(insertionIndex(docNode, insertBefore), 0, newNodes)
             } else {
               const parentNode = $createSpeakerNode(
                 word.speakerName,
@@ -203,7 +206,7 @@ export function addWordsToEditor({
                 // the new speaker parent in between.
                 const [_, afterParent] = $splitNode(
                   docNodeParent,
-                  docNode.getIndexWithinParent() + (insertBefore ? 0 : 1),
+                  insertionIndex(docNode, insertBefore),
                 )
                 afterParent.insertBefore(parentNode)
 
