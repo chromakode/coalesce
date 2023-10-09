@@ -172,8 +172,10 @@ export function addWordsToEditor({
             const docNodeLocation = docNode.getSoundLocation()
             const insertBefore = docNodeLocation.start > word.start
             if (docNodeLocation.source === word.source) {
-              const spaceNode = $createTextNode(' ')
-              newNodes.unshift(spaceNode)
+              if (word.text.startsWith(' ')) {
+                const spaceNode = $createTextNode(' ')
+                newNodes.unshift(spaceNode)
+              }
 
               const docNodeIdx =
                 lastNonSoundNode(docNode).getIndexWithinParent()
