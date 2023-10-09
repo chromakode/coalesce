@@ -9,9 +9,21 @@ function isPlayingStyle(isPlaying: boolean) {
 }
 
 function updateStyle(element: HTMLElement, isPlaying: boolean) {
-  element.style.fontVariationSettings = isPlayingStyle(isPlaying)
   element.style.textDecoration = isPlaying ? 'underline' : ''
   element.style.color = isPlaying ? `var(--label-color)` : ''
+
+  if (isPlaying) {
+    // Measure and fix the size so words can't move around.
+    element.style.fontVariationSettings = isPlayingStyle(false)
+    const { width } = element.getBoundingClientRect()
+    element.style.width = `${width}px`
+  } else {
+    element.style.width = ''
+  }
+
+  element.style.display = isPlaying ? 'inline-block' : ''
+  element.style.whiteSpace = isPlaying ? 'nowrap' : ''
+  element.style.fontVariationSettings = isPlayingStyle(isPlaying)
 }
 
 export class SoundNode extends TextNode {
