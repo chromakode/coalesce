@@ -399,8 +399,15 @@ export function getTimeFromNodeKey(
   if (!loc) {
     return
   }
-  let curTime = loc.start + loc.offset
-  return curTime
+  if (loc.children) {
+    const child = loc.children.find((c) => c.key === key)
+    if (!child) {
+      return
+    }
+    return child.start + loc.offset
+  } else {
+    return loc.start + loc.offset
+  }
 }
 
 // TODO: make customizable or match input
