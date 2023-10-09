@@ -294,6 +294,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     setSelection({ locs, nodes })
 
     if (!locs.length) {
+      engine?.stop()
       return
     }
 
