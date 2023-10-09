@@ -4,6 +4,7 @@ import {
   lexicalNodes,
   $isSpeakerNode,
   $isSoundNode,
+  SoundNode,
 } from '@shared/lexical'
 import {
   pick,
@@ -22,6 +23,11 @@ import {
 } from '../deps.ts'
 import { Word } from '@shared/schema'
 import { TrackInfo } from '@shared/types'
+
+const punctuationPattern = `[\\[\\]\\-“¿({"'.。,，!！?？:：”)}、]`
+const punctuationRe = new RegExp(
+  `(^${punctuationPattern}+|${punctuationPattern}+$)`,
+)
 
 // Patterned off LexicalUtils.$dfs
 function* $walk(
@@ -64,6 +70,16 @@ function* $walk(
 
 export const $walkForward = partial($walk, true)
 export const $walkBackward = partial($walk, false)
+
+function lastNonSoundNode(startNode: LexicalNode) {
+  let node = startNode
+  let next = startNode.getNextSibling()
+  while (next && !$isSoundNode(next)) {
+    node = next
+    next = node.getNextSibling()
+  }
+  return node
+}
 
 export function addWordsToEditor({
   editor,
@@ -127,10 +143,22 @@ export function addWordsToEditor({
             }
           }
 
-          const newWordNode = $createSoundNode(
-            word.text.trim(),
-            pick(word, ['source', 'start', 'end']),
-          )
+          const newNodes: LexicalNode[] = []
+          let newWordNode: SoundNode | undefined
+          for (const part of word.text.trim().split(punctuationRe)) {
+            if (!part.length) {
+              continue
+            }
+            if (part.match(punctuationRe)) {
+              newNodes.push($createTextNode(part))
+            } else {
+              newWordNode = $createSoundNode(
+                part,
+                pick(word, ['source', 'start', 'end']),
+              )
+              newNodes.push(newWordNode)
+            }
+          }
 
           if (docNode === null) {
             const parentNode = $createSpeakerNode(
@@ -138,27 +166,27 @@ export function addWordsToEditor({
               color,
               word.source,
             )
-            parentNode.append(newWordNode)
+            parentNode.append(...newNodes)
             root.append(parentNode)
           } else {
             const docNodeLocation = docNode.getSoundLocation()
             const insertBefore = docNodeLocation.start > word.start
             if (docNodeLocation.source === word.source) {
               const spaceNode = $createTextNode(' ')
-              if (insertBefore) {
-                docNode.insertBefore(spaceNode)
-                spaceNode.insertBefore(newWordNode)
-              } else {
-                docNode.insertAfter(spaceNode)
-                spaceNode.insertAfter(newWordNode)
-              }
+              newNodes.unshift(spaceNode)
+
+              const docNodeIdx =
+                lastNonSoundNode(docNode).getIndexWithinParent()
+              docNode
+                .getParent()!
+                .splice(docNodeIdx + (insertBefore ? 0 : 1), 0, newNodes)
             } else {
               const parentNode = $createSpeakerNode(
                 word.speakerName,
                 color,
                 word.source,
               )
-              parentNode.append(newWordNode)
+              parentNode.append(...newNodes)
 
               const docNodeParent = docNode.getParent()!
               if (insertBefore && !docNode.getPreviousSibling()) {
@@ -190,7 +218,9 @@ export function addWordsToEditor({
             }
           }
 
-          docNode = newWordNode
+          if (newWordNode) {
+            docNode = newWordNode
+          }
         }
       },
       { onUpdate: resolve },
