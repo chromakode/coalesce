@@ -271,7 +271,10 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       }
       prevSelection.current = selection
 
-      if (!selection) {
+      if (
+        !selection ||
+        ($isRangeSelection(selection) && selection.isCollapsed())
+      ) {
         onSelect?.([], [])
         return
       }
