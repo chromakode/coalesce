@@ -168,7 +168,11 @@ export interface EditorProps {
   scrollerRef: MutableRefObject<HTMLElement | null>
   onSync: (isSynced: boolean) => void
   onAwareness: (awareness: WebsocketProvider['awareness']) => void
-  onSelect?: (locs: OffsetSoundLocation[], nodes: SoundNodeData[]) => void
+  onSelect?: (selectionInfo: {
+    nearestNodeKey: string | null
+    locs: OffsetSoundLocation[]
+    nodes: SoundNodeData[]
+  }) => void
   onMetricsUpdated?: (metrics: EditorMetrics) => void
 }
 
@@ -271,23 +275,27 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       }
       prevSelection.current = selection
 
-      if (
-        !selection ||
-        ($isRangeSelection(selection) && selection.isCollapsed())
-      ) {
-        onSelect?.([], [])
+      if (!selection) {
+        onSelect?.({ nearestNodeKey: null, locs: [], nodes: [] })
         return
       }
 
       const selectedNodes = selection.getNodes()
       const soundNodes = selectedNodes.filter($isSoundNode)
+      const nearestNodeKey = soundNodes[0]?.getKey() ?? null
+
+      if ($isRangeSelection(selection) && selection.isCollapsed()) {
+        onSelect?.({ nearestNodeKey, locs: [], nodes: [] })
+        return
+      }
 
       const rawLocs = soundNodes.map((l) => l.getSoundLocation())
       const locs = processLocations(rawLocs)
-      onSelect?.(
+      onSelect?.({
+        nearestNodeKey,
         locs,
-        soundNodes.map((n) => ({ ...n.exportJSON(), key: n.getKey() })),
-      )
+        nodes: soundNodes.map((n) => ({ ...n.exportJSON(), key: n.getKey() })),
+      })
     })
   },
   150)

@@ -287,11 +287,26 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     awarenessRef.current?.setLocalStateField('playbackStatus', playbackStatus)
   }, [engineStatus])
 
-  const handleSelect = (
-    locs: OffsetSoundLocation[],
-    nodes: SoundNodeData[],
-  ) => {
+  const handleSelect = ({
+    locs,
+    nodes,
+    nearestNodeKey,
+  }: {
+    nearestNodeKey: string | null
+    locs: OffsetSoundLocation[]
+    nodes: SoundNodeData[]
+  }) => {
     setSelection({ locs, nodes })
+
+    if (nearestNodeKey) {
+      const locTime = getTimeFromNodeKey(
+        metrics?.nodeKeyToLoc ?? {},
+        nearestNodeKey,
+      )
+      if (locTime != null) {
+        setCurTimeMS(locTime * 1000)
+      }
+    }
 
     if (!locs.length) {
       engine?.stop()
@@ -299,14 +314,6 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     }
 
     play(locs, { scroll: false })
-
-    const locTime = getTimeFromNodeKey(
-      metrics?.nodeKeyToLoc ?? {},
-      nodes[0].key,
-    )
-    if (locTime != null) {
-      setCurTimeMS(locTime * 1000)
-    }
   }
 
   const handlePlayToggle = () => {
