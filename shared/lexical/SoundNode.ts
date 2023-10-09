@@ -2,7 +2,7 @@ import { SoundLocation } from '../types.ts'
 
 // @deno-types="https://esm.sh/lexical@0.11.3?pin=130"
 import { TextNode } from 'lexical'
-import type { EditorConfig, LexicalNode, NodeKey, TextModeType } from 'lexical'
+import type { EditorConfig, LexicalNode, NodeKey } from 'lexical'
 
 function isPlayingStyle(isPlaying: boolean) {
   return isPlaying ? '"GRAD" 150, "YOPQ" 100' : ''
