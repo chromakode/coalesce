@@ -84,7 +84,10 @@ function insertionIndex(startNode: SoundNode, insertBefore: boolean) {
     node = next
     next = insertBefore ? node.getPreviousSibling() : node.getNextSibling()
   }
-  return node.getIndexWithinParent() + (insertBefore ? 0 : 1)
+  return {
+    idx: node.getIndexWithinParent() + (insertBefore ? 0 : 1),
+    isAtEnd: next === null,
+  }
 }
 
 export function addWordsToEditor({
@@ -184,7 +187,7 @@ export function addWordsToEditor({
               }
               docNode
                 .getParent()!
-                .splice(insertionIndex(docNode, insertBefore), 0, newNodes)
+                .splice(insertionIndex(docNode, insertBefore).idx, 0, newNodes)
             } else {
               const parentNode = $createSpeakerNode(
                 word.speakerName,
@@ -194,20 +197,18 @@ export function addWordsToEditor({
               parentNode.append(...newNodes)
 
               const docNodeParent = docNode.getParent()!
-              if (insertBefore && !docNode.getPreviousSibling()) {
+              const { idx, isAtEnd } = insertionIndex(docNode, insertBefore)
+              if (insertBefore && isAtEnd) {
                 // If the doc node is at the beginning of its parent, insert the
                 // new speaker parent before.
                 docNodeParent.insertBefore(parentNode)
-              } else if (!insertBefore && !docNode.getNextSibling()) {
+              } else if (!insertBefore && isAtEnd) {
                 // Similarly, if at the end, insert the new speaker parent after.
                 docNodeParent.insertAfter(parentNode)
               } else {
                 // Otherwise, we need to split the doc node's parent and insert
                 // the new speaker parent in between.
-                const [_, afterParent] = $splitNode(
-                  docNodeParent,
-                  insertionIndex(docNode, insertBefore),
-                )
+                const [_, afterParent] = $splitNode(docNodeParent, idx)
                 afterParent.insertBefore(parentNode)
 
                 // Trim leading space
