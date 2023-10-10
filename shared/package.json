@@ -5,9 +5,9 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "dependencies": {
-    "@lexical/rich-text": "^0.11.3",
+    "@lexical/rich-text": "^0.12.2",
     "kysely": "^0.25.0",
-    "lexical": "^0.11.3",
+    "lexical": "^0.12.2",
     "zod": "^3.21.4"
   }
 }

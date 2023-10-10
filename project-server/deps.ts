@@ -31,7 +31,7 @@ export type { Migration, MigrationProvider } from 'kysely'
 
 export { z, type ZodTypeAny, type output as ZodOutput } from 'zod'
 
-// @deno-types="https://esm.sh/lexical@0.11.3?pin=130"
+// @deno-types="https://esm.sh/lexical@0.12.2?pin=130"
 export {
   $createParagraphNode,
   $createTextNode,
@@ -44,10 +44,10 @@ export type { LexicalEditor, LexicalNode } from 'lexical'
 
 // @lexical/yjs requires the CSM version of yjs which is incompatible with our mjs import
 // see: https://github.com/facebook/lexical/issues/1707
-export { default as lexicalYjs } from 'https://esm.sh/@lexical/yjs@0.11.3?pin=130&external=lexical,yjs'
+export { default as lexicalYjs } from 'https://esm.sh/@lexical/yjs@0.12.2?pin=130&external=lexical,yjs'
 
 // Lexical's dist confuses both Deno and esm.sh because it selects between a .dev and a .prod JS file
-export { createHeadlessEditor } from 'https://esm.sh/@lexical/headless@0.11.3?pin=130&external=lexical&cjs-exports=createHeadlessEditor'
+export { createHeadlessEditor } from 'https://esm.sh/@lexical/headless@0.12.2?pin=130&external=lexical&cjs-exports=createHeadlessEditor'
 
 // @deno-types="npm:@types/pg@^8.10.2"
 export { default as pg } from 'npm:pg@^8.11.1'
