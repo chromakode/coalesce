@@ -254,7 +254,7 @@ function TrackUpload({
           </AlertDialogOverlay>
         </AlertDialog>
       </Flex>
-      <Collapse in={isRunning}>
+      <Collapse in={progress > 0}>
         <Progress
           w="full"
           mt="2"
