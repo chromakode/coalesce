@@ -161,7 +161,6 @@ function TrackUpload({
     [track],
   )
 
-  // TODO: display job failed state
   const progress = 0.2 * uploadProgress + 0.8 * jobProgress(jobs, 'process')
   const currentTaskLabel = getCurrentTaskLabel(uploadProgress < 1, jobs)
 
