@@ -6,30 +6,37 @@ import {
   Heading,
   LinkBox,
   LinkOverlay,
+  Spacer,
   Spinner,
   StackDivider,
   Text,
   VStack,
 } from '@chakra-ui/react'
 import { ProjectInfo } from '@shared/types'
+import { formatRelative } from 'date-fns'
 import { useAsync, useAsyncFn } from 'react-use'
 import { Link, useLocation } from 'wouter'
 import { useAPI } from '../components/APIContext'
 import { useSession } from '../components/SessionContext'
 
 function ProjectItem({
-  project: { projectId, title, tracks },
+  project: { projectId, title, tracks, createdAt },
 }: {
   project: ProjectInfo
 }) {
+  const now = Date.now()
   const trackEntries = Object.entries(tracks)
   return (
     <LinkBox w="full">
-      <Heading>
-        <Link href={`/project/${projectId}`}>
-          <LinkOverlay>{title}</LinkOverlay>
-        </Link>
-      </Heading>
+      <HStack alignItems="baseline">
+        <Heading>
+          <Link href={`/project/${projectId}`}>
+            <LinkOverlay>{title}</LinkOverlay>
+          </Link>
+        </Heading>
+        <Spacer />
+        <Text>{formatRelative(new Date(createdAt), now)}</Text>
+      </HStack>
       <HStack>
         <Text>
           {trackEntries.length} tracks{trackEntries.length > 0 ? ':' : ''}
