@@ -64,6 +64,10 @@ function getCurrentTaskLabel(
     return null
   }
 
+  if (jobs.some(({ state: { status } }) => status === 'failed')) {
+    return 'Error'
+  }
+
   const currentTasks = jobs.filter(
     ({ state: { status } }) => status === 'running',
   )
@@ -181,7 +185,11 @@ function TrackUpload({
         />
         <Flex minW="0" flex="1" alignItems="baseline">
           {currentTaskLabel && (
-            <Text mr="2" fontWeight="bold" color="blue.600">
+            <Text
+              mr="2"
+              fontWeight="bold"
+              color={currentTaskLabel === 'Error' ? 'red.700' : 'blue.600'}
+            >
               {currentTaskLabel}
             </Text>
           )}
