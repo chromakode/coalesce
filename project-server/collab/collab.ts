@@ -5,13 +5,14 @@ import {
   syncProtocol,
   lib0,
   LexicalEditor,
+  EventIterator,
 } from '../deps.ts'
 import {
   getAwarenessData,
   coalesceCollabDoc,
   saveAwarenessData,
 } from './store.ts'
-import { iterSocket } from '../lib/utils.ts'
+import { iterSocket, socketReady } from '../lib/utils.ts'
 import { editCollabDoc } from './editorState.ts'
 import { TranscribeBuffer } from './transcribeBuffer.ts'
 
@@ -188,7 +189,10 @@ class CollabProvider {
     return this._transcribeBuffer
   }
 
-  async runCollabSocket(ws: WebSocket) {
+  async runCollabSocket(
+    ws: WebSocket,
+    incomingMessages: EventIterator<MessageEvent>,
+  ) {
     if (this.disposed) {
       throw new Error('runCollabSocket on disposed Collab')
     }
@@ -320,17 +324,12 @@ class CollabProvider {
     }
 
     try {
-      ws.binaryType = 'arraybuffer'
-
-      // Start queueing messages immediately while we load the doc
-      const clientMessages = iterSocket(ws)
-
       await sendInitToClient()
 
       doc.on('update', handleDocUpdate)
       awareness.on('update', handleAwarenessChange)
 
-      for await (const ev of clientMessages) {
+      for await (const ev of incomingMessages) {
         handleReceiveFromClient(ev)
       }
     } finally {

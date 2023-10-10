@@ -135,19 +135,18 @@ const projectRouter = new Router<ContextState & { project: string }>()
     }
 
     const ws = ctx.upgrade()
-    await socketReady(ws)
-
     const upstreamWS = new WebSocket(COLLAB_WS_ENDPOINT + `?project=${project}`)
-    await socketReady(upstreamWS)
 
-    upstreamWS.onmessage = (ev) => {
+    upstreamWS.onmessage = async (ev) => {
+      await socketReady(ws)
       ws.send(ev.data)
+    }
+    ws.onmessage = async (ev) => {
+      await socketReady(upstreamWS)
+      upstreamWS.send(ev.data)
     }
     upstreamWS.onclose = () => {
       ws.close()
-    }
-    ws.onmessage = (ev) => {
-      upstreamWS.send(ev.data)
     }
     ws.onclose = () => {
       upstreamWS.close()

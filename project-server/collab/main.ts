@@ -7,7 +7,7 @@ import {
   Router,
   fetchRequestHandler,
 } from '../deps.ts'
-import { requireEnv, socketReady } from '../lib/utils.ts'
+import { iterSocket, requireEnv, socketReady } from '../lib/utils.ts'
 import { getCollab } from './collab.ts'
 import * as rpc from './rpc.ts'
 import { initMinio, initRedis } from '../lib/service.ts'
@@ -47,9 +47,15 @@ const router = new Router<ContextState>()
     }
 
     const ws = ctx.upgrade()
+    ws.binaryType = 'arraybuffer'
+
     await socketReady(ws)
+
+    // Start queueing messages immediately while we load the doc
+    const clientMessages = iterSocket(ws)
+
     const collab = await getCollab(projectId)
-    await collab.runCollabSocket(ws)
+    await collab.runCollabSocket(ws, clientMessages)
   })
   .all('/trpc/(.*)', async (ctx) => {
     const res = await fetchRequestHandler({
