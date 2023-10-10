@@ -300,18 +300,22 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   },
   150)
 
-  const handleChange = debounce(function handleChange() {
-    const allLocs = getAllSoundLocations()
-    const endTime = getEndTime(allLocs)
-    if (endTime === null) {
-      return
-    }
+  const handleChange = debounce(
+    function handleChange() {
+      const allLocs = getAllSoundLocations()
+      const endTime = getEndTime(allLocs)
+      if (endTime === null) {
+        return
+      }
 
-    onMetricsUpdated?.({
-      durationMS: endTime * 1000,
-      nodeKeyToLoc: getNodeKeyToLoc(allLocs),
-    })
-  }, 500)
+      onMetricsUpdated?.({
+        durationMS: endTime * 1000,
+        nodeKeyToLoc: getNodeKeyToLoc(allLocs),
+      })
+    },
+    500,
+    { leading: true, trailing: true, maxWait: 2000 },
+  )
 
   useEffect(handleChange, [])
 
