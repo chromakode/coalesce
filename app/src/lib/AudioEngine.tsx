@@ -320,7 +320,7 @@ export function removeGaps(locs: OffsetSoundLocation[], padding = 0.15) {
     return []
   }
 
-  const baseStart = locs[0].start + locs[0].offset
+  const baseStart = 0
   let skew = 0
   let end = 0
 

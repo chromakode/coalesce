@@ -50,7 +50,7 @@ export function playLocations(
     return { duration: 0, run: emptyScheduler }
   }
 
-  let minTime = locs[0].start
+  let minTime = locs[0].start + locs[0].offset
 
   const duration =
     getEndTime(locs)! - startSeek - minTime + clipStartFudge + clipEndFudge
