@@ -14,6 +14,7 @@ import {
 } from '@chakra-ui/react'
 import { ProjectInfo } from '@shared/types'
 import { formatRelative } from 'date-fns'
+import { sortBy } from 'lodash-es'
 import { useAsync, useAsyncFn } from 'react-use'
 import { Link, useLocation } from 'wouter'
 import { useAPI } from '../components/APIContext'
@@ -101,9 +102,11 @@ export default function IndexPage() {
                 divider={<StackDivider borderColor="gray.200" />}
                 overflowX="auto"
               >
-                {projects.value.map((project) => (
-                  <ProjectItem key={project.projectId} project={project} />
-                ))}
+                {sortBy(projects.value, (p) => -new Date(p.createdAt)).map(
+                  (project) => (
+                    <ProjectItem key={project.projectId} project={project} />
+                  ),
+                )}
               </VStack>
             )}
             <Button
