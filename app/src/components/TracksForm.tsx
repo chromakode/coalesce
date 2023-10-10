@@ -207,7 +207,7 @@ function TrackUpload({
               size="sm"
               fontSize="lg"
               color={color}
-              defaultValue={track?.label}
+              defaultValue={track?.label ?? ''}
               onChange={handleChangeLabel}
             />
           )}
