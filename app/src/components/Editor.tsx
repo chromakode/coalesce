@@ -330,6 +330,13 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         latestOnSync.current(isSynced)
       })
 
+      doc.once('update', () => {
+        setTimeout(() => {
+          handleChange()
+          handleChange.flush()
+        })
+      })
+
       provider.awareness.on('change', () => {
         latestOnAwareness.current(provider.awareness)
       })
@@ -346,9 +353,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         contentEditable={
           <ContentEditable className="editor-input" spellCheck={false} />
         }
-        placeholder={
-          <div className="editor-placeholder">Enter some plain text...</div>
-        }
+        placeholder={null}
         ErrorBoundary={LexicalErrorBoundary}
       />
       <OnChangePlugin onChange={handleSelectionChange} />

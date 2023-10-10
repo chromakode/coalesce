@@ -487,6 +487,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const bottomWavePadding = waves.length > 0 ? '10rem' : ''
 
   const hasTracks = project && Object.keys(project.tracks).length > 0
+  const hasTranscriptions = hasTracks && metrics
 
   return (
     <Flex h="100vh" flexDir="column" bg="gray.100">
@@ -615,23 +616,22 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                   },
                 }}
               >
-                {hasTracks ? (
-                  <Editor
-                    ref={editorRef}
-                    scrollerRef={scrollerRef}
-                    project={project}
-                    initialNickname={initialNickname ?? 'Anonymous'}
-                    onSync={handleOnSync}
-                    onAwareness={handleAwareness}
-                    onSelect={handleSelect}
-                    onMetricsUpdated={setMetrics}
-                  />
-                ) : (
+                {isInitialSynced && !hasTranscriptions && (
                   <Center mt="16" opacity=".5">
                     <Spinner size="lg" mr="4" />
                     <Text>Waiting for transcriptions...</Text>
                   </Center>
                 )}
+                <Editor
+                  ref={editorRef}
+                  scrollerRef={scrollerRef}
+                  project={project}
+                  initialNickname={initialNickname ?? 'Anonymous'}
+                  onSync={handleOnSync}
+                  onAwareness={handleAwareness}
+                  onSelect={handleSelect}
+                  onMetricsUpdated={setMetrics}
+                />
               </Box>
             </Container>
           )}
