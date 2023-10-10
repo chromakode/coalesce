@@ -158,7 +158,7 @@ function TrackUpload({
           })
         }
       }, 500),
-    [uploadProgress, track],
+    [track],
   )
 
   // TODO: display job failed state
