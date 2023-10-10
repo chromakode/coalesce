@@ -66,7 +66,7 @@ export default function IndexPage() {
           <ChakraLink href={session.logoutURL}>Logout</ChakraLink>
         </HStack>
       )}
-      <Heading as="h1" size="2xl" mb="4">
+      <Heading as="h1" size="2xl" mt="12" mb="8">
         Coalesce
       </Heading>
       {projects.loading ? (
@@ -79,7 +79,7 @@ export default function IndexPage() {
             w="container.lg"
             maxW="92vw"
             minH="50vh"
-            p="8"
+            mb="12"
             flexDirection="column"
             bg="white"
             borderRadius="xl"
@@ -89,8 +89,10 @@ export default function IndexPage() {
               <VStack
                 flex="1"
                 w="full"
+                p="8"
                 spacing="4"
                 divider={<StackDivider borderColor="gray.200" />}
+                overflowX="auto"
               >
                 {projects.value.map((project) => (
                   <ProjectItem key={project.projectId} project={project} />
@@ -101,6 +103,7 @@ export default function IndexPage() {
               fontSize="2xl"
               size="lg"
               colorScheme="green"
+              m="8"
               onClick={handleCreateProject}
               isLoading={createProjectStatus.loading}
             >
