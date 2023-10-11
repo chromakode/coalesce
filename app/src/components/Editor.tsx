@@ -29,9 +29,11 @@ import {
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  $setSelection,
   EditorState,
   LexicalEditor,
   LexicalNode,
+  RangeSelection,
 } from 'lexical'
 import { debounce } from 'lodash-es'
 import {
@@ -96,6 +98,12 @@ function SpeakerPlugin({ project }: { project: Project }) {
           return false
         }
 
+        const selection = $getSelection()
+        let prevSelection: RangeSelection | undefined
+        if ($isRangeSelection(selection)) {
+          prevSelection = selection.clone()
+        }
+
         let curNode: LexicalNode | null = soundNode
 
         // Scan backwards to start or first node with different source
@@ -112,20 +120,17 @@ function SpeakerPlugin({ project }: { project: Project }) {
 
           curNode.remove()
 
-          // If the previous parent is empty, remove it and nudge the selection forward
+          // If the previous parent is empty, remove it
           if (origParentNode?.isEmpty()) {
-            const selection = $getSelection()
-            if (
-              $isRangeSelection(selection) &&
-              selection.anchor.key === origParentNode.getKey()
-            ) {
-              destNode.selectStart()
-            }
             origParentNode.remove()
           }
 
           destNode.append(curNode)
           curNode = nextNode
+        }
+
+        if (prevSelection) {
+          $setSelection(prevSelection)
         }
       }
 
