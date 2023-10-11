@@ -140,7 +140,7 @@ function SpeakerPlugin({ project }: { project: Project }) {
         appendAdjacentNodes(speakerNode)
       }
     })
-  }, [editor])
+  }, [editor, project])
 
   return null
 }
