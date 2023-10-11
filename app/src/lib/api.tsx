@@ -128,7 +128,7 @@ export class CoalesceAPIClient {
     params: ProjectFieldsInput,
   ): Promise<void> => {
     return this.fetchJSON(`${server}/project/${projectId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(params),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -140,7 +140,7 @@ export class CoalesceAPIClient {
     params: TrackFieldsInput,
   ): Promise<void> => {
     return this.fetchJSON(`${server}/project/${projectId}/track/${trackId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(params),
       headers: { 'Content-Type': 'application/json' },
     })

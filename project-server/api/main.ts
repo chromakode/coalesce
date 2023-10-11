@@ -72,9 +72,9 @@ const app = new Application<ContextState>()
 const trackRouter = new Router<
   ContextState & { project: string; track: string }
 >()
-  .put('/', async (ctx) => {
+  .patch('/', async (ctx) => {
     const body = await ctx.request.body({ type: 'json' }).value
-    const fields = TrackFields.parse(body)
+    const fields = TrackFields.partial().parse(body)
     await updateTrack(ctx.state.project, ctx.state.track, fields)
     ctx.response.status = 200
   })
@@ -152,9 +152,9 @@ const projectRouter = new Router<ContextState & { project: string }>()
       upstreamWS.close()
     }
   })
-  .put('/', async (ctx) => {
+  .patch('/', async (ctx) => {
     const body = await ctx.request.body({ type: 'json' }).value
-    const fields = ProjectFields.parse(body)
+    const fields = ProjectFields.partial().parse(body)
     await updateProject(ctx.state.project, fields)
     ctx.response.body = await getProjectInfo(ctx.state.project)
   })
