@@ -50,10 +50,7 @@ export function playLocations(
     return { duration: 0, run: emptyScheduler }
   }
 
-  let minTime = locs[0].start + locs[0].offset
-
-  const duration =
-    getEndTime(locs)! - startSeek - minTime + clipStartFudge + clipEndFudge
+  const duration = getEndTime(locs)! - startSeek - clipStartFudge + clipEndFudge
 
   const scheduler: CreateAudioScheduler = async function* (
     ctx,
@@ -93,7 +90,7 @@ export function playLocations(
 
         // Time the buffer begins playing (at start of pre-start fudge)
         let queueTime =
-          startTime + start + offset - minTime - startSeek - clampedStartFudge
+          startTime + start + offset - startSeek - clampedStartFudge
 
         // If we've generated up to the buffer threshold, wait for all pending
         // fetches to finish and pause until generation is triggered again.

@@ -313,7 +313,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
       return
     }
 
-    play(locs, { scroll: false })
+    play(locs, { startOffsetMS: locs[0].start + locs[0].offset, scroll: false })
   }
 
   const handlePlayToggle = () => {
@@ -374,7 +374,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
 
       const outputURL = await exportWAV(
         engine!,
-        playLocations(locs),
+        playLocations(locs, { startSeek: metrics!.startMS / 1000 }),
         setExportProgress,
       )
 
@@ -687,7 +687,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
         <Box flex="1" position="relative">
           <Slider
             aria-label="Playback progress"
-            min={0}
+            min={metrics?.startMS}
             max={metrics?.durationMS}
             value={playbackTime}
             onChange={handleSeek}
