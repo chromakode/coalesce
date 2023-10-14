@@ -374,7 +374,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
 
       const outputURL = await exportWAV(
         engine!,
-        playLocations(locs, { startSeek: metrics!.startMS / 1000 }),
+        playLocations(locs, { startSeek: metrics!.start }),
         setExportProgress,
       )
 
@@ -687,8 +687,8 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
         <Box flex="1" position="relative">
           <Slider
             aria-label="Playback progress"
-            min={metrics?.startMS}
-            max={metrics?.durationMS}
+            min={(metrics?.start ?? 0) * 1000}
+            max={(metrics?.duration ?? 0) * 1000}
             value={playbackTime}
             onChange={handleSeek}
             focusThumbOnChange={false}
@@ -702,7 +702,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
             ))}
           </Slider>
         </Box>
-        {metrics && <DisplayMS ms={metrics.durationMS} />}
+        {metrics && <DisplayMS ms={metrics.duration * 1000} />}
         <IconButton
           colorScheme="green"
           variant="outline"

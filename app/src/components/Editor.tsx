@@ -163,8 +163,8 @@ export interface EditorRef {
 }
 
 export interface EditorMetrics {
-  startMS: number
-  durationMS: number
+  start: number
+  duration: number
   nodeKeyToLoc: Record<string, OffsetSoundLocation>
 }
 
@@ -315,8 +315,8 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       }
 
       onMetricsUpdated?.({
-        startMS: (allLocs[0].start + allLocs[0].offset) * 1000,
-        durationMS: endTime * 1000,
+        start: allLocs[0].start + allLocs[0].offset,
+        duration: endTime,
         nodeKeyToLoc: getNodeKeyToLoc(allLocs),
       })
     },
