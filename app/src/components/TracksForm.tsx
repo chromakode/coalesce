@@ -29,7 +29,7 @@ import { useAPI } from './APIContext'
 
 function jobProgress(jobs: JobInfo[] | null, task: JobInfo['task']): number {
   if (!jobs) {
-    return 0
+    return 1
   }
 
   const job = jobs.find(({ task: jobTask }) => jobTask === task)
@@ -113,7 +113,7 @@ function TrackUpload({
   const labelRef = useRef<string>()
 
   // TODO handle errors
-  const [uploadProgress, setUploadProgress] = useState(track ? 1 : 0)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const uploadRef = useRef<ReturnType<typeof uploadTrack>>()
   useEffect(() => {
     if (uploadRef.current || !file) {
@@ -131,8 +131,8 @@ function TrackUpload({
     })
   }, [file])
 
-  const isUploading = useCallback(() => uploadRef.current != null, [])
-  useBeforeUnload(isUploading, `Cancel upload of ${file?.name}?`)
+  const checkUploadInProgress = useCallback(() => uploadRef.current != null, [])
+  useBeforeUnload(checkUploadInProgress, `Cancel upload of ${file?.name}?`)
 
   const handleRemove = useCallback(() => {
     uploadRef.current?.abort()
@@ -161,8 +161,11 @@ function TrackUpload({
     [track],
   )
 
-  const progress = 0.2 * uploadProgress + 0.8 * jobProgress(jobs, 'process')
-  const currentTaskLabel = getCurrentTaskLabel(uploadProgress < 1, jobs)
+  const hasTrack = !!track
+  const progress =
+    0.2 * (hasTrack ? 1 : uploadProgress) + 0.8 * jobProgress(jobs, 'process')
+  const isUploading = uploadProgress > 0 && uploadProgress < 1
+  const currentTaskLabel = getCurrentTaskLabel(isUploading, jobs)
 
   const isRunning =
     jobs != null && jobs.some(({ state }) => state.status === 'running')
