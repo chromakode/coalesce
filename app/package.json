@@ -38,7 +38,7 @@
     "react-use": "^17.4.0",
     "reconnecting-websocket": "^4.4.0",
     "slugify": "^1.6.6",
-    "wavesurfer.js": "^7.1.4",
+    "wavesurfer.js": "^7.3.6",
     "wouter": "^2.11.0",
     "y-websocket": "^1.5.0",
     "yjs": "^13.6.7"
