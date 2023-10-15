@@ -78,11 +78,11 @@ class WorkerSocket:
                 self.has_msgs_queued.clear()
                 break
             except websockets.ConnectionClosed:
-                tries += 1
-                if tries > 5:
-                    raise
-
                 while not self.ws.open:
+                    tries += 1
+                    if tries > 5:
+                        raise
+
                     print("Reconnecting to WebSocket...", flush=True)
                     await asyncio.sleep(0.5 * tries)
                     try:
