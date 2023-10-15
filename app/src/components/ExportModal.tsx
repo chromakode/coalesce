@@ -104,7 +104,9 @@ export function ExportModal({
                     onChange={handleToggleTrack}
                     disabled={exportMode !== ExportMode.Separate}
                   >
-                    <Text color={`${track.color}.600`}>{track.label}</Text>
+                    <Text color={`${track.color}.600`}>
+                      {track.label ?? 'Speaker'}
+                    </Text>
                   </Checkbox>
                 ))}
               </VStack>
