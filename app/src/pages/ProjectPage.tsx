@@ -88,7 +88,7 @@ import { SourcePlayOptions, playLocations } from '../lib/AudioScheduler'
 
 import './ProjectPage.css'
 
-const WAVE_PADDING = 0.5
+const WAVE_PADDING = 0.75
 const MAX_WAVE_NODES = 10
 
 export interface CollaboratorState {
