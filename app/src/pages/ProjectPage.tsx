@@ -516,7 +516,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     }
 
     return Object.entries(locsBySource).map(([lineSource, locs]) => (
-      <HStack key={lineSource}>
+      <HStack key={lineSource} margin="auto">
         {locs.map((l) => {
           // FIXME: inefficient multi pass filtering
           const regions = nodes
@@ -712,7 +712,6 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           left="0"
           right="0"
           m="4"
-          justifyContent="center"
           borderWidth="2px"
           borderColor="gray.400"
           borderRadius="lg"
