@@ -6,10 +6,15 @@ import {
   SoundLocationWithBuffer,
 } from './AudioEngine'
 
+export interface SourcePlayOptions {
+  gain?: number
+}
+
 export interface PlayOptions {
   startSeek?: number
   clipStartFudge?: number
   clipEndFudge?: number
+  sourceOptions?: Record<string, SourcePlayOptions>
   verbose?: boolean
   onLocPlaying?: (loc: SoundLocation, isPlaying: boolean) => void
 }
@@ -42,6 +47,7 @@ export function playLocations(
     startSeek = 0,
     clipStartFudge = 0.05,
     clipEndFudge = 0.15,
+    sourceOptions = {},
     verbose = false,
     onLocPlaying,
   }: PlayOptions = {},
@@ -135,9 +141,10 @@ export function playLocations(
           bufNode.buffer = buffer
           bufNode.connect(wordGainNode)
 
+          const fullGain = sourceOptions[source]?.gain ?? 1
           wordGainNode.gain.setValueAtTime(0, queueTime)
-          wordGainNode.gain.linearRampToValueAtTime(1, clipTime)
-          wordGainNode.gain.setValueAtTime(1, clipTime + clipDuration)
+          wordGainNode.gain.linearRampToValueAtTime(fullGain, clipTime)
+          wordGainNode.gain.setValueAtTime(fullGain, clipTime + clipDuration)
           wordGainNode.gain.linearRampToValueAtTime(
             0,
             clipTime + clipDuration + clipEndFudge,

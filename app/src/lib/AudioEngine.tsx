@@ -365,6 +365,10 @@ export function processLocations(locs: SoundLocation[]) {
   return removeGaps(coalesceLocations(offsetMovedLocations(filteredLocs)))
 }
 
+export function decibelsToGain(decibels: number) {
+  return Math.pow(10, decibels / 20)
+}
+
 export function getEndTime(locs: OffsetSoundLocation[]): number | null {
   const lastLoc = last(locs)
   if (!lastLoc) {

@@ -29,6 +29,7 @@ import {
   debounce,
   get,
   groupBy,
+  mapValues,
   merge,
   set,
   throttle,
@@ -78,11 +79,12 @@ import { WaveEditor } from '../components/WaveEditor'
 import AudioEngine, {
   AudioEngineStatus,
   OffsetSoundLocation,
+  decibelsToGain,
   exportWAV,
   getTimeFromNodeKey,
   padLocation,
 } from '../lib/AudioEngine'
-import { playLocations } from '../lib/AudioScheduler'
+import { SourcePlayOptions, playLocations } from '../lib/AudioScheduler'
 
 import './ProjectPage.css'
 
@@ -194,6 +196,17 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
       ? curTimeMS + engineStatus.playbackTime
       : curTimeMS
 
+  // Set source gains to normalize track volumes
+  const sourceOptions: SourcePlayOptions = useMemo<
+    Record<string, SourcePlayOptions>
+  >(
+    () =>
+      mapValues(project?.tracks, (track) => ({
+        gain: decibelsToGain(-(track.audio?.maxDBFS ?? 0)),
+      })),
+    [project],
+  )
+
   useEffect(() => {
     if (!project) {
       return
@@ -243,6 +256,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           startSeek: startOffsetMS / 1000,
           onLocPlaying: (loc: SoundLocation, isPlaying: boolean) =>
             handleLocPlaying(loc, isPlaying, scroll),
+          sourceOptions,
         }),
       )
     } catch (err) {
@@ -385,7 +399,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     async function doExportMixdown() {
       const blob = await exportWAV(
         engine!,
-        playLocations(locs, { startSeek: metrics!.start }),
+        playLocations(locs, { startSeek: metrics!.start, sourceOptions }),
         setExportProgress,
       )
 
@@ -414,6 +428,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           engine!,
           playLocations(trackLocs[trackId], {
             startSeek: metrics!.start,
+            sourceOptions,
           }),
           (progress) => {
             setExportProgress(
