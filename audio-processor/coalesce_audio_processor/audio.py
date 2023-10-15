@@ -31,6 +31,7 @@ def split_audio(
         "sampleRate": audio.frame_rate,
         "sampleCount": int(audio.frame_count()),
         "chunkLength": int(chunk_len),
+        "maxDBFS": audio.max_dBFS,
     }
     if metadata_callback:
         metadata_callback(metadata)

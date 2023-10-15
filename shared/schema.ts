@@ -31,6 +31,7 @@ export const TrackAudioMetadataModel = z.object({
   sampleRate: z.number(),
   sampleCount: z.number(),
   chunkLength: z.number(),
+  maxDBFS: z.number(),
 })
 export type TrackAudioMetadata = z.infer<typeof TrackAudioMetadataModel>
 
