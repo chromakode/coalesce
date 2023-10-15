@@ -67,5 +67,5 @@ export function WaveEditor(options: UseWaveSurferOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   useWavesurfer(containerRef, options)
 
-  return <div className="wave-container" ref={containerRef} />
+  return <div ref={containerRef} />
 }
