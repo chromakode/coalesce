@@ -395,6 +395,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
       slugify(text, {
         remove: /[*+~.()'"!:@$]/g,
       })
+    const title = slug(project!.title)
 
     async function doExportMixdown() {
       const blob = await exportWAV(
@@ -407,7 +408,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
 
       const a = document.createElement('a')
       a.href = outputURL
-      a.download = `${slug(project!.title)}.wav`
+      a.download = `${title}.wav`
       a.click()
 
       URL.revokeObjectURL(outputURL)
@@ -436,7 +437,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           },
         )
 
-        zip.file(`${slug(label ?? 'Speaker')}-${trackId}.wav`, blob)
+        zip.file(`${title}-${slug(label ?? 'Speaker')}-${trackId}.wav`, blob)
         exportedCount++
       }
 
