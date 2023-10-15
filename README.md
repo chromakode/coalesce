@@ -24,7 +24,7 @@ Next up:
 - [x] Highlight words as they're played
 - [x] Drag and drop files to transcribe and process
 - [x] Collaborative editing
-- [ ] Export separate audio tracks
+- [x] Export separate audio tracks
 - [ ] Add sound clips
 
 ## How to use

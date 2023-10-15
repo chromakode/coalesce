@@ -20,7 +20,10 @@ import {
   useBoolean,
 } from '@chakra-ui/react'
 import { Project, SoundLocation } from '@shared/types'
+import assertNever from 'assert-never'
+import { saveAs } from 'file-saver'
 import { AnimatePresence } from 'framer-motion'
+import JSZip from 'jszip'
 import {
   cloneDeep,
   debounce,
@@ -63,7 +66,11 @@ import Editor, {
   EditorRef,
   SoundNodeData,
 } from '../components/Editor'
-import { ExportModal } from '../components/ExportModal'
+import {
+  ExportModal,
+  ExportMode,
+  ExportOptions,
+} from '../components/ExportModal'
 import { LoadingCover } from '../components/LoadingCover'
 import MotionBox from '../components/MotionBox'
 import TracksForm from '../components/TracksForm'
@@ -76,6 +83,7 @@ import AudioEngine, {
   padLocation,
 } from '../lib/AudioEngine'
 import { playLocations } from '../lib/AudioScheduler'
+
 import './ProjectPage.css'
 
 const WAVE_PADDING = 0.5
@@ -362,37 +370,81 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     setShowExport(false)
   }
 
-  const handleExport = () => {
+  const handleExport = ({ exportMode, selectedTracks }: ExportOptions) => {
     const editor = editorRef.current
-    if (!editor) {
+    if (!editor || !project) {
       return
     }
+
     const locs = editor.getAllSoundLocations()
+    const slug = (text: string) =>
+      slugify(text, {
+        remove: /[*+~.()'"!:@$]/g,
+      })
 
-    async function doExport() {
-      setExporting(true)
-
-      const outputURL = await exportWAV(
+    async function doExportMixdown() {
+      const blob = await exportWAV(
         engine!,
         playLocations(locs, { startSeek: metrics!.start }),
         setExportProgress,
       )
 
-      if (!outputURL) {
-        // TODO: toast error
-        setExporting(false)
-        return
-      }
-
-      const slug = slugify(project!.title, {
-        remove: /[*+~.()'"!:@$]/g,
-      })
+      const outputURL = URL.createObjectURL(blob)
 
       const a = document.createElement('a')
       a.href = outputURL
-      a.download = `${slug}.wav`
+      a.download = `${slug(project!.title)}.wav`
       a.click()
+
       URL.revokeObjectURL(outputURL)
+    }
+
+    async function doExportTracks(selectedTracks: string[]) {
+      console.log(selectedTracks)
+      const zip = JSZip()
+      const trackLocs = groupBy(locs, ({ source }) => source)
+
+      let exportedCount = 0
+      for (const { label, trackId } of Object.values(project!.tracks)) {
+        if (!selectedTracks.includes(trackId)) {
+          continue
+        }
+
+        const blob = await exportWAV(
+          engine!,
+          playLocations(trackLocs[trackId], {
+            startSeek: metrics!.start,
+          }),
+          (progress) => {
+            setExportProgress(
+              (exportedCount + progress) / selectedTracks.length,
+            )
+          },
+        )
+
+        zip.file(`${slug(label ?? 'Speaker')}-${trackId}.wav`, blob)
+        exportedCount++
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      await saveAs(zipBlob, `${slug(project!.title)}.zip`)
+    }
+
+    async function doExport() {
+      setExporting(true)
+
+      try {
+        if (exportMode === ExportMode.Mixdown) {
+          await doExportMixdown()
+        } else if (exportMode === ExportMode.Separate) {
+          await doExportTracks(selectedTracks)
+        } else {
+          assertNever(exportMode)
+        }
+      } catch (err) {
+        setExporting(false)
+        return
+      }
 
       setShowExport(false)
       setExporting(false)
@@ -492,8 +544,9 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   return (
     <Flex h="100vh" flexDir="column" bg="gray.100">
       {(!project || (hasTracks && !isInitialSynced)) && <LoadingCover />}
-      {showExport && (
+      {showExport && project && (
         <ExportModal
+          tracks={project.tracks}
           isExporting={isExporting}
           progress={exportProgress}
           onExport={handleExport}

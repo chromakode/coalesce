@@ -437,7 +437,7 @@ export async function exportWAV(
   scheduler.next()
 
   const progressInterval = setInterval(() => {
-    const progress = 100 * (offlineCtx.currentTime / duration)
+    const progress = offlineCtx.currentTime / duration
     onProgress?.(progress)
   }, 1000 / 15)
 
@@ -480,7 +480,6 @@ export async function exportWAV(
   const blob = new window.Blob([new DataView(wav)], {
     type: 'audio/wav',
   })
-  const outputURL = URL.createObjectURL(blob)
 
-  return outputURL
+  return blob
 }
