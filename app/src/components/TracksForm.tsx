@@ -29,7 +29,7 @@ import { useAPI } from './APIContext'
 
 function jobProgress(jobs: JobInfo[] | null, task: JobInfo['task']): number {
   if (!jobs) {
-    return 1
+    return 0
   }
 
   const job = jobs.find(({ task: jobTask }) => jobTask === task)
@@ -257,7 +257,7 @@ function TrackUpload({
           </AlertDialogOverlay>
         </AlertDialog>
       </Flex>
-      <Collapse in={progress > 0 && progress < 1}>
+      <Collapse in={!!jobs || uploadProgress > 0}>
         <Progress
           w="full"
           mt="2"
