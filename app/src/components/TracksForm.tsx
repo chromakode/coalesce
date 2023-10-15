@@ -167,8 +167,11 @@ function TrackUpload({
   const isUploading = uploadProgress > 0 && uploadProgress < 1
   const currentTaskLabel = getCurrentTaskLabel(isUploading, jobs)
 
-  const isRunning =
-    jobs != null && jobs.some(({ state }) => state.status === 'running')
+  const isProcessing =
+    jobs != null &&
+    jobs.some(
+      ({ state }) => state.status === 'running' || state.status === 'queued',
+    )
 
   return (
     <Flex flexDir="column" w="full" bg="gray.50" p="2" borderRadius="md">
@@ -182,7 +185,7 @@ function TrackUpload({
         <Icon
           as={MdAudioFile}
           fontSize="4xl"
-          color={!isRunning ? 'gray.600' : 'blue.600'}
+          color={!isProcessing ? 'gray.600' : 'blue.600'}
           alignSelf="center"
         />
         <Flex minW="0" flex="1" alignItems="baseline">
@@ -257,7 +260,7 @@ function TrackUpload({
           </AlertDialogOverlay>
         </AlertDialog>
       </Flex>
-      <Collapse in={isRunning || uploadProgress > 0}>
+      <Collapse in={isProcessing || uploadProgress > 0}>
         <Progress
           w="full"
           mt="2"
@@ -271,8 +274,8 @@ function TrackUpload({
               transitionTimingFunction: 'linear',
             },
           }}
-          hasStripe={isRunning}
-          isAnimated={isRunning}
+          hasStripe={isProcessing}
+          isAnimated={isProcessing}
         />
       </Collapse>
     </Flex>
