@@ -197,7 +197,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
       : curTimeMS
 
   // Set source gains to normalize track volumes
-  const sourceOptions: SourcePlayOptions = useMemo<
+  const sourceOptions: Record<string, SourcePlayOptions> = useMemo<
     Record<string, SourcePlayOptions>
   >(
     () =>
