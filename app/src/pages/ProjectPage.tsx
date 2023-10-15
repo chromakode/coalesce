@@ -414,7 +414,6 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     }
 
     async function doExportTracks(selectedTracks: string[]) {
-      console.log(selectedTracks)
       const zip = JSZip()
       const trackLocs = groupBy(locs, ({ source }) => source)
 
