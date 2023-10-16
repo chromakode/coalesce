@@ -572,9 +572,10 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
       <AnimatePresence>
         {collaboratorStates.length > 0 && (
           <MotionBox
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            overflow="hidden"
             zIndex="overlay"
           >
             <HStack
@@ -582,20 +583,24 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
               py="2"
               justifyContent="space-between"
               fontSize="md"
-              bg="gray.100"
-              borderBottomWidth="1px"
-              borderColor="gray.400"
+              bg="green.600"
               shadow="0 0 5px rgba(0, 0, 0, .15)"
             >
-              <HStack color="green.800">
-                <Icon as={MdGroup} fontSize="xl" />
-                <Text>
+              <HStack color="brand.light">
+                <Icon as={MdGroup} fontSize="2xl" />
+                <Text fontWeight="medium">
                   Editing collaboratively with:{' '}
                   {collaboratorStates.map(({ name }) => name).join(', ')}
                 </Text>
               </HStack>
-              <InputGroup size="sm" w="64" bg="gray.50">
-                <InputLeftAddon fontSize="md" bg="gray.200">
+              <InputGroup
+                size="sm"
+                w="64"
+                bg="gray.50"
+                borderRadius="full"
+                overflow="hidden"
+              >
+                <InputLeftAddon fontSize="md" bg="gray.200" pl="4">
                   Your name:
                 </InputLeftAddon>
                 <Input
