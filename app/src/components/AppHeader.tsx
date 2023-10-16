@@ -4,7 +4,6 @@ import {
   HStack,
   Icon,
   Spacer,
-  Text,
 } from '@chakra-ui/react'
 import { Link } from 'wouter'
 import LogoType from '../logotype.svg?react'
@@ -34,11 +33,12 @@ export function AppHeader() {
           </ChakraLink>
         </Link>
         <Spacer />
-        <Text>
-          Signed in as{' '}
-          <ChakraLink href="/auth/settings">{session.email}</ChakraLink>.
-        </Text>
-        <ChakraLink href={session.logoutURL}>Logout</ChakraLink>
+        <HStack gap="4" pr="2">
+          <ChakraLink href="/auth/settings">{session.email}</ChakraLink>
+          <ChakraLink href={session.logoutURL} fontWeight="medium">
+            logout
+          </ChakraLink>
+        </HStack>
       </HStack>
     </Container>
   )
