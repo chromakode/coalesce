@@ -1,7 +1,8 @@
 import {
   Button,
   Center,
-  Link as ChakraLink,
+  Container,
+  Flex,
   HStack,
   Heading,
   LinkBox,
@@ -18,7 +19,7 @@ import { sortBy } from 'lodash-es'
 import { useAsync, useAsyncFn } from 'react-use'
 import { Link, useLocation } from 'wouter'
 import { useAPI } from '../components/APIContext'
-import { useSession } from '../components/SessionContext'
+import { AppHeader } from '../components/AppHeader'
 
 function ProjectItem({
   project: { projectId, title, tracks, createdAt },
@@ -53,7 +54,6 @@ function ProjectItem({
 }
 
 export default function IndexPage() {
-  const session = useSession()
   const { createProject, listProjects } = useAPI()
   const projects = useAsync(listProjects, [])
 
@@ -64,54 +64,50 @@ export default function IndexPage() {
   }, [])
 
   return (
-    <Center h="100vh" bg="gray.50" flexDirection="column">
-      {session && (
-        <HStack position="absolute" top="4" right="4">
-          <Text>
-            Signed in as{' '}
-            <ChakraLink href="/auth/settings">{session.email}</ChakraLink>.
-          </Text>
-          <ChakraLink href={session.logoutURL}>Logout</ChakraLink>
-        </HStack>
-      )}
-      <Heading as="h1" size="2xl" mt="12" mb="8">
-        Coalesce
-      </Heading>
+    <Center h="100vh" bg="brand.light" flexDirection="column">
       {projects.loading ? (
         <Spinner />
       ) : projects.error ? (
         <Text>Error loading projects</Text>
       ) : (
         projects.value && (
-          <Center
-            w="container.lg"
-            maxW="92vw"
-            minH="50vh"
-            mb="12"
+          <Flex
+            flex="1"
             flexDirection="column"
-            bg="white"
-            borderRadius="xl"
-            boxShadow="lg"
+            w="full"
+            alignItems="center"
+            overflow="hidden"
           >
-            {projects.value?.length > 0 && (
-              <VStack
-                flex="1"
-                w="full"
-                p="8"
-                spacing="4"
-                divider={<StackDivider borderColor="gray.200" />}
-                overflowX="auto"
-              >
-                {sortBy(projects.value, (p) => -new Date(p.createdAt)).map(
-                  (project) => (
-                    <ProjectItem key={project.projectId} project={project} />
-                  ),
-                )}
-              </VStack>
-            )}
+            <AppHeader />
+            <Container
+              flex="1"
+              mt="8"
+              p="8"
+              bg="white"
+              borderRadius="xl"
+              boxShadow="lg"
+              maxW="container.lg"
+              flexDirection="column"
+              overflowY="auto"
+            >
+              {projects.value?.length > 0 && (
+                <VStack
+                  spacing="4"
+                  divider={<StackDivider borderColor="gray.200" />}
+                >
+                  {sortBy(projects.value, (p) => -new Date(p.createdAt)).map(
+                    (project) => (
+                      <ProjectItem key={project.projectId} project={project} />
+                    ),
+                  )}
+                </VStack>
+              )}
+            </Container>
             <Button
+              flexShrink="0"
               fontSize="2xl"
               size="lg"
+              p="8"
               colorScheme="green"
               m="8"
               onClick={handleCreateProject}
@@ -119,7 +115,7 @@ export default function IndexPage() {
             >
               Create Project
             </Button>
-          </Center>
+          </Flex>
         )
       )}
     </Center>

@@ -59,6 +59,7 @@ import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import { WebsocketProvider } from 'y-websocket'
 import { useAPI } from '../components/APIContext'
+import { AppHeader } from '../components/AppHeader'
 import { CollaborateButton } from '../components/CollaborateButton'
 import CollaboratorPosition from '../components/CollaboratorPosition'
 import { DisplayMS } from '../components/DisplayMS'
@@ -608,6 +609,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
         )}
       </AnimatePresence>
       <Box flex="1" overflow="auto" pb={bottomWavePadding}>
+        <AppHeader />
         <Box
           // Relative position so absolutely-positioned Lexical collab cursors /
           // selections scroll with the text
@@ -615,7 +617,7 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           ref={scrollerRef}
         >
           {project && (
-            <Container maxW="container.lg" pt="24">
+            <Container maxW="container.lg" pt="16" px="6">
               <VStack>
                 <Flex w="full">
                   {isEditingTracks ? (

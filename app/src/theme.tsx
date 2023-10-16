@@ -5,6 +5,12 @@ const theme = extendTheme({
     body: 'Roboto Flex Variable',
     heading: 'Roboto Flex Variable',
   },
+  colors: {
+    brand: {
+      dark: '#033796',
+      light: '#f6f8fa',
+    },
+  },
 })
 
 export default theme
