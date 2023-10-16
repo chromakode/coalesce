@@ -6,14 +6,14 @@ import ProjectPage from './pages/ProjectPage'
 export default function App() {
   return (
     <Switch>
-      <RequireSession>
-        <Route path="/">
+      <Route path="/">
+        <RequireSession>
           <IndexPage />
-        </Route>
-        <Route path="/project/:projectId">
-          {({ projectId }) => <ProjectPage projectId={projectId} />}
-        </Route>
-      </RequireSession>
+        </RequireSession>
+      </Route>
+      <Route path="/project/:projectId">
+        {({ projectId }) => <ProjectPage projectId={projectId} />}
+      </Route>
     </Switch>
   )
 }
