@@ -1,6 +1,7 @@
 import {
   Button,
   Collapse,
+  Flex,
   FormControl,
   FormLabel,
   HStack,
@@ -13,7 +14,6 @@ import {
   PopoverHeader,
   PopoverTrigger,
   Switch,
-  VStack,
   useClipboard,
   useToast,
 } from '@chakra-ui/react'
@@ -74,7 +74,7 @@ export function CollaborateButton({ project }: { project: Project }) {
           Invite collaborators
         </PopoverHeader>
         <PopoverBody>
-          <VStack alignItems="stretch">
+          <Flex direction="column" alignItems="stretch">
             <HStack w="full">
               <FormControl display="flex">
                 <FormLabel fontWeight="normal" flex="1">
@@ -94,9 +94,10 @@ export function CollaborateButton({ project }: { project: Project }) {
                 onClick={handleInputClick}
                 variant="filled"
                 p={2}
+                mt={2}
               />
             </Collapse>
-          </VStack>
+          </Flex>
         </PopoverBody>
       </PopoverContent>
     </Popover>
