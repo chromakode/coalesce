@@ -27,6 +27,10 @@ export class CoalesceAPIClient {
     this.guestKey = guestKey
   }
 
+  get hasGuestKey() {
+    return this.guestKey != null
+  }
+
   projectSocket = (projectId: string): ReconnectingWebSocket => {
     const params = this.guestKey ? `?guestEditKey=${this.guestKey}` : ''
     return new ReconnectingWebSocket(

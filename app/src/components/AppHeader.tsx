@@ -11,9 +11,6 @@ import { useSession } from './SessionContext'
 
 export function AppHeader() {
   const session = useSession()
-  if (!session) {
-    return null
-  }
 
   return (
     <Container maxW="full">
@@ -33,12 +30,14 @@ export function AppHeader() {
           </ChakraLink>
         </Link>
         <Spacer />
-        <HStack gap="4" pr="2">
-          <ChakraLink href="/auth/settings">{session.email}</ChakraLink>
-          <ChakraLink href={session.logoutURL} fontWeight="medium">
-            logout
-          </ChakraLink>
-        </HStack>
+        {session && (
+          <HStack gap="4" pr="2">
+            <ChakraLink href="/auth/settings">{session.email}</ChakraLink>
+            <ChakraLink href={session.logoutURL} fontWeight="medium">
+              logout
+            </ChakraLink>
+          </HStack>
+        )}
       </HStack>
     </Container>
   )

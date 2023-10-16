@@ -8,16 +8,24 @@ import { useAPI } from './APIContext'
 const SessionContext = createContext<SessionInfo | null>(null)
 export const useSession = () => useContext(SessionContext)
 
-export function RequireSession({ children }: { children: React.ReactNode }) {
+export function WithSession({
+  isRequired,
+  children,
+}: {
+  isRequired?: boolean
+  children: React.ReactNode
+}) {
   const { getSession } = useAPI()
   const [sessionTry, setSessionTry] = useState(0)
   const session = useAsync(getSession, [sessionTry])
 
   useEffect(() => {
     if (session.error instanceof NeedsAuthError) {
-      window.location.href = `${
-        import.meta.env.VITE_AUTH_UI_URL
-      }/login?return_to=${window.location.toString()}`
+      if (isRequired) {
+        window.location.href = `${
+          import.meta.env.VITE_AUTH_UI_URL
+        }/login?return_to=${window.location.toString()}`
+      }
     } else if (session.error instanceof UnexpectedServerError) {
       const timeout = setTimeout(() => {
         setSessionTry((t) => t + 1)
@@ -33,6 +41,10 @@ export function RequireSession({ children }: { children: React.ReactNode }) {
       <SessionContext.Provider value={session.value}>
         {children}
       </SessionContext.Provider>
+    )
+  } else if (!isRequired && session.error instanceof NeedsAuthError) {
+    return (
+      <SessionContext.Provider value={null}>{children}</SessionContext.Provider>
     )
   }
 
