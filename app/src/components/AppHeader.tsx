@@ -1,4 +1,5 @@
 import {
+  Button,
   Link as ChakraLink,
   Container,
   HStack,
@@ -31,11 +32,13 @@ export function AppHeader() {
         </Link>
         <Spacer />
         {session && (
-          <HStack gap="4" pr="2">
-            <ChakraLink href="/auth/settings">{session.email}</ChakraLink>
-            <ChakraLink href={session.logoutURL} fontWeight="medium">
-              logout
-            </ChakraLink>
+          <HStack>
+            <Button as="a" href="/auth/settings" variant="ghost">
+              {session.email}
+            </Button>
+            <Button as="a" href={session.logoutURL} variant="ghost">
+              Logout
+            </Button>
           </HStack>
         )}
       </HStack>
