@@ -180,7 +180,10 @@ export function addWordsToEditor({
           } else {
             const docNodeLocation = docNode.getSoundLocation()
             const insertBefore = docNodeLocation.start > word.start
-            if (docNodeLocation.source === word.source) {
+            if (
+              !word.isSentenceStart &&
+              docNodeLocation.source === word.source
+            ) {
               if (word.text.startsWith(' ')) {
                 const spaceNode = $createTextNode(' ')
                 newNodes.unshift(spaceNode)

@@ -3,6 +3,7 @@
 import json
 import functools
 import tempfile
+import pysbd
 from faster_whisper import WhisperModel
 from math import ceil
 from pydub import AudioSegment
@@ -75,9 +76,23 @@ def word_to_dict(word):
 # via https://github.com/guillaumekln/faster-whisper/issues/94#issuecomment-1489916191
 def segment_to_dict(segment):
     segment = segment._asdict()
-    if segment["words"] is not None:
-        segment["words"] = [word_to_dict(word) for word in segment["words"]]
+    segment["words"] = [word_to_dict(word) for word in segment["words"]]
     return segment
+
+
+class SentenceSplitter:
+    def __init__(self, language):
+        self.text = ""
+        self.segmenter = pysbd.Segmenter(language=language)
+
+    def update_sentence_ends(self, segment):
+        for word in segment["words"]:
+            self.text += word["text"]
+
+            sentences = self.segmenter.segment(self.text)
+            if len(sentences) > 1:
+                word["isSentenceStart"] = True
+                self.text = sentences[-1]
 
 
 def transcribe_audio(
@@ -101,9 +116,13 @@ def transcribe_audio(
         vad_filter=True,
     )
 
+    splitter = SentenceSplitter(language=info.language)
+
     segments = []
     for segment in segment_gen:
         segment_dict = segment_to_dict(segment)
+        splitter.update_sentence_ends(segment_dict)
+
         segments.append(segment_dict)
         if segment_callback:
             segment_callback(segment_dict)

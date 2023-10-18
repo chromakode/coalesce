@@ -23,6 +23,7 @@ export const WordModel = z.object({
   start: z.number(),
   end: z.number(),
   probability: z.number(),
+  isSentenceStart: z.boolean().optional(),
 })
 export type Word = z.infer<typeof WordModel>
 
