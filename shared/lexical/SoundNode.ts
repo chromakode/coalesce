@@ -1,6 +1,6 @@
 import { SoundLocation } from '../types.ts'
 
-// @deno-types="https://esm.sh/lexical@0.11.3?pin=130"
+// @deno-types="https://esm.sh/lexical@0.12.2?pin=130"
 import { TextNode } from 'lexical'
 import type { EditorConfig, LexicalNode, NodeKey } from 'lexical'
 
@@ -27,9 +27,9 @@ function updateStyle(element: HTMLElement, isPlaying: boolean) {
 }
 
 export class SoundNode extends TextNode {
-  __soundStart: number
-  __soundEnd: number
-  __soundSource: string
+  __soundStart!: number
+  __soundEnd!: number
+  __soundSource!: string
   __isPlaying: boolean
 
   constructor(text: string, loc: SoundLocation, key?: NodeKey) {

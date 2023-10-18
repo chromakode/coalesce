@@ -1,4 +1,4 @@
-// @deno-types="https://esm.sh/lexical@0.11.3?pin=130"
+// @deno-types="https://esm.sh/lexical@0.12.2?pin=130"
 import { ParagraphNode } from 'lexical'
 import type { EditorConfig, LexicalNode, NodeKey } from 'lexical'
 
@@ -34,7 +34,7 @@ export class SpeakerNode extends ParagraphNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = super.createDOM(config)
-    element.dataset.label = this.__label
+    element.dataset.label = this.__label ?? undefined
     element.style.setProperty(
       '--label-color',
       `var(--chakra-colors-${this.__color}-600)`,
@@ -47,8 +47,8 @@ export class SpeakerNode extends ParagraphNode {
     dom: HTMLElement,
     config: EditorConfig,
   ): boolean {
-    dom.dataset.label = this.__label
-    dom.dataset.color = this.__color
+    dom.dataset.label = this.__label ?? undefined
+    dom.dataset.color = this.__color ?? undefined
     return false
   }
 
