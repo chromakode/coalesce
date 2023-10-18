@@ -7,7 +7,6 @@ import {
   SoundNode,
 } from '@shared/lexical'
 import {
-  pick,
   sortBy,
   $createTextNode,
   $getRoot,
@@ -99,14 +98,8 @@ export function addWordsToEditor({
   trackInfo: TrackInfo
   words: Word[]
 }): Promise<void> {
-  const sortedWords = sortBy(
-    words.map((word) => ({
-      source: trackId,
-      speakerName: trackLabel ?? 'Speaker',
-      ...word,
-    })),
-    'start',
-  )
+  const sortedWords = sortBy(words, 'start')
+  const speakerName = trackLabel ?? 'Speaker'
   const color = trackColor ?? 'black'
 
   return new Promise((resolve) => {
@@ -161,29 +154,23 @@ export function addWordsToEditor({
             if (part.match(punctuationRe)) {
               newNodes.push($createTextNode(part))
             } else {
-              newWordNode = $createSoundNode(
-                part,
-                pick(word, ['source', 'start', 'end']),
-              )
+              newWordNode = $createSoundNode(part, {
+                start: word.start,
+                end: word.end,
+                source: trackId,
+              })
               newNodes.push(newWordNode)
             }
           }
 
           if (docNode === null) {
-            const parentNode = $createSpeakerNode(
-              word.speakerName,
-              color,
-              word.source,
-            )
+            const parentNode = $createSpeakerNode(speakerName, color, trackId)
             parentNode.append(...newNodes)
             root.append(parentNode)
           } else {
             const docNodeLocation = docNode.getSoundLocation()
             const insertBefore = docNodeLocation.start > word.start
-            if (
-              !word.isSentenceStart &&
-              docNodeLocation.source === word.source
-            ) {
+            if (!word.isSentenceStart && docNodeLocation.source === trackId) {
               if (word.text.startsWith(' ')) {
                 const spaceNode = $createTextNode(' ')
                 newNodes.unshift(spaceNode)
@@ -192,11 +179,7 @@ export function addWordsToEditor({
                 .getParent()!
                 .splice(insertionIndex(docNode, insertBefore).idx, 0, newNodes)
             } else {
-              const parentNode = $createSpeakerNode(
-                word.speakerName,
-                color,
-                word.source,
-              )
+              const parentNode = $createSpeakerNode(speakerName, color, trackId)
               parentNode.append(...newNodes)
 
               const docNodeParent = docNode.getParent()!
