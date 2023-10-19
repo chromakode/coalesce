@@ -109,7 +109,6 @@ function TrackUpload({
   } = useDisclosure()
   const cancelRemoveRef = useRef<HTMLButtonElement>(null)
 
-  const trackIdRef = useRef<string>()
   const labelRef = useRef<string>()
 
   // TODO handle errors
@@ -121,7 +120,6 @@ function TrackUpload({
     }
     uploadRef.current = uploadTrack(project.projectId, file, setUploadProgress)
     uploadRef.current.result.then(({ trackId }) => {
-      trackIdRef.current = trackId
       uploadRef.current = undefined
       if (labelRef.current) {
         updateTrack(project.projectId, trackId, {
