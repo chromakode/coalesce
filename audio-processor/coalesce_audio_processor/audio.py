@@ -82,11 +82,16 @@ def segment_to_dict(segment):
 
 class SentenceSplitter:
     def __init__(self, language):
-        self.text = ""
+        self.text = None
         self.segmenter = pysbd.Segmenter(language=language)
 
     def update_sentence_ends(self, segment):
         for word in segment["words"]:
+            if self.text is None:
+                self.text = ""
+                # Mark the first word transcribed as sentence start
+                word["isSentenceStart"] = True
+
             self.text += word["text"]
 
             sentences = self.segmenter.segment(self.text)
