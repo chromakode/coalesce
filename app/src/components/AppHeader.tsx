@@ -20,6 +20,7 @@ export function AppHeader() {
           <ChakraLink
             display="flex"
             alignSelf="flex-start"
+            ml="calc(clamp(0rem, 100vw - 1040px, .5rem))"
             paddingX="4"
             paddingY="3"
             borderBottomLeftRadius="md"
