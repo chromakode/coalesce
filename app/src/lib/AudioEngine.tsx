@@ -3,6 +3,7 @@ import audioBufferToWav from 'audiobuffer-to-wav'
 import { groupBy, last, sortBy } from 'lodash-es'
 import { LRUCache } from 'lru-cache'
 import mitt from 'mitt'
+import { EditorOutputMixer, MixerState, RawOutputMixer } from './AudioMixer'
 import { AudioScheduler, AudioTask, SCHEDULER_BUFFER_S } from './AudioScheduler'
 import { CoalesceAPIClient, chunkURL } from './api'
 import { emptyProject } from './project'
@@ -20,7 +21,7 @@ export interface RunningAudioTask {
   clockStartTime: number
   duration: number
   scheduler: AudioScheduler
-  destNode: AudioNode
+  mixer: EditorOutputMixer
   stop: () => boolean
 }
 
@@ -47,6 +48,7 @@ export default class AudioEngine {
   ctx: AudioContext = new AudioContext()
   api: CoalesceAPIClient
   project: Project = emptyProject()
+  mixerSettings: MixerState
   chunkCache = new LRUCache<string, Promise<AudioBuffer>>({
     max: MAX_CHUNKS_LOADED,
   })
@@ -55,9 +57,21 @@ export default class AudioEngine {
   currentTask: RunningAudioTask | null = null
 
   // TODO: preload on initial load?
-  constructor(api: CoalesceAPIClient, project: Project) {
+  constructor(
+    api: CoalesceAPIClient,
+    project: Project,
+    mixerSettings: MixerState,
+  ) {
     this.api = api
     this.project = project
+    this.mixerSettings = mixerSettings
+  }
+
+  updateMixerSettings(update: MixerState) {
+    this.mixerSettings = update
+    if (this.currentTask) {
+      this.currentTask.mixer.updateMixerSettings(update)
+    }
   }
 
   getTrackInfo(trackId: string) {
@@ -143,8 +157,11 @@ export default class AudioEngine {
     const { ctx } = this
     const { duration, run } = task
 
-    const destNode = ctx.createGain()
-    destNode.connect(ctx.destination)
+    const mixer = new EditorOutputMixer(
+      ctx,
+      ctx.destination,
+      this.mixerSettings,
+    )
 
     const clockStartTime = Date.now()
 
@@ -173,7 +190,7 @@ export default class AudioEngine {
       return buffer
     }
 
-    const scheduler = run(this.ctx, destNode, audioStartTime, getBufferForLoc)
+    const scheduler = run(this.ctx, mixer, audioStartTime, getBufferForLoc)
     scheduler.next()
 
     let tickTimeout: ReturnType<typeof window.setTimeout>
@@ -186,7 +203,7 @@ export default class AudioEngine {
       stopped = true
       scheduler.return()
       clearTimeout(tickTimeout)
-      destNode.disconnect()
+      mixer.destroy()
       return true
     }
 
@@ -225,7 +242,7 @@ export default class AudioEngine {
       clockStartTime,
       duration,
       scheduler,
-      destNode,
+      mixer,
       stop,
     }
   }
@@ -418,11 +435,17 @@ export function getTimeFromNodeKey(
 const CHANNEL_COUNT = 1
 const SAMPLE_RATE = 48000
 
-export async function exportWAV(
-  engine: AudioEngine,
-  task: AudioTask,
-  onProgress?: (progress: number) => void,
-) {
+export async function exportWAV({
+  engine,
+  mixerState,
+  task,
+  onProgress,
+}: {
+  engine: AudioEngine
+  mixerState: MixerState | null
+  task: AudioTask
+  onProgress?: (progress: number) => void
+}) {
   const { duration, run } = task
 
   const offlineCtx = new OfflineAudioContext(
@@ -431,10 +454,14 @@ export async function exportWAV(
     SAMPLE_RATE,
   )
 
+  const mixer = mixerState
+    ? new EditorOutputMixer(offlineCtx, offlineCtx.destination, mixerState)
+    : new RawOutputMixer(offlineCtx, offlineCtx.destination)
+
   const startTime = 0
   const scheduler = run(
     offlineCtx,
-    offlineCtx.destination,
+    mixer,
     startTime,
     engine.getBufferForLoc.bind(engine),
   )

@@ -5,16 +5,12 @@ import {
   padLocation,
   SoundLocationWithBuffer,
 } from './AudioEngine'
-
-export interface SourcePlayOptions {
-  gain?: number
-}
+import { AudioMixer } from './AudioMixer'
 
 export interface PlayOptions {
   startSeek?: number
   clipStartFudge?: number
   clipEndFudge?: number
-  sourceOptions?: Record<string, SourcePlayOptions>
   verbose?: boolean
   onLocPlaying?: (loc: SoundLocation, isPlaying: boolean) => void
 }
@@ -23,7 +19,7 @@ export type AudioScheduler = AsyncGenerator<void, void, number>
 
 export type CreateAudioScheduler = (
   ctx: BaseAudioContext,
-  destination: AudioNode,
+  mixer: AudioMixer,
   startTime: number,
   getBufferForLoc: (
     loc: SoundLocation,
@@ -47,7 +43,6 @@ export function playLocations(
     startSeek = 0,
     clipStartFudge = 0.05,
     clipEndFudge = 0.15,
-    sourceOptions = {},
     verbose = false,
     onLocPlaying,
   }: PlayOptions = {},
@@ -60,7 +55,7 @@ export function playLocations(
 
   const scheduler: CreateAudioScheduler = async function* (
     ctx,
-    destination,
+    mixer,
     startTime,
     getBufferForLoc,
   ) {
@@ -125,6 +120,11 @@ export function playLocations(
         }
 
         const queueWhenLoaded = async () => {
+          const mixerDestination = mixer.getTrackDestination(source)
+          if (!mixerDestination) {
+            return
+          }
+
           const { start: bufferStart, buffer } = await getBufferForLoc(
             padLocation(loc, clampedStartFudge, clipEndFudge),
             queueTime,
@@ -135,16 +135,15 @@ export function playLocations(
           const clipTime = queueTime + clampedStartFudge + 0.0001
 
           const wordGainNode = ctx.createGain()
-          wordGainNode.connect(destination)
+          wordGainNode.connect(mixerDestination)
 
           const bufNode = ctx.createBufferSource()
           bufNode.buffer = buffer
           bufNode.connect(wordGainNode)
 
-          const fullGain = sourceOptions[source]?.gain ?? 1
           wordGainNode.gain.setValueAtTime(0, queueTime)
-          wordGainNode.gain.linearRampToValueAtTime(fullGain, clipTime)
-          wordGainNode.gain.setValueAtTime(fullGain, clipTime + clipDuration)
+          wordGainNode.gain.linearRampToValueAtTime(1, clipTime)
+          wordGainNode.gain.setValueAtTime(1, clipTime + clipDuration)
           wordGainNode.gain.linearRampToValueAtTime(
             0,
             clipTime + clipDuration + clipEndFudge,

@@ -25,7 +25,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { MdAudioFile, MdClose } from 'react-icons/md'
 import { useBeforeUnload } from 'react-use'
+import { MixerState, TrackMixerState } from '../lib/AudioMixer'
 import { useAPI } from './APIContext'
+import {
+  MixerSettings,
+  OnUpdateTrackMixerSettings,
+  TrackMixerSettings,
+  TrackVolumeControl,
+} from './TrackVolumeControl'
 
 function jobProgress(jobs: JobInfo[] | null, task: JobInfo['task']): number {
   if (!jobs) {
@@ -92,6 +99,9 @@ function TrackUpload({
   color,
   isReadOnly,
   onRemoveFile,
+  trackMixerState,
+  trackMixerSettings,
+  onUpdateTrackMixerSettings,
 }: {
   project: Project
   file?: File | null
@@ -100,6 +110,9 @@ function TrackUpload({
   color: string
   isReadOnly: boolean
   onRemoveFile: (filename: string) => void
+  trackMixerState: TrackMixerState | null
+  trackMixerSettings: TrackMixerSettings | null
+  onUpdateTrackMixerSettings: OnUpdateTrackMixerSettings
 }) {
   const { deleteTrack, updateTrack, uploadTrack } = useAPI()
   const {
@@ -223,6 +236,15 @@ function TrackUpload({
             />
           )}
         </Flex>
+        {isReadOnly && track?.trackId && (
+          <TrackVolumeControl
+            trackId={track.trackId}
+            trackMixerState={trackMixerState}
+            trackMixerSettings={trackMixerSettings}
+            onUpdateTrackMixerSettings={onUpdateTrackMixerSettings}
+          />
+        )}
+
         {!isReadOnly && (
           <IconButton
             icon={<Icon as={MdClose} fontSize="2xl" />}
@@ -283,9 +305,15 @@ function TrackUpload({
 export default function TracksForm({
   project,
   isReadOnly,
+  mixerState,
+  mixerSettings,
+  onUpdateTrackMixerSettings,
 }: {
   project: Project
   isReadOnly: boolean
+  mixerState: MixerState
+  mixerSettings: MixerSettings
+  onUpdateTrackMixerSettings: OnUpdateTrackMixerSettings
 }) {
   const { tracks } = project
   const [files, setFiles] = useState<File[]>([])
@@ -360,6 +388,11 @@ export default function TracksForm({
           color={`${track ? track.color : colors.shift()}.600`}
           isReadOnly={isReadOnly}
           onRemoveFile={handleRemove}
+          trackMixerState={track ? mixerState.tracks[track.trackId] : null}
+          trackMixerSettings={
+            track ? mixerSettings.tracks[track.trackId] : null
+          }
+          onUpdateTrackMixerSettings={onUpdateTrackMixerSettings}
         />
       ))}
       <Collapse in={!isReadOnly}>

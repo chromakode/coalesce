@@ -172,7 +172,10 @@ export interface EditorProps {
   project: Project
   initialNickname: string
   scrollerRef: MutableRefObject<HTMLElement | null>
-  onSync: (isSynced: boolean) => void
+  onSync: (syncData: {
+    isSynced: boolean
+    mixerSettingsDoc: Y.Map<unknown>
+  }) => void
   onAwareness: (awareness: WebsocketProvider['awareness']) => void
   onSelect?: (selectionInfo: {
     nearestNodeKey: string | null
@@ -338,7 +341,8 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       const provider = collabSocketProvider(id, doc, { connect: false })
 
       provider.on('sync', (isSynced: boolean) => {
-        latestOnSync.current(isSynced)
+        const mixerSettingsDoc = doc.getMap('mixerSettings')
+        latestOnSync.current({ isSynced, mixerSettingsDoc })
       })
 
       doc.once('update', () => {

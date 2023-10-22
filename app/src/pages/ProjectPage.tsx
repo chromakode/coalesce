@@ -58,6 +58,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
 import { WebsocketProvider } from 'y-websocket'
+import * as Y from 'yjs'
 import { useAPI } from '../components/APIContext'
 import { AppHeader } from '../components/AppHeader'
 import { CollaborateButton } from '../components/CollaborateButton'
@@ -85,8 +86,13 @@ import AudioEngine, {
   getTimeFromNodeKey,
   padLocation,
 } from '../lib/AudioEngine'
-import { SourcePlayOptions, playLocations } from '../lib/AudioScheduler'
+import { playLocations } from '../lib/AudioScheduler'
 
+import {
+  MixerSettings,
+  OnUpdateTrackMixerSettings,
+} from '../components/TrackVolumeControl'
+import { MixerState } from '../lib/AudioMixer'
 import './ProjectPage.css'
 
 const WAVE_PADDING = 0.75
@@ -145,12 +151,93 @@ function useSocket(projectId: string): Project | null {
   return project
 }
 
-function useEngine(project: Project | null): AudioEngine | null {
+function useMixerSettings(project: Project | null) {
+  const [settingsDoc, setMixerSettingsDoc] = useState<Y.Map<any> | undefined>()
+  const [mixerSettings, setMixerSettings] = useState<MixerSettings>({
+    tracks: {},
+  })
+
+  useEffect(() => {
+    if (!settingsDoc) {
+      return
+    }
+
+    function handleUpdate() {
+      setMixerSettings(settingsDoc!.toJSON() as MixerSettings)
+    }
+
+    settingsDoc.observeDeep(handleUpdate)
+    return () => {
+      settingsDoc.unobserveDeep(handleUpdate)
+    }
+  }, [settingsDoc])
+
+  const mixerState = useMemo<MixerState>(
+    () => ({
+      tracks: mapValues(project?.tracks, (track, trackId) => {
+        // Default source gains to normalize track volumes
+        const gainSetting = mixerSettings.tracks[trackId]?.gain ?? 'auto'
+        const gain =
+          gainSetting === 'auto'
+            ? decibelsToGain(-(track.audio?.maxDBFS ?? 0))
+            : gainSetting
+        return { gain }
+      }),
+    }),
+
+    [project, mixerSettings],
+  )
+
+  const updateTrackMixerSettings: OnUpdateTrackMixerSettings = useCallback(
+    (trackId, update) => {
+      if (!settingsDoc) {
+        return
+      }
+
+      let trackMap = settingsDoc.get('tracks')
+      if (!trackMap) {
+        trackMap = new Y.Map()
+        settingsDoc.set('tracks', trackMap)
+      }
+
+      let trackData = trackMap.get(trackId)
+      if (!trackData) {
+        trackData = new Y.Map()
+        trackMap.set(trackId, trackData)
+      }
+
+      for (const [key, val] of Object.entries(update)) {
+        trackData?.set(key, val)
+      }
+    },
+    [settingsDoc],
+  )
+
+  return {
+    mixerState,
+    mixerSettings,
+    setMixerSettingsDoc,
+    updateTrackMixerSettings,
+  }
+}
+
+function useEngine(
+  project: Project | null,
+  mixerSettings: MixerState,
+): AudioEngine | null {
   const api = useAPI()
   const [engine, setEngine] = useState<AudioEngine | null>(null)
+
   useEffect(() => {
-    setEngine(project ? new AudioEngine(api, project) : null)
+    setEngine(project ? new AudioEngine(api, project, mixerSettings) : null)
   }, [project, api])
+
+  useEffect(() => {
+    if (engine) {
+      engine.updateMixerSettings(mixerSettings)
+    }
+  }, [engine, mixerSettings])
+
   return engine
 }
 
@@ -170,8 +257,15 @@ function useEngineStatus(engine: AudioEngine | null): AudioEngineStatus {
 export default function ProjectPage({ projectId }: { projectId: string }) {
   const { updateProject } = useAPI()
   const project = useSocket(projectId)
-  const engine = useEngine(project)
+  const {
+    mixerState,
+    mixerSettings,
+    setMixerSettingsDoc,
+    updateTrackMixerSettings,
+  } = useMixerSettings(project)
+  const engine = useEngine(project, mixerState)
   const engineStatus = useEngineStatus(engine)
+
   const scrollerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<EditorRef | null>(null)
   const awarenessRef = useRef<WebsocketProvider['awareness'] | null>(null)
@@ -196,17 +290,6 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     engineStatus.mode === 'playing'
       ? curTimeMS + engineStatus.playbackTime
       : curTimeMS
-
-  // Set source gains to normalize track volumes
-  const sourceOptions: Record<string, SourcePlayOptions> = useMemo<
-    Record<string, SourcePlayOptions>
-  >(
-    () =>
-      mapValues(project?.tracks, (track) => ({
-        gain: decibelsToGain(-(track.audio?.maxDBFS ?? 0)),
-      })),
-    [project],
-  )
 
   useEffect(() => {
     if (!project) {
@@ -257,7 +340,6 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           startSeek: startOffsetMS / 1000,
           onLocPlaying: (loc: SoundLocation, isPlaying: boolean) =>
             handleLocPlaying(loc, isPlaying, scroll),
-          sourceOptions,
         }),
       )
     } catch (err) {
@@ -265,8 +347,15 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     }
   }
 
-  const handleOnSync = (isSynced: boolean) => {
+  const handleOnSync = ({
+    isSynced,
+    mixerSettingsDoc,
+  }: {
+    isSynced: boolean
+    mixerSettingsDoc: Y.Map<unknown>
+  }) => {
     setIsInitialSynced((isInitialSynced) => isSynced || isInitialSynced)
+    setMixerSettingsDoc(mixerSettingsDoc)
   }
 
   const handleAwareness = useCallback(
@@ -385,7 +474,11 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     setShowExport(false)
   }
 
-  const handleExport = ({ exportMode, selectedTracks }: ExportOptions) => {
+  const handleExport = ({
+    exportMode,
+    isRawMix,
+    selectedTracks,
+  }: ExportOptions) => {
     const editor = editorRef.current
     if (!editor || !project) {
       return
@@ -399,11 +492,14 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     const title = slug(project!.title)
 
     async function doExportMixdown() {
-      const blob = await exportWAV(
-        engine!,
-        playLocations(locs, { startSeek: metrics!.start, sourceOptions }),
-        setExportProgress,
-      )
+      const blob = await exportWAV({
+        engine: engine!,
+        mixerState: !isRawMix ? mixerState : null,
+        task: playLocations(locs, {
+          startSeek: metrics!.start,
+        }),
+        onProgress: setExportProgress,
+      })
 
       const outputURL = URL.createObjectURL(blob)
 
@@ -425,18 +521,18 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
           continue
         }
 
-        const blob = await exportWAV(
-          engine!,
-          playLocations(trackLocs[trackId], {
+        const blob = await exportWAV({
+          engine: engine!,
+          mixerState: !isRawMix ? mixerState : null,
+          task: playLocations(trackLocs[trackId], {
             startSeek: metrics!.start,
-            sourceOptions,
           }),
-          (progress) => {
+          onProgress: (progress) => {
             setExportProgress(
               (exportedCount + progress) / selectedTracks.length,
             )
           },
-        )
+        })
 
         zip.file(`${title}-${slug(label ?? 'Speaker')}-${trackId}.wav`, blob)
         exportedCount++
@@ -664,7 +760,13 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
                     )}
                   </HStack>
                 </Flex>
-                <TracksForm project={project} isReadOnly={!isEditingTracks} />
+                <TracksForm
+                  project={project}
+                  isReadOnly={!isEditingTracks}
+                  mixerState={mixerState}
+                  mixerSettings={mixerSettings}
+                  onUpdateTrackMixerSettings={updateTrackMixerSettings}
+                />
               </VStack>
               <Box
                 w="full"

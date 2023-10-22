@@ -1,6 +1,7 @@
 import {
   Button,
   Checkbox,
+  Divider,
   HStack,
   Icon,
   Modal,
@@ -28,6 +29,7 @@ export enum ExportMode {
 
 export interface ExportOptions {
   exportMode: ExportMode
+  isRawMix: boolean
   selectedTracks: string[]
 }
 
@@ -45,6 +47,7 @@ export function ExportModal({
   onClose: () => void
 }) {
   const [exportMode, setExportMode] = useState(ExportMode.Mixdown)
+  const [isRawMix, setRawMix] = useState(true)
   const [selectedTracks, setSelectedTracks] = useState<Record<string, boolean>>(
     () => mapValues(tracks, () => true),
   )
@@ -56,9 +59,17 @@ export function ExportModal({
     }))
   }, [])
 
+  const handleToggleRawMix = useCallback(
+    (ev: ChangeEvent<HTMLInputElement>) => {
+      setRawMix(ev.target.checked)
+    },
+    [],
+  )
+
   const handleExport = useCallback(() => {
     onExport({
       exportMode,
+      isRawMix,
       selectedTracks: Object.entries(selectedTracks)
         .filter(([_, selected]) => selected)
         .map(([trackId]) => trackId),
@@ -95,7 +106,15 @@ export function ExportModal({
                   <Text>Separate file per track</Text>
                 </HStack>
               </Radio>
-              <VStack pl="16" alignItems="flex-start">
+              <VStack pl="16" pr="4" alignItems="flex-start" w="full">
+                <Checkbox
+                  isChecked={isRawMix}
+                  onChange={handleToggleRawMix}
+                  disabled={exportMode !== ExportMode.Separate}
+                >
+                  <Text>Export raw audio (no mixer gain)</Text>
+                </Checkbox>
+                <Divider />
                 {Object.values(tracks).map((track) => (
                   <Checkbox
                     key={track.trackId}
