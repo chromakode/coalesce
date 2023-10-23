@@ -11,6 +11,7 @@ import { default as discordSVG } from '../images/discord.svg?raw'
   description="A new, free, state-of-the-art podcast editor."
 >
   <main>
+    <a class="login" href="/auth/login">Login</a>
     <div class="hero">
       <h1 aria-label="Coalesce"><Fragment set:html={logoSVG} /></h1>
       <h2>A new, free, state-of-the-art podcast editor.</h2>
@@ -99,6 +100,20 @@ import { default as discordSVG } from '../images/discord.svg?raw'
 
   a {
     color: var(--color-brand-light);
+  }
+
+  .login {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: block;
+    background: var(--color-brand-light);
+    color: var(--color-brand-dark);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 18px;
+    text-decoration: none;
+    opacity: 0.75;
   }
 
   .hero {
@@ -220,6 +235,10 @@ import { default as discordSVG } from '../images/discord.svg?raw'
   }
 
   @media (max-width: 600px) {
+    .login {
+      font-size: 16px;
+    }
+
     main {
       font-size: 20px;
     }
