@@ -4,17 +4,25 @@ import {
   Center,
   Container,
   Flex,
+  FormControl,
+  FormLabel,
   HStack,
   Icon,
   IconButton,
   Input,
   InputGroup,
   InputLeftAddon,
+  Popover,
+  PopoverArrow,
+  PopoverBody,
+  PopoverContent,
+  PopoverTrigger,
   Slider,
   SliderFilledTrack,
   SliderThumb,
   SliderTrack,
   Spinner,
+  Switch,
   Text,
   VStack,
   useBoolean,
@@ -53,7 +61,7 @@ import {
   MdPause,
   MdPlayArrow,
 } from 'react-icons/md'
-import { useAsync, useLocalStorage } from 'react-use'
+import { useAsync, useLatest, useLocalStorage } from 'react-use'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import slugify from 'slugify'
 import { Region } from 'wavesurfer.js/dist/plugins/regions'
@@ -280,6 +288,8 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   const [isExporting, setExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [isEditingTracks, setEditingTracks] = useBoolean()
+  const [isAutoscroll, setAutoscroll] = useBoolean()
+  const latestAutoscroll = useLatest(isAutoscroll)
   const [nickname, setNickname] = useLocalStorage('collabNick', 'Anonymous')
   const [initialNickname] = useState(() => nickname)
   const [collaboratorStates, setCollaboratorStates] = useState<
@@ -305,7 +315,9 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
     () =>
       throttle(
         (key: string) => {
-          editorRef.current?.scrollToKey(key)
+          if (latestAutoscroll.current) {
+            editorRef.current?.scrollToKey(key)
+          }
         },
         1000,
         { leading: false, trailing: true },
@@ -844,21 +856,36 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
         shadow="0 0 5px rgba(0, 0, 0, .15)"
         zIndex="overlay"
       >
-        <IconButton
-          colorScheme="blue"
-          aria-label="Play"
-          fontSize="2xl"
-          borderRadius="full"
-          icon={
-            engineStatus.mode === 'playing' ? (
-              <Icon as={MdPause} />
-            ) : (
-              <Icon as={MdPlayArrow} />
-            )
-          }
-          onClick={handlePlayToggle}
-          isLoading={engineStatus.mode === 'loading'}
-        />
+        <Popover trigger="hover" placement="top-start" offset={[-8, 8]}>
+          <PopoverTrigger>
+            <IconButton
+              colorScheme="blue"
+              aria-label="Play"
+              fontSize="2xl"
+              borderRadius="full"
+              icon={
+                engineStatus.mode === 'playing' ? (
+                  <Icon as={MdPause} />
+                ) : (
+                  <Icon as={MdPlayArrow} />
+                )
+              }
+              onClick={handlePlayToggle}
+              isLoading={engineStatus.mode === 'loading'}
+            />
+          </PopoverTrigger>
+          <PopoverContent w="auto" boxShadow="md">
+            <PopoverArrow />
+            <PopoverBody display="flex" p="4">
+              <FormControl display="flex" alignItems="center">
+                <Switch onChange={setAutoscroll.toggle} />
+                <FormLabel mb="0" pl="2" cursor="pointer">
+                  Auto-scroll with playback
+                </FormLabel>
+              </FormControl>
+            </PopoverBody>
+          </PopoverContent>
+        </Popover>
         <DisplayMS ms={playbackTime} />
         <Box flex="1" position="relative">
           <Slider
