@@ -6,8 +6,8 @@ import {
   Icon,
   Spacer,
 } from '@chakra-ui/react'
+import LogoType from '@shared/assets/logotype.svg?react'
 import { Link } from 'wouter'
-import LogoType from '../logotype.svg?react'
 import { useSession } from './SessionContext'
 
 export function AppHeader() {
