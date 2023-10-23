@@ -104,7 +104,7 @@ import { default as discordSVG } from '../images/discord.svg?raw'
     display: flex;
     flex-direction: column;
     gap: 16px;
-    width: 500px;
+    max-width: 500px;
     text-align: center;
   }
 
@@ -130,6 +130,8 @@ import { default as discordSVG } from '../images/discord.svg?raw'
   }
 
   .screenshot {
+    max-width: 100%;
+    height: auto;
     border-radius: 8px;
     box-shadow: 0 8px 16px 4px rgba(0, 0, 0, 20%);
   }
@@ -206,5 +208,20 @@ import { default as discordSVG } from '../images/discord.svg?raw'
     display: flex;
     justify-content: flex-end;
     gap: 24px;
+  }
+
+  @media (max-width: 600px) {
+    main {
+      font-size: 20px;
+    }
+
+    h2,
+    h3 {
+      font-size: 26px;
+    }
+
+    .feature-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
