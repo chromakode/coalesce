@@ -66,16 +66,18 @@ import { default as discordSVG } from '../images/discord.svg?raw'
     </section>
   </main>
   <footer>
-    <div>
-      &copy; 2023 <a href="https://chromakode.com" target="_blank"
-        >Max Goodhart</a
-      >
-    </div>
-    <div class="links">
-      <a href="https://github.com/chromakode/coalesce" target="_blank">
-        Github
-      </a>
-      <a href="/discord" target="_blank">Discord</a>
+    <div class="footer-body">
+      <div>
+        &copy; 2023 <a href="https://chromakode.com" target="_blank"
+          >Max Goodhart</a
+        >
+      </div>
+      <div class="links">
+        <a href="https://github.com/chromakode/coalesce" target="_blank">
+          Github
+        </a>
+        <a href="/discord" target="_blank">Discord</a>
+      </div>
     </div>
   </footer>
 </Layout>
@@ -197,10 +199,17 @@ import { default as discordSVG } from '../images/discord.svg?raw'
 
   footer {
     display: flex;
+    justify-content: center;
     background: black;
     color: var(--color-brand-light);
     padding: 12px 32px;
     opacity: 0.5;
+  }
+
+  .footer-body {
+    flex: 1;
+    display: flex;
+    max-width: 960px;
   }
 
   footer .links {
