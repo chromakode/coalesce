@@ -2,7 +2,7 @@
 
 Coalesce is an audio editor which makes slicing dialogue as easy as editing text.
 
-![Screenshot](./screenshot.png)
+![Screenshot](./shared/assets/screenshot.png)
 
 ---
 
