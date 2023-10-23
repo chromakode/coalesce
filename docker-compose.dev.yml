@@ -33,3 +33,9 @@ services:
       - minio
     env_file:
       - docker-compose.env
+
+  site:
+    command: npm start -- --port 4321 --host
+    volumes:
+      - ./site:/app/site
+      - ./shared:/app/shared

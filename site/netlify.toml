@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/discord"
+  to = "https://discord.gg/aTPqSw3KC9"
+  status = 301
+  force = true

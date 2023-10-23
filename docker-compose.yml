@@ -177,6 +177,16 @@ services:
       - POSTGRES_URL=${POSTGRES_COALESCE_URL}
       - MINIO_ENDPOINT
 
+  site:
+    profiles: ['site']
+    image: coalesce/site
+    restart: unless-stopped
+    ports:
+      - '4321:4321'
+    build:
+      context: .
+      dockerfile: ./site/Dockerfile
+
 volumes:
   minio:
   redis:

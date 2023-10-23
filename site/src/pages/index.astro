@@ -1,0 +1,210 @@
+---
+import { Image } from 'astro:assets'
+import Layout from '../layouts/Layout.astro'
+import { default as logoSVG } from '@shared/assets/logotype.svg?raw'
+import screenshotImg from '@shared/assets/screenshot.png'
+import { default as discordSVG } from '../images/discord.svg?raw'
+---
+
+<Layout
+  title="Coalesce"
+  description="A new, free, state-of-the-art podcast editor."
+>
+  <main>
+    <div class="hero">
+      <h1 aria-label="Coalesce"><Fragment set:html={logoSVG} /></h1>
+      <h2>A new, free, state-of-the-art podcast editor.</h2>
+    </div>
+    <Image
+      class="screenshot"
+      src={screenshotImg}
+      alt="Screenshot of Coalesce"
+      width="700"
+      densities={[1.5, 2]}
+    />
+    <ul role="list" class="feature-grid">
+      <div class="feature">
+        <h4>Edit at the speed of text</h4>
+        <p>
+          Coalesce transcribes your recordings into text. Editing is as easy as
+          moving words around.
+        </p>
+      </div>
+      <div class="feature">
+        <h4>Collaborate instantly</h4>
+        <p>Send co-hosts a link and edit your session together in real time.</p>
+      </div>
+      <div class="feature">
+        <h4>Powerful editing tools</h4>
+        <p>
+          Adjust timing with an intuitive visual editor. Automatically condense
+          gaps and pauses.
+        </p>
+      </div>
+      <div class="feature">
+        <h4>Own your editor</h4>
+        <p>
+          Coalesce is open-source and free to run on your own computer forever.
+        </p>
+      </div>
+    </ul>
+    <section>
+      <h3>Become an alpha tester</h3>
+      <p>
+        Start using Coalesce today and influence development by joining the
+        community on Discord.
+      </p>
+      <a class="buttonlike" href="/discord" target="_blank">
+        <Fragment set:html={discordSVG} />
+         Join the Discord
+      </a>
+    </section>
+    <section>
+      <h3>Let's get in touch</h3>
+      <p>Questions or feedback to share?</p>
+      <a href="mailto:hi@coalesce.io">hi@coalesce.io</a>
+    </section>
+  </main>
+  <footer>
+    <div>
+      &copy; 2023 <a href="https://chromakode.com" target="_blank"
+        >Max Goodhart</a
+      >
+    </div>
+    <div class="links">
+      <a href="https://github.com/chromakode/coalesce" target="_blank">
+        Github
+      </a>
+      <a href="/discord" target="_blank">Discord</a>
+    </div>
+  </footer>
+</Layout>
+
+<style>
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 64px;
+    margin: auto;
+    padding: 96px 0;
+    width: 850px;
+    max-width: calc(100% - 2rem);
+    color: var(--color-brand-light);
+    font-size: 24px;
+    line-height: 1.5;
+  }
+
+  a {
+    color: var(--color-brand-light);
+  }
+
+  .hero {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 500px;
+    text-align: center;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 0;
+  }
+
+  h1 :global(svg) {
+    height: 48px;
+  }
+
+  h2 {
+    font-size: 36px;
+    font-weight: 900;
+  }
+
+  h3 {
+    font-size: 32px;
+    font-weight: 900;
+  }
+
+  .screenshot {
+    border-radius: 8px;
+    box-shadow: 0 8px 16px 4px rgba(0, 0, 0, 20%);
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .feature {
+    padding: 24px 32px;
+    border: 1px solid
+      color-mix(in srgb, transparent, var(--color-brand-light) 25%);
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .feature h4 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .feature p {
+    font-size: 16px;
+    margin: 0;
+  }
+
+  section {
+    text-align: center;
+    margin-top: 64px;
+  }
+
+  section h3 {
+    line-height: 100%;
+    text-wrap: nowrap;
+  }
+
+  section p {
+    margin: 24px;
+  }
+
+  a.buttonlike {
+    display: inline-flex;
+    align-items: center;
+    background: var(--color-brand-light);
+    color: var(--color-brand-dark);
+    font-size: 24px;
+    font-weight: 900;
+    text-decoration: none;
+    border-radius: 16px;
+    padding: 16px 24px;
+    box-shadow: 0 8px 8px rgba(0, 0, 0, 20%);
+  }
+
+  a.buttonlike :global(svg) {
+    height: 38px;
+    margin-right: 16px;
+  }
+
+  footer {
+    display: flex;
+    background: black;
+    color: var(--color-brand-light);
+    padding: 12px 32px;
+    opacity: 0.5;
+  }
+
+  footer .links {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 24px;
+  }
+</style>
