@@ -70,7 +70,10 @@ export class CoalesceAPIClient {
   }
 
   fetchJSON = async (input: RequestInfo, init?: RequestInit) => {
-    const resp = await this.fetch(input, init)
+    const resp = await this.fetch(input, {
+      credentials: 'include',
+      ...init,
+    })
     return await resp.json()
   }
 

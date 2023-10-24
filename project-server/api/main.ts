@@ -247,7 +247,7 @@ const apiRouter = new Router<ContextState>()
     ctx.response.body = await getProjectInfo(projectId)
   })
 
-app.use(oakCors({ origin: APP_ORIGIN }))
+app.use(oakCors({ origin: APP_ORIGIN, credentials: true }))
 app.use(apiRouter.routes())
 app.use(apiRouter.allowedMethods())
 app.use(workerProxyRouter.routes())
