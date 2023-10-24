@@ -10,6 +10,8 @@ import LogoType from '@shared/assets/logotype.svg?react'
 import { Link } from 'wouter'
 import { useSession } from './SessionContext'
 
+const { VITE_AUTH_UI_URL } = import.meta.env
+
 export function AppHeader() {
   const session = useSession()
 
@@ -34,7 +36,11 @@ export function AppHeader() {
         <Spacer />
         {session && (
           <HStack>
-            <Button as="a" href="/auth/settings" variant="ghost">
+            <Button
+              as="a"
+              href={`${VITE_AUTH_UI_URL}/settings`}
+              variant="ghost"
+            >
               {session.email}
             </Button>
             <Button as="a" href={session.logoutURL} variant="ghost">

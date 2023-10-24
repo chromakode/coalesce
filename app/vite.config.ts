@@ -4,6 +4,12 @@ import { defineConfig } from 'vite'
 import svgr from 'vite-plugin-svgr'
 
 export default defineConfig({
+  base: '/app/',
+  server: {
+    fs: {
+      allow: ['..'],
+    },
+  },
   plugins: [react(), svgr()],
   resolve: {
     alias: {

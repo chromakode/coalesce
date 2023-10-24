@@ -3,3 +3,21 @@
   to = "https://discord.gg/aTPqSw3KC9"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/app/*"
+  to = "https://app.coalesce.audio/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/home"
+  to = "https://app.coalesce.audio/home"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/project/*"
+  to = "https://app.coalesce.audio/project/:splat"
+  status = 200
+  force = true

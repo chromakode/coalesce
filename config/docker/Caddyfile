@@ -15,5 +15,18 @@ http:// {
     reverse_proxy http://api-server:3001
   }
 
-  reverse_proxy http://app:3000
+  @app_route {
+    path /home /project/*
+  }
+
+  route @app_route {
+    rewrite * /app{path}
+    reverse_proxy http://app:3000
+  }
+
+  handle /app/* {
+    reverse_proxy http://app:3000
+  }
+
+  reverse_proxy http://site:4321
 }

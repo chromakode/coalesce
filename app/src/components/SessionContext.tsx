@@ -8,6 +8,8 @@ import { useAPI } from './APIContext'
 const SessionContext = createContext<SessionInfo | null>(null)
 export const useSession = () => useContext(SessionContext)
 
+const { VITE_AUTH_UI_URL } = import.meta.env
+
 export function WithSession({
   isRequired,
   children,
@@ -22,9 +24,7 @@ export function WithSession({
   useEffect(() => {
     if (session.error instanceof NeedsAuthError) {
       if (isRequired) {
-        window.location.href = `${
-          import.meta.env.VITE_AUTH_UI_URL
-        }/login?return_to=${window.location.toString()}`
+        window.location.href = `${VITE_AUTH_UI_URL}/login?return_to=${window.location.toString()}`
       }
     } else if (session.error instanceof UnexpectedServerError) {
       const timeout = setTimeout(() => {

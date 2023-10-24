@@ -52,7 +52,7 @@ services:
     environment:
       - PORT=4455
       - KRATOS_PUBLIC_URL=${KRATOS_URL:-http://kratos:4433}
-      - KRATOS_BROWSER_URL=${APP_ORIGIN}/auth/api
+      - KRATOS_BROWSER_URL=${AUTH_BASE}/api
 
   kratos:
     depends_on:
@@ -64,17 +64,17 @@ services:
     environment:
       - LOG_LEVEL=trace
       - DSN=${KRATOS_POSTGRES_DSN}
-      - SERVE_PUBLIC_BASE_URL=${APP_ORIGIN}/auth/api
+      - SERVE_PUBLIC_BASE_URL=${AUTH_BASE}/api
       - SERVE_ADMIN_BASE_URL=http://kratos:4434
-      - SELFSERVICE_DEFAULT_BROWSER_RETURN_URL=${APP_ORIGIN}
-      - SELFSERVICE_ALLOWED_RETURN_URLS=${APP_ORIGIN}
-      - SELFSERVICE_FLOWS_ERROR_UI_URL=${APP_ORIGIN}/auth/error
-      - SELFSERVICE_FLOWS_SETTINGS_UI_URL=${APP_ORIGIN}/auth/settings
-      - SELFSERVICE_FLOWS_RECOVERY_UI_URL=${APP_ORIGIN}/auth/recovery
-      - SELFSERVICE_FLOWS_VERIFICATION_UI_URL=${APP_ORIGIN}/auth/verification
-      - SELFSERVICE_FLOWS_LOGIN_UI_URL=${APP_ORIGIN}/auth/login
-      - SELFSERVICE_FLOWS_REGISTRATION_UI_URL=${APP_ORIGIN}/auth/registration
-      - SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL=${APP_ORIGIN}/auth/login
+      - SELFSERVICE_DEFAULT_BROWSER_RETURN_URL=${APP_ORIGIN}/home
+      - SELFSERVICE_ALLOWED_RETURN_URLS=${APP_ORIGIN}/home
+      - SELFSERVICE_FLOWS_ERROR_UI_URL=${AUTH_BASE}/error
+      - SELFSERVICE_FLOWS_SETTINGS_UI_URL=${AUTH_BASE}/settings
+      - SELFSERVICE_FLOWS_RECOVERY_UI_URL=${AUTH_BASE}/recovery
+      - SELFSERVICE_FLOWS_VERIFICATION_UI_URL=${AUTH_BASE}/verification
+      - SELFSERVICE_FLOWS_LOGIN_UI_URL=${AUTH_BASE}/login
+      - SELFSERVICE_FLOWS_REGISTRATION_UI_URL=${AUTH_BASE}/registration
+      - SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL=${APP_ORIGIN}
       - SELFSERVICE_FLOWS_REGISTRATION_ENABLED=${KRATOS_SELFSERVICE_FLOWS_REGISTRATION_ENABLED}
       - SECRETS_COOKIE=${KRATOS_COOKIE_SECRET}
       - SECRETS_CIPHER=${KRATOS_CIPHER_SECRET}
@@ -123,13 +123,13 @@ services:
       context: .
       dockerfile: ./app/Dockerfile
       args:
-        - VITE_PROJECT_SERVER=${APP_ORIGIN}/api
-        - VITE_KRATOS_URL=${APP_ORIGIN}/auth/api
-        - VITE_AUTH_UI_URL=${APP_ORIGIN}/auth
+        - VITE_PROJECT_SERVER=${API_BASE}
+        - VITE_KRATOS_URL=${AUTH_BASE}/api
+        - VITE_AUTH_UI_URL=${AUTH_BASE}
     environment:
-      - VITE_PROJECT_SERVER=${APP_ORIGIN}/api
-      - VITE_KRATOS_URL=${APP_ORIGIN}/auth/api
-      - VITE_AUTH_UI_URL=${APP_ORIGIN}/auth
+      - VITE_PROJECT_SERVER=${API_BASE}
+      - VITE_KRATOS_URL=${AUTH_BASE}/api
+      - VITE_AUTH_UI_URL=${AUTH_BASE}
 
   api-server:
     image: coalesce/project-server
@@ -186,6 +186,10 @@ services:
     build:
       context: .
       dockerfile: ./site/Dockerfile
+      args:
+        - PUBLIC_AUTH_UI_URL=${AUTH_BASE}
+    environment:
+      - PUBLIC_AUTH_UI_URL=${AUTH_BASE}
 
 volumes:
   minio:

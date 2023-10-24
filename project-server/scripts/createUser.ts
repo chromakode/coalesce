@@ -48,7 +48,9 @@ try {
     },
   })
   console.log(
-    `${recovery.recovery_link}&return_to=${encodeURIComponent(APP_ORIGIN)}`,
+    `${recovery.recovery_link}&return_to=${encodeURIComponent(
+      APP_ORIGIN,
+    )}/home`,
   )
 } catch (err) {
   console.error(err?.response?.data ?? err)

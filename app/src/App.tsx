@@ -8,7 +8,7 @@ export default function App() {
   const { hasGuestKey } = useAPI()
   return (
     <Switch>
-      <Route path="/">
+      <Route path="/home">
         <WithSession isRequired>
           <IndexPage />
         </WithSession>
