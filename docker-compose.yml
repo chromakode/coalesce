@@ -123,12 +123,12 @@ services:
       context: .
       dockerfile: ./app/Dockerfile
       args:
-        - VITE_PROJECT_SERVER=${API_BASE}
-        - VITE_KRATOS_URL=${AUTH_BASE}/api
+        - VITE_API_BASE=${API_BASE}
+        - VITE_KRATOS_BASE=${AUTH_BASE}/api
         - VITE_AUTH_BASE=${AUTH_BASE}
     environment:
-      - VITE_PROJECT_SERVER=${API_BASE}
-      - VITE_KRATOS_URL=${AUTH_BASE}/api
+      - VITE_API_BASE=${API_BASE}
+      - VITE_KRATOS_BASE=${AUTH_BASE}/api
       - VITE_AUTH_BASE=${AUTH_BASE}
 
   api-server:

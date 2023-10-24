@@ -11,8 +11,8 @@ RUN --mount=type=cache,target=/npm-cache \
 COPY ./app ./
 COPY ./shared ../shared/
 
-ARG VITE_PROJECT_SERVER
-ARG VITE_KRATOS_URL
+ARG VITE_API_BASE
+ARG VITE_KRATOS_BASE
 ARG VITE_AUTH_BASE
 
 RUN npm run build

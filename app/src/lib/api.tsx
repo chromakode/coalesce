@@ -4,7 +4,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 
-export const server = import.meta.env.VITE_PROJECT_SERVER
+export const server = import.meta.env.VITE_API_BASE
 
 export class UnexpectedServerError extends Error {}
 export class NeedsAuthError extends Error {}
