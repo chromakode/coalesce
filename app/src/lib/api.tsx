@@ -123,6 +123,7 @@ export class CoalesceAPIClient {
         if (this.guestKey) {
           xhr.setRequestHeader('Authorization', `Bearer ${this.guestKey}`)
         }
+        xhr.withCredentials = true
         xhr.send(file)
       }),
       abort,
