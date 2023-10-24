@@ -125,10 +125,12 @@ services:
       dockerfile: ./app/Dockerfile
       args:
         - VITE_API_BASE=${API_BASE}
+        - VITE_CHUNK_GET_BASE=${CHUNK_GET_BASE}
         - VITE_KRATOS_BASE=${AUTH_BASE}/api
         - VITE_AUTH_BASE=${AUTH_BASE}
     environment:
       - VITE_API_BASE=${API_BASE}
+      - VITE_CHUNK_GET_BASE=${CHUNK_GET_BASE}
       - VITE_KRATOS_BASE=${AUTH_BASE}/api
       - VITE_AUTH_BASE=${AUTH_BASE}
 

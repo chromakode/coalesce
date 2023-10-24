@@ -21,3 +21,9 @@
   to = "https://app.coalesce.audio/project/:splat"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/chunk/project/:projectId/track/:trackId/:idx.flac"
+  to = "https://api.coalesce.audio/project/:projectId/track/:trackId/:idx.flac"
+  status = 200
+  force = true

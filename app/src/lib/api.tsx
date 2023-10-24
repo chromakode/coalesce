@@ -5,6 +5,7 @@ import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 
 export const API_BASE = import.meta.env.VITE_API_BASE
+export const CHUNK_GET_BASE = import.meta.env.VITE_CHUNK_GET_BASE
 
 export class UnexpectedServerError extends Error {}
 export class NeedsAuthError extends Error {}
@@ -17,7 +18,7 @@ function socketBase(): string {
 }
 
 export function chunkURL(projectId: string, trackId: string, idx: number) {
-  return `${API_BASE}/project/${projectId}/track/${trackId}/${idx}.flac`
+  return `${CHUNK_GET_BASE}/project/${projectId}/track/${trackId}/${idx}.flac`
 }
 
 export class CoalesceAPIClient {
