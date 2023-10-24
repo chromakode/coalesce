@@ -4,20 +4,20 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 
-export const server = import.meta.env.VITE_API_BASE
+export const API_BASE = import.meta.env.VITE_API_BASE
 
 export class UnexpectedServerError extends Error {}
 export class NeedsAuthError extends Error {}
 
 function socketBase(): string {
-  const serverURL = new URL(server)
+  const serverURL = new URL(API_BASE)
   const socketProto = serverURL.protocol === 'https:' ? 'wss' : 'ws'
   serverURL.protocol = socketProto
   return serverURL.toString()
 }
 
 export function chunkURL(projectId: string, trackId: string, idx: number) {
-  return `${server}/project/${projectId}/track/${trackId}/${idx}.flac`
+  return `${API_BASE}/project/${projectId}/track/${trackId}/${idx}.flac`
 }
 
 export class CoalesceAPIClient {
@@ -76,15 +76,15 @@ export class CoalesceAPIClient {
   }
 
   getSession = (): Promise<SessionInfo> => {
-    return this.fetchJSON(`${server}/session`)
+    return this.fetchJSON(`${API_BASE}/session`)
   }
 
   listProjects = (): Promise<ProjectInfo[]> => {
-    return this.fetchJSON(`${server}/project/`)
+    return this.fetchJSON(`${API_BASE}/project/`)
   }
 
   createProject = (params: ProjectFieldsInput = {}): Promise<ProjectInfo> => {
-    return this.fetchJSON(`${server}/project/`, {
+    return this.fetchJSON(`${API_BASE}/project/`, {
       method: 'POST',
       body: JSON.stringify(params),
       headers: { 'Content-Type': 'application/json' },
@@ -115,7 +115,7 @@ export class CoalesceAPIClient {
         })
         xhr.open(
           'POST',
-          `${server}/project/${projectId}/track?filename=${file.name}`,
+          `${API_BASE}/project/${projectId}/track?filename=${file.name}`,
           true,
         )
         xhr.setRequestHeader('Content-Type', file.type)
@@ -132,7 +132,7 @@ export class CoalesceAPIClient {
     projectId: string,
     params: ProjectFieldsInput,
   ): Promise<void> => {
-    return this.fetchJSON(`${server}/project/${projectId}`, {
+    return this.fetchJSON(`${API_BASE}/project/${projectId}`, {
       method: 'PATCH',
       body: JSON.stringify(params),
       headers: { 'Content-Type': 'application/json' },
@@ -144,7 +144,7 @@ export class CoalesceAPIClient {
     trackId: string,
     params: TrackFieldsInput,
   ): Promise<void> => {
-    return this.fetchJSON(`${server}/project/${projectId}/track/${trackId}`, {
+    return this.fetchJSON(`${API_BASE}/project/${projectId}/track/${trackId}`, {
       method: 'PATCH',
       body: JSON.stringify(params),
       headers: { 'Content-Type': 'application/json' },
@@ -152,7 +152,7 @@ export class CoalesceAPIClient {
   }
 
   deleteTrack = (projectId: string, trackId: string): Promise<void> => {
-    return this.fetchJSON(`${server}/project/${projectId}/track/${trackId}`, {
+    return this.fetchJSON(`${API_BASE}/project/${projectId}/track/${trackId}`, {
       method: 'DELETE',
     })
   }
