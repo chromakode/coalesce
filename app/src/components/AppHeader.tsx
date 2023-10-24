@@ -18,7 +18,7 @@ export function AppHeader() {
   return (
     <Container maxW="full">
       <HStack w="full" flexShrink="0">
-        <Link href="/">
+        <Link href="/home">
           <ChakraLink
             display="flex"
             alignSelf="flex-start"
