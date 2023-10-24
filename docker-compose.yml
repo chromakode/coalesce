@@ -125,11 +125,11 @@ services:
       args:
         - VITE_PROJECT_SERVER=${API_BASE}
         - VITE_KRATOS_URL=${AUTH_BASE}/api
-        - VITE_AUTH_UI_URL=${AUTH_BASE}
+        - VITE_AUTH_BASE=${AUTH_BASE}
     environment:
       - VITE_PROJECT_SERVER=${API_BASE}
       - VITE_KRATOS_URL=${AUTH_BASE}/api
-      - VITE_AUTH_UI_URL=${AUTH_BASE}
+      - VITE_AUTH_BASE=${AUTH_BASE}
 
   api-server:
     image: coalesce/project-server
@@ -187,9 +187,9 @@ services:
       context: .
       dockerfile: ./site/Dockerfile
       args:
-        - PUBLIC_AUTH_UI_URL=${AUTH_BASE}
+        - PUBLIC_AUTH_BASE=${AUTH_BASE}
     environment:
-      - PUBLIC_AUTH_UI_URL=${AUTH_BASE}
+      - PUBLIC_AUTH_BASE=${AUTH_BASE}
 
 volumes:
   minio:

@@ -5,7 +5,7 @@ import { default as logoSVG } from '@shared/assets/logotype.svg?raw'
 import screenshotImg from '@shared/assets/screenshot.png'
 import { default as discordSVG } from '../images/discord.svg?raw'
 
-const { PUBLIC_AUTH_UI_URL } = import.meta.env
+const { PUBLIC_AUTH_BASE } = import.meta.env
 ---
 
 <Layout
@@ -13,7 +13,7 @@ const { PUBLIC_AUTH_UI_URL } = import.meta.env
   description="A new, free, state-of-the-art podcast editor."
 >
   <main>
-    <a class="login" href={`${PUBLIC_AUTH_UI_URL}/login`}>Login</a>
+    <a class="login" href={`${PUBLIC_AUTH_BASE}/login`}>Login</a>
     <div class="hero">
       <h1 aria-label="Coalesce"><Fragment set:html={logoSVG} /></h1>
       <h2>A new, free, state-of-the-art podcast editor.</h2>
