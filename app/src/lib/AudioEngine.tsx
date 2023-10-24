@@ -101,7 +101,7 @@ export default class AudioEngine {
 
   async fetchChunk(src: string): Promise<AudioBuffer> {
     console.log(`downloading ${src}...`)
-    const resp = await this.api.fetch(src)
+    const resp = await this.api.fetch(src, { credentials: 'same-origin' })
     const ab = await resp.arrayBuffer()
     console.log(`decoding ${src}...`)
     const buffer = await this.ctx.decodeAudioData(ab)
