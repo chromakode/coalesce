@@ -71,6 +71,8 @@ function RefPlugin({ editorRef }: { editorRef: any }) {
 function SpeakerPlugin({ project }: { project: Project }) {
   const [editor] = useLexicalComposerContext()
 
+  // Reparent SoundNodes outside of a SpeakerNode (this commonly happens when
+  // pressing enter splits a SpeakerNode)
   useLayoutEffect(() => {
     return editor.registerNodeTransform(SoundNode, (soundNode) => {
       const soundLoc = soundNode.getSoundLocation()
@@ -147,6 +149,7 @@ function SpeakerPlugin({ project }: { project: Project }) {
     })
   }, [editor, project])
 
+  // Auto remove empty speaker nodes
   useLayoutEffect(() => {
     return editor.registerNodeTransform(SpeakerNode, (speakerNode) => {
       if (speakerNode.getTextContent().trim() === '') {
