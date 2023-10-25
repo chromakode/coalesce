@@ -147,6 +147,14 @@ function SpeakerPlugin({ project }: { project: Project }) {
     })
   }, [editor, project])
 
+  useLayoutEffect(() => {
+    return editor.registerNodeTransform(SpeakerNode, (speakerNode) => {
+      if (speakerNode.getTextContent().trim() === '') {
+        speakerNode.remove()
+      }
+    })
+  })
+
   return null
 }
 
