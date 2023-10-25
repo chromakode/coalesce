@@ -137,11 +137,7 @@ function SpeakerPlugin({ project }: { project: Project }) {
       }
 
       const parentNode = soundNode.getParentOrThrow()
-      if (!$isSpeakerNode(parentNode)) {
-        const speakerNode = createSpeakerNode()
-        soundNode.getParentOrThrow().insertAfter(speakerNode)
-        appendAdjacentNodes(speakerNode)
-      } else if (parentNode.getSource() !== source) {
+      if (!$isSpeakerNode(parentNode) || parentNode.getSource() !== source) {
         const speakerNode = createSpeakerNode()
         parentNode.insertAfter(speakerNode)
         appendAdjacentNodes(speakerNode)
