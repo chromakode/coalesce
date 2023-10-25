@@ -115,6 +115,12 @@ function SpeakerPlugin({ project }: { project: Project }) {
           prevNode = curNode.getPreviousSibling()
         }
 
+        // Scan forwards through text nodes (so trailing punctuation stays with
+        // the previous speaker)
+        while (curNode && !$isSoundNode(curNode)) {
+          curNode = curNode.getNextSibling()
+        }
+
         // Scan forward, reparenting nodes
         while (curNode && isRelevantNode(curNode)) {
           const origParentNode = curNode.getParent()
