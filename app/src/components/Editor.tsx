@@ -158,7 +158,7 @@ function SpeakerPlugin({ project }: { project: Project }) {
         speakerNode.remove()
       }
     })
-  })
+  }, [])
 
   return null
 }
