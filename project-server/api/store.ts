@@ -291,6 +291,7 @@ export async function createTrack(
       .selectFrom('track')
       .where('originalFilename', '=', originalFilename)
       .select(['trackId'])
+      .orderBy('createdAt', 'desc')
       .executeTakeFirst()
 
     if (existingTrack) {
