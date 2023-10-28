@@ -74,7 +74,7 @@ export const $walkBackward = partial($walk, false)
  * Get the index to insert at before/after a SoundNode, skipping to the boundary
  * before the next SoundNode.
  */
-function insertionIndex(startNode: SoundNode, insertBefore: boolean) {
+function $insertionIndex(startNode: SoundNode, insertBefore: boolean) {
   let node: LexicalNode = startNode
   let next: LexicalNode | null = insertBefore
     ? startNode.getPreviousSibling()
@@ -177,13 +177,13 @@ export function addWordsToEditor({
               }
               docNode
                 .getParent()!
-                .splice(insertionIndex(docNode, insertBefore).idx, 0, newNodes)
+                .splice($insertionIndex(docNode, insertBefore).idx, 0, newNodes)
             } else {
               const parentNode = $createSpeakerNode(speakerName, color, trackId)
               parentNode.append(...newNodes)
 
               const docNodeParent = docNode.getParent()!
-              const { idx, isAtEnd } = insertionIndex(docNode, insertBefore)
+              const { idx, isAtEnd } = $insertionIndex(docNode, insertBefore)
               if (insertBefore && isAtEnd) {
                 // If the doc node is at the beginning of its parent, insert the
                 // new speaker parent before.
