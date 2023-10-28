@@ -15,6 +15,7 @@ import {
   $isSoundNode,
   $isSpeakerNode,
   $nodesOfTypeInOrder,
+  $splitNodeShallow,
   SoundNode,
   SpeakerNode,
   lexicalNodes,
@@ -87,7 +88,9 @@ function SpeakerPlugin({ project }: { project: Project }) {
         )
       }
 
-      const appendAdjacentNodes = (destNode: SpeakerNode) => {
+      const scanAdjacentNodes = (startNode: LexicalNode): LexicalNode[] => {
+        const resultNodes: LexicalNode[] = []
+
         const isRelevantNode = (node: LexicalNode) => {
           if ($isSoundNode(node)) {
             return node.getSoundLocation().source === source
@@ -100,13 +103,7 @@ function SpeakerPlugin({ project }: { project: Project }) {
           return false
         }
 
-        const selection = $getSelection()
-        let prevSelection: RangeSelection | undefined
-        if ($isRangeSelection(selection)) {
-          prevSelection = selection.clone()
-        }
-
-        let curNode: LexicalNode | null = soundNode
+        let curNode: LexicalNode | null = startNode
 
         // Scan backwards to start or first node with different source
         let prevNode = curNode.getPreviousSibling()
@@ -123,30 +120,53 @@ function SpeakerPlugin({ project }: { project: Project }) {
 
         // Scan forward, reparenting nodes
         while (curNode && isRelevantNode(curNode)) {
-          const origParentNode = curNode.getParent()
-          const nextNode: LexicalNode | null = curNode.getNextSibling()
-
-          curNode.remove()
-
-          // If the previous parent is empty, remove it
-          if (origParentNode?.isEmpty()) {
-            origParentNode.remove()
-          }
-
-          destNode.append(curNode)
-          curNode = nextNode
+          resultNodes.push(curNode)
+          curNode = curNode.getNextSibling()
         }
 
-        if (prevSelection) {
-          $setSelection(prevSelection)
+        return resultNodes
+      }
+
+      function reparentNode(node: LexicalNode, destNode: LexicalNode) {
+        const origParentNode = node.getParent()
+        node.remove()
+
+        // If the previous parent is empty, remove it
+        if (origParentNode?.isEmpty()) {
+          origParentNode.remove()
         }
+
+        destNode.append(node)
+      }
+
+      const selection = $getSelection()
+      let prevSelection: RangeSelection | undefined
+      if ($isRangeSelection(selection)) {
+        prevSelection = selection.clone()
       }
 
       const parentNode = soundNode.getParentOrThrow()
       if (!$isSpeakerNode(parentNode) || parentNode.getSource() !== source) {
+        const nodesToReparent = scanAdjacentNodes(soundNode)
+
         const speakerNode = createSpeakerNode()
-        parentNode.insertAfter(speakerNode)
-        appendAdjacentNodes(speakerNode)
+        const [beforeParent, afterParent] = $splitNodeShallow(
+          parentNode,
+          nodesToReparent[0].getIndexWithinParent(),
+        )
+        if (beforeParent === null) {
+          afterParent.insertBefore(speakerNode)
+        } else {
+          beforeParent.insertAfter(speakerNode)
+        }
+
+        for (const node of nodesToReparent) {
+          reparentNode(node, speakerNode)
+        }
+      }
+
+      if (prevSelection) {
+        $setSelection(prevSelection)
       }
     })
   }, [editor, project])

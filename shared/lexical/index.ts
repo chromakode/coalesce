@@ -1,4 +1,4 @@
-import { $getRoot, LexicalNode, Klass } from 'lexical'
+import { $getRoot, LexicalNode, Klass, ElementNode, $copyNode } from 'lexical'
 import { HeadingNode } from '@lexical/rich-text'
 import { SoundNode } from './SoundNode.ts'
 import { SpeakerNode } from './SpeakerNode.ts'
@@ -19,4 +19,27 @@ export function $nodesOfTypeInOrder<T extends LexicalNode>(
     root.getFirstDescendant()?.getNodesBetween(root.getLastDescendant()!) ?? []
   const nodes = allNodes.filter((n): n is T => n instanceof klass)
   return nodes
+}
+
+// Like $splitNode, but doesn't split parents recursively
+export function $splitNodeShallow(
+  node: ElementNode,
+  offset: number,
+): [null, ElementNode] | [ElementNode, null] | [ElementNode, ElementNode] {
+  let startNode = node.getChildAtIndex(offset)
+  if (startNode == null) {
+    startNode = node
+  }
+
+  if (startNode.getPreviousSibling() === null) {
+    return [null, node]
+  } else if (startNode.getNextSibling() === null) {
+    return [node, null]
+  }
+
+  const afterNode = $copyNode(node)
+  afterNode.append(startNode, ...startNode.getNextSiblings())
+  node.insertAfter(afterNode)
+
+  return [node, afterNode]
 }

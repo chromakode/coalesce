@@ -5,6 +5,7 @@ import {
   $isSpeakerNode,
   $isSoundNode,
   SoundNode,
+  $splitNodeShallow,
 } from '@shared/lexical'
 import {
   sortBy,
@@ -83,10 +84,7 @@ function $insertionIndex(startNode: SoundNode, insertBefore: boolean) {
     node = next
     next = insertBefore ? node.getPreviousSibling() : node.getNextSibling()
   }
-  return {
-    idx: node.getIndexWithinParent() + (insertBefore ? 0 : 1),
-    isAtEnd: next === null,
-  }
+  return node.getIndexWithinParent() + (insertBefore ? 0 : 1)
 }
 
 export function addWordsToEditor({
@@ -177,24 +175,28 @@ export function addWordsToEditor({
               }
               docNode
                 .getParent()!
-                .splice($insertionIndex(docNode, insertBefore).idx, 0, newNodes)
+                .splice($insertionIndex(docNode, insertBefore), 0, newNodes)
             } else {
               const parentNode = $createSpeakerNode(speakerName, color, trackId)
               parentNode.append(...newNodes)
 
               const docNodeParent = docNode.getParent()!
-              const { idx, isAtEnd } = $insertionIndex(docNode, insertBefore)
-              if (insertBefore && isAtEnd) {
+              const idx = $insertionIndex(docNode, insertBefore)
+
+              const [beforeParent, afterParent] = $splitNodeShallow(
+                docNodeParent,
+                idx,
+              )
+              if (beforeParent === null) {
                 // If the doc node is at the beginning of its parent, insert the
                 // new speaker parent before.
-                docNodeParent.insertBefore(parentNode)
-              } else if (!insertBefore && isAtEnd) {
+                afterParent.insertBefore(parentNode)
+              } else if (afterParent === null) {
                 // Similarly, if at the end, insert the new speaker parent after.
-                docNodeParent.insertAfter(parentNode)
+                beforeParent.insertAfter(parentNode)
               } else {
                 // Otherwise, we need to split the doc node's parent and insert
                 // the new speaker parent in between.
-                const [_, afterParent] = $splitNode(docNodeParent, idx)
                 afterParent.insertBefore(parentNode)
 
                 // Trim leading space
