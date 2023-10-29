@@ -12,7 +12,6 @@ import {
   coalesceCollabDoc,
   saveAwarenessData,
 } from './store.ts'
-import { iterSocket, socketReady } from '../lib/utils.ts'
 import { editCollabDoc } from './editorState.ts'
 import { TranscribeBuffer } from './transcribeBuffer.ts'
 
