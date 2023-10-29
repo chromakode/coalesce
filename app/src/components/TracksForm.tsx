@@ -243,7 +243,6 @@ function TrackUpload({
             onUpdateTrackMixerSettings={onUpdateTrackMixerSettings}
           />
         )}
-
         {!isReadOnly && (
           <IconButton
             icon={<Icon as={MdClose} fontSize="2xl" />}
