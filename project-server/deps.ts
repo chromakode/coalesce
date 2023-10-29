@@ -81,3 +81,5 @@ export {
   fetchRequestHandler,
   type FetchCreateContextFnOptions,
 } from 'npm:@trpc/server@^10.38.5/adapters/fetch'
+
+export { default as invariant } from 'tiny-invariant'
