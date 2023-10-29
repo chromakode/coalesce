@@ -41,6 +41,7 @@ export type AudioEngineEvents = {
 }
 
 const MAX_CHUNKS_LOADED = 500
+const MAX_BUFFERS_LOADED = 100
 const TICK_MS = 1000
 
 // TODO: consider implementing backend for slicing wavs and lazy load into buffers
@@ -49,12 +50,19 @@ export default class AudioEngine {
   api: CoalesceAPIClient
   project: Project = emptyProject()
   mixerSettings: MixerState
-  chunkCache = new LRUCache<string, Promise<AudioBuffer>>({
-    max: MAX_CHUNKS_LOADED,
-  })
   events = mitt<AudioEngineEvents>()
   status: AudioEngineStatus = { mode: 'stopped' }
   currentTask: RunningAudioTask | null = null
+
+  // Cache of loaded audio chunks
+  chunkCache = new LRUCache<string, Promise<AudioBuffer>>({
+    max: MAX_CHUNKS_LOADED,
+  })
+
+  // Cache of location buffers (derived from chunk data)
+  locBufferCache = new LRUCache<string, Promise<SoundLocationWithBuffer>>({
+    max: MAX_BUFFERS_LOADED,
+  })
 
   // TODO: preload on initial load?
   constructor(
@@ -108,8 +116,19 @@ export default class AudioEngine {
     return buffer
   }
 
-  // TODO: cache
   async getBufferForLoc(loc: SoundLocation): Promise<SoundLocationWithBuffer> {
+    const key = `${loc.source}-${loc.start}-${loc.end}`
+
+    let promise = this.locBufferCache.get(key)
+    if (!promise) {
+      promise = this.makeBufferForLoc(loc)
+      this.locBufferCache.set(key, promise)
+    }
+
+    return await promise
+  }
+
+  async makeBufferForLoc(loc: SoundLocation): Promise<SoundLocationWithBuffer> {
     const trackInfo = this.getTrackInfo(loc.source)
     const { sampleRate, numberOfChannels, chunkLength } = trackInfo.audio
 
