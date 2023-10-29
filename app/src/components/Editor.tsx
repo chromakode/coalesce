@@ -49,7 +49,7 @@ import {
   useRef,
 } from 'react'
 import { useLatest } from 'react-use'
-import { BEFORE_PUNCTUATION } from '../../../shared/constants'
+import { BEFORE_PUNCTUATION } from '@shared/constants'
 import {
   OffsetSoundLocation,
   getEndTime,

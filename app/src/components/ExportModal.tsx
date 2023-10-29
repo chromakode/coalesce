@@ -17,10 +17,10 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
+import { Project } from '@shared/types'
 import { mapValues } from 'lodash-es'
 import { ChangeEvent, useCallback, useState } from 'react'
 import { MdAudioFile, MdFolderZip } from 'react-icons/md'
-import { Project } from '../../../shared/types'
 
 export enum ExportMode {
   Mixdown = 'mixdown',
