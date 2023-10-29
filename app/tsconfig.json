@@ -18,5 +18,5 @@
     "jsx": "react-jsx",
     "paths": { "@shared/*": ["node_modules/coalesce_shared/*"] }
   },
-  "include": ["src", "../shared/"]
+  "include": ["src"]
 }
