@@ -247,6 +247,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   const { collabSocketProvider } = useAPI()
   const editorRef = useRef<LexicalEditor | null>(null)
   const prevSelection = useRef<ReturnType<typeof $getSelection>>(null)
+  const cachedLocations = useRef<OffsetSoundLocation[] | null>(null)
 
   const initialConfig: InitialConfigType = useMemo(() => {
     return {
@@ -264,12 +265,14 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   }, [project])
 
   function getAllSoundLocations() {
-    return (
-      editorRef.current?.getEditorState().read(() => {
-        const soundNodes = $nodesOfTypeInOrder(SoundNode)
-        return processLocations(soundNodes.map((l) => l.getSoundLocation()))
-      }) ?? []
-    )
+    if (!cachedLocations.current) {
+      cachedLocations.current =
+        editorRef.current?.getEditorState().read(() => {
+          const soundNodes = $nodesOfTypeInOrder(SoundNode)
+          return processLocations(soundNodes.map((l) => l.getSoundLocation()))
+        }) ?? []
+    }
+    return cachedLocations.current
   }
 
   useImperativeHandle(
@@ -295,14 +298,17 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
           })
         },
         setSoundNodePlaying(key, isPlaying) {
-          editorRef.current?.update(() => {
-            const node = $getNodeByKey(key)
-            if (!node) {
-              console.warn('node not found', key)
-              return
-            }
-            node.setIsPlaying(isPlaying)
-          })
+          editorRef.current?.update(
+            () => {
+              const node = $getNodeByKey(key)
+              if (!node) {
+                console.warn('node not found', key)
+                return
+              }
+              node.setIsPlaying(isPlaying)
+            },
+            { discrete: true, tag: 'skip-collab' },
+          )
         },
         scrollToKey(key: string) {
           const el = editorRef.current?.getElementByKey(key)
@@ -356,25 +362,42 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
   },
   150)
 
-  const handleChange = debounce(
-    function handleChange() {
-      const allLocs = getAllSoundLocations()
-      const endTime = getEndTime(allLocs)
-      if (endTime === null) {
-        return
-      }
+  const updateMetrics = useCallback(() => {
+    const allLocs = getAllSoundLocations()
+    const endTime = getEndTime(allLocs)
+    if (endTime === null) {
+      return
+    }
 
-      onMetricsUpdated?.({
-        start: allLocs[0].start + allLocs[0].offset,
-        duration: endTime,
-        nodeKeyToLoc: getNodeKeyToLoc(allLocs),
-      })
-    },
-    500,
-    { leading: true, trailing: true, maxWait: 2000 },
+    onMetricsUpdated?.({
+      start: allLocs[0].start + allLocs[0].offset,
+      duration: endTime,
+      nodeKeyToLoc: getNodeKeyToLoc(allLocs),
+    })
+  }, [getAllSoundLocations, onMetricsUpdated])
+
+  const updateMetricsDebounced = useMemo(
+    () =>
+      debounce(updateMetrics, 500, {
+        leading: true,
+        trailing: true,
+        maxWait: 2000,
+      }),
+    [updateMetrics],
   )
 
-  useEffect(handleChange, [])
+  const handleChange = (
+    editorState: EditorState,
+    editor: LexicalEditor,
+    tags: Set<string>,
+  ) => {
+    if (!tags.has('skip-collab')) {
+      cachedLocations.current = null
+    }
+    updateMetricsDebounced()
+  }
+
+  useEffect(updateMetricsDebounced, [])
 
   const latestOnSync = useLatest(onSync)
   const latestOnAwareness = useLatest(onAwareness)
@@ -394,8 +417,8 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
 
       doc.once('update', () => {
         setTimeout(() => {
-          handleChange()
-          handleChange.flush()
+          cachedLocations.current = null
+          updateMetrics()
         })
       })
 
