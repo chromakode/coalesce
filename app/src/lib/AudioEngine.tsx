@@ -83,7 +83,6 @@ export default class AudioEngine {
   }
 
   getChunkURL(trackId: string, idx: number): string {
-    const trackInfo = this.getTrackInfo(trackId)
     return chunkURL(this.project.projectId, trackId, idx)
   }
 
