@@ -386,6 +386,7 @@ export function decibelsToGain(decibels: number) {
 }
 
 export function getEndTime(locs: OffsetSoundLocation[]): number | null {
+  // FIXME: This is wrong if a previous loc is longer than the last one
   const lastLoc = last(locs)
   if (!lastLoc) {
     return null
