@@ -12,7 +12,6 @@ import {
   sortBy,
   $createTextNode,
   $getRoot,
-  $isTextNode,
   lexicalYjs,
   createHeadlessEditor,
   LexicalEditor,
