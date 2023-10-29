@@ -64,7 +64,6 @@ export default class AudioEngine {
     max: MAX_BUFFERS_LOADED,
   })
 
-  // TODO: preload on initial load?
   constructor(
     api: CoalesceAPIClient,
     project: Project,
@@ -279,6 +278,17 @@ export default class AudioEngine {
       }
       this.currentTask = null
     }
+  }
+
+  preload(task: AudioTask) {
+    const { run } = task
+
+    // Run the scheduler with a null mixer, so it skips playback but fetches buffers
+    const scheduler = run(this.ctx, null, 0, this.getBufferForLoc.bind(this))
+
+    scheduler.next()
+    scheduler.next(0)
+    scheduler.return()
   }
 }
 

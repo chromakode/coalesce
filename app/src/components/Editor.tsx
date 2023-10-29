@@ -411,14 +411,12 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
       const provider = collabSocketProvider(id, doc, { connect: false })
 
       provider.on('sync', (isSynced: boolean) => {
-        const mixerSettingsDoc = doc.getMap('mixerSettings')
-        latestOnSync.current({ isSynced, mixerSettingsDoc })
-      })
-
-      doc.once('update', () => {
         setTimeout(() => {
           cachedLocations.current = null
           updateMetrics()
+
+          const mixerSettingsDoc = doc.getMap('mixerSettings')
+          latestOnSync.current({ isSynced, mixerSettingsDoc })
         })
       })
 

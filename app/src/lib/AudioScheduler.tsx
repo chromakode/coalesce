@@ -11,6 +11,7 @@ export interface PlayOptions {
   startSeek?: number
   clipStartFudge?: number
   clipEndFudge?: number
+  bufferSeconds?: number
   verbose?: boolean
   onLocPlaying?: (loc: SoundLocation, isPlaying: boolean) => void
 }
@@ -19,7 +20,7 @@ export type AudioScheduler = AsyncGenerator<void, void, number>
 
 export type CreateAudioScheduler = (
   ctx: BaseAudioContext,
-  mixer: AudioMixer,
+  mixer: AudioMixer | null,
   startTime: number,
   getBufferForLoc: (
     loc: SoundLocation,
@@ -34,6 +35,10 @@ export interface AudioTask {
 
 const emptyScheduler: CreateAudioScheduler = async function* () {}
 
+// Fade in and out durations to add to clips played
+export const DEFAULT_START_FUDGE = 0.05
+export const DEFAULT_END_FUDGE = 0.15
+
 // How far to schedule ahead of the current time
 export const SCHEDULER_BUFFER_S = 2
 
@@ -41,8 +46,9 @@ export function playLocations(
   locs: OffsetSoundLocation[],
   {
     startSeek = 0,
-    clipStartFudge = 0.05,
-    clipEndFudge = 0.15,
+    clipStartFudge = DEFAULT_START_FUDGE,
+    clipEndFudge = DEFAULT_END_FUDGE,
+    bufferSeconds = SCHEDULER_BUFFER_S,
     verbose = false,
     onLocPlaying,
   }: PlayOptions = {},
@@ -95,7 +101,7 @@ export function playLocations(
 
         // If we've generated up to the buffer threshold, wait for all pending
         // fetches to finish and pause until generation is triggered again.
-        while (currentTime + SCHEDULER_BUFFER_S < queueTime) {
+        while (currentTime + bufferSeconds < queueTime) {
           if (fetches.length) {
             await Promise.all(fetches)
           }
@@ -120,8 +126,10 @@ export function playLocations(
         }
 
         const queueWhenLoaded = async () => {
-          const mixerDestination = mixer.getTrackDestination(source)
-          if (!mixerDestination) {
+          // If a mixer was provided but returns no destination, it's probably
+          // already been destroyed. Skip loading and playback.
+          const mixerDestination = mixer?.getTrackDestination(source)
+          if (mixer && !mixerDestination) {
             return
           }
 
@@ -129,6 +137,12 @@ export function playLocations(
             padLocation(loc, clampedStartFudge, clipEndFudge),
             queueTime,
           )
+
+          // If no mixer was provided, we're preloading the audio. Skip playback
+          // after loading the buffer.
+          if (!mixerDestination) {
+            return
+          }
 
           // The time the true clip region starts (after start fudge)
           // Paper over floating precision issues causing negative values

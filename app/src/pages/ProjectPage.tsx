@@ -94,7 +94,7 @@ import AudioEngine, {
   getTimeFromNodeKey,
   padLocation,
 } from '../lib/AudioEngine'
-import { playLocations } from '../lib/AudioScheduler'
+import { SCHEDULER_BUFFER_S, playLocations } from '../lib/AudioScheduler'
 
 import {
   MixerSettings,
@@ -105,6 +105,7 @@ import './ProjectPage.css'
 
 const WAVE_PADDING = 0.75
 const MAX_WAVE_NODES = 10
+const PRELOAD_SECONDS = SCHEDULER_BUFFER_S
 
 export interface CollaboratorState {
   id: number
@@ -368,6 +369,15 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
   }) => {
     setIsInitialSynced((isInitialSynced) => isSynced || isInitialSynced)
     setMixerSettingsDoc(mixerSettingsDoc)
+
+    const editor = editorRef.current
+    if (editor) {
+      engine?.preload(
+        playLocations(editor.getAllSoundLocations(), {
+          bufferSeconds: PRELOAD_SECONDS,
+        }),
+      )
+    }
   }
 
   const handleAwareness = useCallback(
@@ -429,6 +439,17 @@ export default function ProjectPage({ projectId }: { projectId: string }) {
       )
       if (locTime != null) {
         setCurTimeMS(locTime * 1000)
+      }
+
+      // Preload playback from cursor position
+      const editor = editorRef.current
+      if (editor) {
+        engine?.preload(
+          playLocations(editor.getAllSoundLocations(), {
+            startSeek: locTime,
+            bufferSeconds: PRELOAD_SECONDS,
+          }),
+        )
       }
     }
 
