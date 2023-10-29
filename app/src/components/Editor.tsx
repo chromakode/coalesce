@@ -58,7 +58,7 @@ import {
 } from '../lib/AudioEngine'
 import { useAPI } from './APIContext'
 
-const precedingTextRe = new RegExp(`[\\s${escapeRegExp(BEFORE_PUNCTUATION)}]+`)
+const precedingTextRe = new RegExp(`[${escapeRegExp(BEFORE_PUNCTUATION)}]+`)
 
 const excludedProperties: ExcludedProperties = new Map()
 excludedProperties.set(SoundNode, new Set(['__isPlaying']))
@@ -126,8 +126,9 @@ function SpeakerPlugin({ project }: { project: Project }) {
         while (
           curNode &&
           isRelevantNode(curNode) &&
-          // Stop at characters that precede words (whitespace and punctuation)
-          !curNode.getTextContent().match(precedingTextRe)
+          // Stop at text nodes containing punctuation that precedes words
+          ($isSoundNode(curNode) ||
+            !curNode.getTextContent().match(precedingTextRe))
         ) {
           resultNodes.push(curNode)
           curNode = curNode.getNextSibling()
