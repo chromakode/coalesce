@@ -16,7 +16,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "paths": { "@shared/*": ["../shared/*"] }
+    "paths": { "@shared/*": ["node_modules/coalesce_shared/*"] }
   },
   "include": ["src", "../shared/"]
 }
