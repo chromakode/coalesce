@@ -25,6 +25,7 @@ import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 
 import { ExcludedProperties, Provider } from '@lexical/yjs'
+import { BEFORE_PUNCTUATION } from '@shared/constants'
 import type { Project, SoundLocation } from '@shared/types'
 import {
   $getNodeByKey,
@@ -49,7 +50,6 @@ import {
   useRef,
 } from 'react'
 import { useLatest } from 'react-use'
-import { BEFORE_PUNCTUATION } from '@shared/constants'
 import {
   OffsetSoundLocation,
   getEndTime,
