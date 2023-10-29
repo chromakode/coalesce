@@ -1,5 +1,13 @@
 import invariant from 'tiny-invariant'
-import { $getRoot, LexicalNode, Klass, ElementNode, $copyNode } from 'lexical'
+import {
+  $getRoot,
+  LexicalNode,
+  Klass,
+  ElementNode,
+  $copyNode,
+  TextNode,
+  $isTextNode,
+} from 'lexical'
 import { HeadingNode } from '@lexical/rich-text'
 import { SoundNode } from './SoundNode.ts'
 import { SpeakerNode } from './SpeakerNode.ts'
@@ -41,4 +49,15 @@ export function $splitNodeShallow(
   node.insertAfter(afterNode)
 
   return [node, afterNode]
+}
+
+export function $trimLeadingSpace(elementNode: ElementNode) {
+  const firstChild = elementNode.getFirstChild()
+  if (
+    firstChild &&
+    $isTextNode(firstChild) &&
+    firstChild.getTextContent().trim() === ''
+  ) {
+    firstChild.remove()
+  }
 }

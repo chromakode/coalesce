@@ -16,6 +16,7 @@ import {
   $isSpeakerNode,
   $nodesOfTypeInOrder,
   $splitNodeShallow,
+  $trimLeadingSpace,
   SoundNode,
   SpeakerNode,
   lexicalNodes,
@@ -162,7 +163,7 @@ function SpeakerPlugin({ project }: { project: Project }) {
           parentNode,
           nodesToReparent[0].getIndexWithinParent(),
         )
-        if (beforeParent === null) {
+        if (afterParent !== null) {
           afterParent.insertBefore(speakerNode)
         } else {
           beforeParent.insertAfter(speakerNode)
@@ -170,6 +171,10 @@ function SpeakerPlugin({ project }: { project: Project }) {
 
         for (const node of nodesToReparent) {
           reparentNode(node, speakerNode)
+        }
+
+        if (afterParent !== null) {
+          $trimLeadingSpace(afterParent)
         }
       }
 

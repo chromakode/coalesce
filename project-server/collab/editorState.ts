@@ -6,6 +6,7 @@ import {
   $isSoundNode,
   SoundNode,
   $splitNodeShallow,
+  $trimLeadingSpace,
 } from '@shared/lexical'
 import {
   sortBy,
@@ -201,16 +202,7 @@ export function addWordsToEditor({
                 // Otherwise, we need to split the doc node's parent and insert
                 // the new speaker parent in between.
                 afterParent.insertBefore(parentNode)
-
-                // Trim leading space
-                const firstAfterNode = afterParent.getFirstChild()
-                if (
-                  firstAfterNode &&
-                  $isTextNode(firstAfterNode) &&
-                  firstAfterNode.getTextContent().trim() === ''
-                ) {
-                  firstAfterNode.remove()
-                }
+                $trimLeadingSpace(afterParent)
               }
             }
           }
