@@ -15,8 +15,10 @@ import {
   SliderTrack,
   Switch,
   Text,
+  useDisclosure,
+  useOutsideClick,
 } from '@chakra-ui/react'
-import React, { useCallback } from 'react'
+import React, { useCallback, useRef } from 'react'
 import { MdVolumeDownAlt, MdVolumeUp } from 'react-icons/md'
 import { TrackMixerState } from '../lib/AudioMixer'
 
@@ -44,6 +46,17 @@ export function TrackVolumeControl({
   trackMixerSettings: TrackMixerSettings | null
   onUpdateTrackMixerSettings: OnUpdateTrackMixerSettings
 }) {
+  const contentRef = useRef<HTMLElement | null>(null)
+
+  // When text is selected and lexical updates nodes within the selection,
+  // Chakra gets a blur event and auto-closes the popover. As a workaround,
+  // disable close on blur and manually close when the user clicks out.
+  const { isOpen, onToggle, onClose } = useDisclosure()
+  useOutsideClick({
+    ref: contentRef,
+    handler: onClose,
+  })
+
   const actualGain = trackMixerState?.gain ?? 1
   const isAuto =
     trackMixerSettings?.gain == null || trackMixerSettings?.gain === 'auto'
@@ -65,9 +78,15 @@ export function TrackVolumeControl({
   )
 
   return (
-    <Popover placement="bottom">
+    <Popover
+      placement="bottom"
+      isOpen={isOpen}
+      onClose={onClose}
+      closeOnBlur={false}
+    >
       <PopoverTrigger>
         <IconButton
+          onClick={onToggle}
           icon={
             <Icon
               as={actualGain >= 1 ? MdVolumeUp : MdVolumeDownAlt}
@@ -78,7 +97,7 @@ export function TrackVolumeControl({
           variant="ghost"
         />
       </PopoverTrigger>
-      <PopoverContent w="20" boxShadow="md">
+      <PopoverContent ref={contentRef} w="20" boxShadow="md">
         <PopoverArrow />
         <PopoverBody display="flex" flexDirection="column" alignItems="center">
           <FormControl
