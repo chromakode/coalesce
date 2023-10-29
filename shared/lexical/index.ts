@@ -1,3 +1,4 @@
+import invariant from 'tiny-invariant'
 import { $getRoot, LexicalNode, Klass, ElementNode, $copyNode } from 'lexical'
 import { HeadingNode } from '@lexical/rich-text'
 import { SoundNode } from './SoundNode.ts'
@@ -26,16 +27,14 @@ export function $splitNodeShallow(
   node: ElementNode,
   offset: number,
 ): [null, ElementNode] | [ElementNode, null] | [ElementNode, ElementNode] {
-  let startNode = node.getChildAtIndex(offset)
-  if (startNode == null) {
-    startNode = node
-  }
-
-  if (startNode.getPreviousSibling() === null) {
+  if (offset === 0) {
     return [null, node]
-  } else if (startNode.getNextSibling() === null) {
+  } else if (offset === node.getChildrenSize()) {
     return [node, null]
   }
+
+  let startNode = node.getChildAtIndex(offset)
+  invariant(startNode != null)
 
   const afterNode = $copyNode(node)
   afterNode.append(startNode, ...startNode.getNextSiblings())
