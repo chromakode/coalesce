@@ -19,13 +19,17 @@ import {
   LexicalNode,
   $isElementNode,
   partial,
+  escapeRegExp,
 } from '../deps.ts'
+import { AFTER_PUNCTUATION, BEFORE_PUNCTUATION } from '@shared/constants'
 import { Word } from '@shared/schema'
 import { TrackInfo } from '@shared/types'
 
-const punctuationPattern = `[\\[\\]\\-“¿({"'.。,，!！?？:：”)}、]`
+const punctuationChars = escapeRegExp(
+  BEFORE_PUNCTUATION + AFTER_PUNCTUATION,
+).replace('-', '\\-')
 const punctuationRe = new RegExp(
-  `(^${punctuationPattern}+|${punctuationPattern}+$)`,
+  `(^[${punctuationChars}]+|[${punctuationChars}]+$)`,
 )
 
 // Patterned off LexicalUtils.$dfs

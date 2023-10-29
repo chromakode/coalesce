@@ -64,6 +64,7 @@ export {
   castArray,
   throttle,
   partial,
+  escapeRegExp,
 } from 'npm:lodash-es@^4.17.21'
 
 export { EventIterator } from 'npm:event-iterator@^2.0.0'

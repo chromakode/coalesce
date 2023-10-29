@@ -36,7 +36,7 @@ import {
   LexicalNode,
   RangeSelection,
 } from 'lexical'
-import { debounce } from 'lodash-es'
+import { debounce, escapeRegExp } from 'lodash-es'
 import {
   MutableRefObject,
   forwardRef,
@@ -48,6 +48,7 @@ import {
   useRef,
 } from 'react'
 import { useLatest } from 'react-use'
+import { BEFORE_PUNCTUATION } from '../../../shared/constants'
 import {
   OffsetSoundLocation,
   getEndTime,
@@ -55,6 +56,8 @@ import {
   processLocations,
 } from '../lib/AudioEngine'
 import { useAPI } from './APIContext'
+
+const precedingTextRe = new RegExp(`[\\s${escapeRegExp(BEFORE_PUNCTUATION)}]+`)
 
 const excludedProperties: ExcludedProperties = new Map()
 excludedProperties.set(SoundNode, new Set(['__isPlaying']))
@@ -119,7 +122,12 @@ function SpeakerPlugin({ project }: { project: Project }) {
         }
 
         // Scan forward, reparenting nodes
-        while (curNode && isRelevantNode(curNode)) {
+        while (
+          curNode &&
+          isRelevantNode(curNode) &&
+          // Stop at characters that precede words (whitespace and punctuation)
+          !curNode.getTextContent().match(precedingTextRe)
+        ) {
           resultNodes.push(curNode)
           curNode = curNode.getNextSibling()
         }
