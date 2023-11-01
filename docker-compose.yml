@@ -133,6 +133,7 @@ services:
       - VITE_CHUNK_GET_BASE=${CHUNK_GET_BASE}
       - VITE_KRATOS_BASE=${AUTH_BASE}/api
       - VITE_AUTH_BASE=${AUTH_BASE}
+      - VITE_SITE_NOTICE=${SITE_NOTICE}
 
   api-server:
     image: coalesce/project-server
