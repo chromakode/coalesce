@@ -19,7 +19,7 @@ export default function App() {
         description: SITE_NOTICE[1],
         position: 'bottom-right',
         isClosable: true,
-        duration: 30 * 1000,
+        duration: 8 * 1000,
         containerStyle: {
           marginBottom: '9rem',
           width: '24rem',
