@@ -371,6 +371,17 @@ export async function createTrack(
       { trackInfo, segments },
       { context: { projectId } },
     )
+
+    // Send track state including audio data
+    const trackState = await getTrackState(projectId, trackId)
+    await redisClient.publish(
+      `project:${projectId}`,
+      JSON.stringify({
+        type: 'track-updated',
+        trackId,
+        update: trackState,
+      }),
+    )
   }
 
   return trackId
