@@ -236,16 +236,19 @@ function useEngine(
 ): AudioEngine | null {
   const api = useAPI()
   const [engine, setEngine] = useState<AudioEngine | null>(null)
+  const projectId = project?.projectId
 
   useEffect(() => {
-    const engine = project ? new AudioEngine(api, project, mixerSettings) : null
+    const engine = projectId
+      ? new AudioEngine(api, project, mixerSettings)
+      : null
     setEngine(engine)
     return () => {
       if (engine) {
         engine.stop()
       }
     }
-  }, [api])
+  }, [api, projectId])
 
   useEffect(() => {
     if (engine && project) {
