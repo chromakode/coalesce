@@ -132,6 +132,7 @@ function TrackUpload({
     }
     uploadRef.current = uploadTrack(project.projectId, file, setUploadProgress)
     uploadRef.current.result.then(({ trackId }) => {
+      setUploadProgress(0)
       uploadRef.current = undefined
       if (labelRef.current) {
         updateTrack(project.projectId, trackId, {
