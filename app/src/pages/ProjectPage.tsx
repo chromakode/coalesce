@@ -245,7 +245,13 @@ function useEngine(
         engine.stop()
       }
     }
-  }, [project, api])
+  }, [api])
+
+  useEffect(() => {
+    if (engine && project) {
+      engine.updateProject(project)
+    }
+  }, [engine, project])
 
   useEffect(() => {
     if (engine) {

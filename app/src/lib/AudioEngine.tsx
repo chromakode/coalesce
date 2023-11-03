@@ -74,6 +74,10 @@ export default class AudioEngine {
     this.mixerSettings = mixerSettings
   }
 
+  updateProject(project: Project) {
+    this.project = project
+  }
+
   updateMixerSettings(update: MixerState) {
     this.mixerSettings = update
     if (this.currentTask) {
