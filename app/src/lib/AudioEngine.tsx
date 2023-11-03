@@ -174,6 +174,10 @@ export default class AudioEngine {
     const { ctx } = this
     const { duration, run } = task
 
+    // Resume audio context in case it wasn't allowed to start on load
+    // https://developer.chrome.com/blog/autoplay/#webaudio
+    ctx.resume()
+
     const mixer = new EditorOutputMixer(
       ctx,
       ctx.destination,
