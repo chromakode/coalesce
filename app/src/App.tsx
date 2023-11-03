@@ -6,7 +6,7 @@ import { WithSession } from './components/SessionContext'
 import IndexPage from './pages/IndexPage'
 import ProjectPage from './pages/ProjectPage'
 
-const SITE_NOTICE = import.meta.env.VITE_SITE_NOTICE.split('|')
+const SITE_NOTICE = import.meta.env.VITE_SITE_NOTICE
 
 export default function App() {
   const { hasGuestKey } = useAPI()
@@ -14,9 +14,10 @@ export default function App() {
   const toast = useToast()
   useEffect(() => {
     if (SITE_NOTICE) {
+      const [title, description] = SITE_NOTICE.split('|')
       toast({
-        title: SITE_NOTICE[0],
-        description: SITE_NOTICE[1],
+        title,
+        description,
         position: 'bottom-right',
         isClosable: true,
         duration: 8 * 1000,
