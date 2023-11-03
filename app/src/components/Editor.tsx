@@ -8,7 +8,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import {
   $createSpeakerNode,
@@ -57,6 +56,7 @@ import {
   processLocations,
 } from '../lib/AudioEngine'
 import { useAPI } from './APIContext'
+import { OnChangePlugin } from './LexicalOnChangePlugin'
 
 const precedingTextRe = new RegExp(`[${escapeRegExp(BEFORE_PUNCTUATION)}]+`)
 
@@ -440,7 +440,11 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
         ErrorBoundary={LexicalErrorBoundary}
       />
       <OnChangePlugin onChange={handleSelectionChange} />
-      <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
+      <OnChangePlugin
+        onChange={handleChange}
+        ignoreSelectionChange
+        includeInitialChange
+      />
       <MarkdownShortcutPlugin transformers={[HEADING]} />
       <RefPlugin editorRef={editorRef} />
       <SpeakerPlugin project={project} />
