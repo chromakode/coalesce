@@ -42,7 +42,7 @@ services:
   kratos-migrate:
     image: oryd/kratos:v1.0.0
     volumes:
-      - ./config/docker/kratos:/etc/config/kratos
+      - ./config/kratos:/etc/config/kratos
     command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
     environment:
       - DSN=${KRATOS_POSTGRES_DSN}
@@ -60,7 +60,7 @@ services:
     image: oryd/kratos:v1.0.0
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
     volumes:
-      - ./config/docker/kratos:/etc/config/kratos
+      - ./config/kratos:/etc/config/kratos
     environment:
       - LOG_LEVEL=trace
       - DSN=${KRATOS_POSTGRES_DSN}
