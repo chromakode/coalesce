@@ -330,6 +330,7 @@ export default function TracksForm({
     accept: {
       'audio/wav': ['.wav'],
       'audio/mp3': ['.mp3'],
+      'audio/mp4': ['.m4a'],
       'audio/flac': ['.flac'],
     },
   })
