@@ -1,6 +1,9 @@
 {
   "tasks": {
-    "api:dev": "deno run --watch api/main.ts"
+    "api:dev": "deno run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno api/main.ts",
+    "api:serve": "deno run --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno api/main.ts",
+    "collab:dev": "deno run --watch --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno collab/main.ts",
+    "collab:serve": "deno run --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno collab/main.ts"
   },
   "fmt": {
     "semiColons": false
