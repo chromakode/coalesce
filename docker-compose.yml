@@ -92,7 +92,7 @@ services:
 
   audio-processor:
     profiles: ['process-audio']
-    image: coalesce/audio-processor
+    image: coalesce-audio-processor
     restart: unless-stopped
     command: poetry run coalesce_http_worker
     build:
@@ -106,7 +106,7 @@ services:
 
   audio-processor-runpod:
     profiles: ['process-audio-runpod']
-    image: coalesce/audio-processor-runpod
+    image: coalesce-audio-processor-runpod
     restart: unless-stopped
     command: poetry run coalesce_runpod_worker --rp_serve_api --rp_api_host 0.0.0.0 --rp_api_port ${WORKER_PORT:-3030}
     build:
@@ -118,7 +118,7 @@ services:
       - WORKER_PORT=${WORKER_PORT:-3030}
 
   app:
-    image: coalesce/app
+    image: coalesce-app
     restart: unless-stopped
     build:
       context: .
@@ -136,7 +136,7 @@ services:
       - VITE_SITE_NOTICE=${SITE_NOTICE}
 
   api-server:
-    image: coalesce/project-server
+    image: coalesce-project-server
     restart: unless-stopped
     command: task api:serve
     build:
@@ -166,7 +166,7 @@ services:
       - TRACK_CDN_HOST
 
   collab-server:
-    image: coalesce/project-server
+    image: coalesce-project-server
     restart: unless-stopped
     command: task collab:serve
     build:
@@ -183,7 +183,7 @@ services:
 
   site:
     profiles: ['site']
-    image: coalesce/site
+    image: coalesce-site
     restart: unless-stopped
     ports:
       - '4321:4321'
