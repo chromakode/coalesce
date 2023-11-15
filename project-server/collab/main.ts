@@ -38,6 +38,9 @@ const readProjectId: Middleware = async (ctx, next) => {
 }
 
 const router = new Router<ContextState>()
+  .get('/health', (ctx) => {
+    ctx.response.status = 200
+  })
   .use(readProjectId)
   .get('/ws', async (ctx) => {
     const { projectId } = ctx.state

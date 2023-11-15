@@ -189,6 +189,9 @@ const projectRouter = new Router<ContextState & { project: string }>()
   )
 
 const apiRouter = new Router<ContextState>()
+  .get('/health', (ctx) => {
+    ctx.response.status = 200
+  })
   .use(loadSession)
   .use(
     '/project/:project(\\w+)',
