@@ -135,10 +135,11 @@ const projectRouter = new Router<ContextState & { project: string }>()
     }
 
     const ws = ctx.upgrade()
+    await socketReady(ws)
+
     const upstreamWS = collab.socket(project)
 
-    upstreamWS.onmessage = async (ev) => {
-      await socketReady(ws)
+    upstreamWS.onmessage = (ev) => {
       ws.send(ev.data)
     }
     ws.onmessage = async (ev) => {
