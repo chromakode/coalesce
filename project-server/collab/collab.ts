@@ -6,6 +6,7 @@ import {
   lib0,
   LexicalEditor,
   EventIterator,
+  redis,
 } from '../deps.ts'
 import {
   getAwarenessData,
@@ -14,8 +15,9 @@ import {
 } from './store.ts'
 import { editCollabDoc } from './editorState.ts'
 import { TranscribeBuffer } from './transcribeBuffer.ts'
-import { instanceId } from './main.ts'
+import { instanceId, redisClient } from './main.ts'
 import { COLLAB_SERVER_INFO_MSG_TYPE } from '@shared/constants'
+import { initRedis } from '../lib/service.ts'
 
 const { encoding, decoding } = lib0
 
@@ -66,6 +68,7 @@ class CollabProvider {
   lastDocState: Uint8Array | undefined
   awareness = new awarenessProtocol.Awareness(this.doc)
 
+  _redisPubSub: redis.Redis | undefined
   _editor: LexicalEditor | undefined
   _transcribeBuffer: TranscribeBuffer | undefined
   _disposeEditor: (() => void) | undefined
@@ -80,6 +83,8 @@ class CollabProvider {
   }
 
   async load() {
+    this._watchDoc()
+
     const title = `Fetched project ${this.projectId}`
     console.time(title)
     const [awarenessData, storedDoc] = await Promise.all([
@@ -119,6 +124,36 @@ class CollabProvider {
     console.log('Loaded project', this.projectId)
   }
 
+  async _watchDoc() {
+    if (!this._redisPubSub) {
+      this._redisPubSub = await initRedis()
+    }
+    const redisPubSub = this._redisPubSub
+
+    try {
+      const sub = await redisPubSub.psubscribe(
+        `project-collab:${this.projectId}`,
+      )
+
+      for await (const { message: rawMsg } of sub.receive()) {
+        const msg = JSON.parse(rawMsg)
+        if (msg.type === 'save-doc' && msg.instanceId !== instanceId) {
+          const storedDoc = await coalesceCollabDoc(this.projectId)
+          if (!storedDoc) {
+            continue
+          }
+
+          Y.applyUpdateV2(this.doc, storedDoc)
+          console.log(
+            `Another instance ${msg.instanceId} saved the doc. Updated project from storage.`,
+          )
+        }
+      }
+    } finally {
+      redisPubSub.close()
+    }
+  }
+
   queueSave() {
     if (this._saveTimeout) {
       return
@@ -146,6 +181,10 @@ class CollabProvider {
     await coalesceCollabDoc(this.projectId, update)
     this.lastDocState = stateVector
     console.timeEnd(title)
+    await redisClient.publish(
+      `project-collab:${this.projectId}`,
+      JSON.stringify({ type: 'save-doc', instanceId }),
+    )
   }
 
   queueDispose() {
@@ -159,6 +198,8 @@ class CollabProvider {
 
   async dispose() {
     this.disposed = true
+
+    this._redisPubSub?.close()
 
     await this._transcribeBuffer?.flushBuffer()
 
