@@ -139,7 +139,7 @@ services:
   api-server:
     image: coalesce-project-server
     restart: unless-stopped
-    command: task api:serve
+    command: run --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno api/main.ts
     build:
       context: .
       dockerfile: ./project-server/Dockerfile
@@ -168,7 +168,7 @@ services:
   collab-server:
     image: coalesce-project-server
     restart: unless-stopped
-    command: task collab:serve
+    command: run --allow-net --allow-env --allow-read=/app/project-server/,/usr/bin/deno collab/main.ts
     build:
       context: .
       dockerfile: ./project-server/Dockerfile
