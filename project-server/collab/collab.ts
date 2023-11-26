@@ -149,6 +149,8 @@ class CollabProvider {
           )
         }
       }
+    } catch (err) {
+      console.warn('Redis pubsub connection failed:', err)
     } finally {
       redisPubSub.close()
     }
