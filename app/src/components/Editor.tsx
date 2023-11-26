@@ -24,7 +24,10 @@ import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 
 import { ExcludedProperties, Provider } from '@lexical/yjs'
-import { BEFORE_PUNCTUATION } from '@shared/constants'
+import {
+  BEFORE_PUNCTUATION,
+  COLLAB_SERVER_INFO_MSG_TYPE,
+} from '@shared/constants'
 import type { Project, SoundLocation } from '@shared/types'
 import {
   $getNodeByKey,
@@ -37,6 +40,7 @@ import {
   LexicalNode,
   RangeSelection,
 } from 'lexical'
+import { decoding } from 'lib0'
 import { debounce, escapeRegExp } from 'lodash-es'
 import {
   MutableRefObject,
@@ -409,6 +413,14 @@ export const Editor = forwardRef<EditorRef, EditorProps>(function Editor(
 
       // TODO: create a custom provider to combine YJS and project updates in one WebSocket
       const provider = collabSocketProvider(id, doc, { connect: false })
+
+      provider.messageHandlers[COLLAB_SERVER_INFO_MSG_TYPE] = (
+        encoder,
+        decoder,
+      ) => {
+        const instanceId = decoding.readVarString(decoder)
+        console.debug('Connected to collab server:', instanceId)
+      }
 
       provider.on('sync', (isSynced: boolean) => {
         setTimeout(() => {

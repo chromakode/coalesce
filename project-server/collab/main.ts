@@ -7,7 +7,12 @@ import {
   Router,
   fetchRequestHandler,
 } from '../deps.ts'
-import { iterSocket, requireEnv, socketReady } from '../lib/utils.ts'
+import {
+  generateShortId,
+  iterSocket,
+  requireEnv,
+  socketReady,
+} from '../lib/utils.ts'
 import { getCollab } from './collab.ts'
 import * as rpc from './rpc.ts'
 import { initMinio, initRedis } from '../lib/service.ts'
@@ -16,6 +21,9 @@ const COLLAB_SERVER_PORT = Number(requireEnv('COLLAB_SERVER_PORT'))
 
 export const redisClient = await initRedis()
 export const { minioClient, minioBucket } = await initMinio()
+
+export const instanceId =
+  Deno.env.get('COLLAB_INSTANCE_ID') ?? generateShortId()
 
 interface ContextState {
   projectId: string

@@ -14,6 +14,8 @@ import {
 } from './store.ts'
 import { editCollabDoc } from './editorState.ts'
 import { TranscribeBuffer } from './transcribeBuffer.ts'
+import { instanceId } from './main.ts'
+import { COLLAB_SERVER_INFO_MSG_TYPE } from '@shared/constants'
 
 const { encoding, decoding } = lib0
 
@@ -23,6 +25,7 @@ export const COLLAB_SAVE_INTERVAL_MS = 30 * 1000
 enum msgType {
   Sync = 0,
   Awareness = 1,
+  ServerInfo = COLLAB_SERVER_INFO_MSG_TYPE,
 }
 type TransactionOrigin = WebSocket | undefined
 type SendSink = (data: Uint8Array) => void | Promise<void>
@@ -303,6 +306,11 @@ class CollabProvider {
     }
 
     async function sendInitToClient() {
+      await sendEncoded(toWS, (enc) => {
+        encoding.writeVarUint(enc, msgType.ServerInfo)
+        encoding.writeVarString(enc, instanceId)
+      })
+
       await sendEncoded(toWS, (enc) => {
         encoding.writeVarUint(enc, msgType.Sync)
         syncProtocol.writeSyncStep1(enc, doc)
