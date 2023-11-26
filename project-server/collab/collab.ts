@@ -74,7 +74,7 @@ class CollabProvider {
   _disposeEditor: (() => void) | undefined
 
   disposed = false
-  connectedSockets = 0
+  connectedSockets = new Set<WebSocket>()
   _saveTimeout: number | undefined
   _disposeTimeout: number | undefined
 
@@ -190,7 +190,7 @@ class CollabProvider {
   }
 
   queueDispose() {
-    if (this.connectedSockets > 0) {
+    if (this.connectedSockets.size > 0) {
       return
     }
     this._disposeTimeout = setTimeout(() => {
@@ -202,6 +202,10 @@ class CollabProvider {
     this.disposed = true
 
     this._redisPubSub?.close()
+
+    for (const ws of this.connectedSockets) {
+      ws.close()
+    }
 
     await this._transcribeBuffer?.flushBuffer()
 
@@ -247,7 +251,7 @@ class CollabProvider {
     const { doc, awareness } = this
 
     clearTimeout(this._disposeTimeout)
-    this.connectedSockets++
+    this.connectedSockets.add(ws)
 
     async function sendEncoded(
       sinks: SendSink | SendSink[],
@@ -385,7 +389,7 @@ class CollabProvider {
         handleReceiveFromClient(ev)
       }
     } finally {
-      this.connectedSockets--
+      this.connectedSockets.delete(ws)
       this.queueDispose()
     }
   }
