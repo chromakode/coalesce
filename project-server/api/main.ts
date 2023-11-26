@@ -1,10 +1,5 @@
 import { Application, Middleware, Router, oakCors, ory } from '../deps.ts'
-import {
-  APP_ORIGIN,
-  COLLAB_WS_ENDPOINT,
-  PROJECT_SERVER_PORT,
-  TRACK_CDN_HOST,
-} from './env.ts'
+import { APP_ORIGIN, PROJECT_SERVER_PORT, TRACK_CDN_HOST } from './env.ts'
 import {
   watchProject,
   updateProject,
@@ -21,7 +16,12 @@ import {
 } from './store.ts'
 import { getProjectInfo, listProjects, getTrackInfo } from '../lib/queries.ts'
 import { ProjectFields, TrackFields } from '@shared/schema'
-import { initCollab, initMinio, initOry, initRedis } from '../lib/service.ts'
+import {
+  initCollabCluster,
+  initMinio,
+  initOry,
+  initRedis,
+} from '../lib/service.ts'
 import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
 import { socketReady } from '../lib/utils.ts'
 import { SessionInfo } from '@shared/types'
@@ -29,7 +29,7 @@ import { SessionInfo } from '@shared/types'
 export const redisClient = await initRedis()
 export const { minioClient, minioBucket } = await initMinio()
 export const auth = initOry()
-export const collab = initCollab()
+export const collab = initCollabCluster()
 
 interface ContextState {
   identity: ory.Identity
@@ -135,7 +135,7 @@ const projectRouter = new Router<ContextState & { project: string }>()
     }
 
     const ws = ctx.upgrade()
-    const upstreamWS = new WebSocket(COLLAB_WS_ENDPOINT + `?project=${project}`)
+    const upstreamWS = collab.socket(project)
 
     upstreamWS.onmessage = async (ev) => {
       await socketReady(ws)

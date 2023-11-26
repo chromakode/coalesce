@@ -252,7 +252,7 @@ export async function updateTrack(
   )
 
   const trackInfo = await getTrackInfo(projectId, trackId)
-  await collab.updateSpeaker.mutate({ trackInfo }, { context: { projectId } })
+  await collab.rpc(projectId).updateSpeaker.mutate({ trackInfo })
 }
 
 export async function setTrackMetadata(
@@ -367,10 +367,7 @@ export async function createTrack(
   if (isReusingTrack) {
     // No need to wait for processing to finish
     const { segments } = await getTrackWords(trackId)
-    await collab.addWordsToTrack.mutate(
-      { trackInfo, segments },
-      { context: { projectId } },
-    )
+    await collab.rpc(projectId).addWordsToTrack.mutate({ trackInfo, segments })
 
     // Send track state including audio data
     const trackState = await getTrackState(projectId, trackId)
@@ -422,7 +419,7 @@ export async function removeTrackFromProject(
     }),
   )
 
-  await collab.removeTrack.mutate({ trackId }, { context: { projectId } })
+  await collab.rpc(projectId).removeTrack.mutate({ trackId })
 }
 
 export async function streamTrackChunk(

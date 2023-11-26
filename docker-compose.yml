@@ -152,8 +152,7 @@ services:
     environment:
       - PROJECT_SERVER_PORT=${PROJECT_SERVER_PORT:-3001}
       - APP_ORIGIN=${APP_ORIGIN}
-      - COLLAB_RPC_ENDPOINT=${COLLAB_RPC_ENDPOINT:-http://collab-server:3002/trpc}
-      - COLLAB_WS_ENDPOINT=${COLLAB_WS_ENDPOINT:-http://collab-server:3002/ws}
+      - COLLAB_ENDPOINT=${COLLAB_ENDPOINT:-http://collab-server:3002}
       - KRATOS_URL=${KRATOS_URL:-http://kratos:4433}
       - KRATOS_ADMIN_URL=${KRATOS_ADMIN_URL:-http://kratos:4434}
       - WORKER_PROXY_ORIGIN=${WORKER_PROXY_ORIGIN:-http://api-server:3001}

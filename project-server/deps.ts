@@ -65,6 +65,7 @@ export {
   throttle,
   partial,
   escapeRegExp,
+  isEqual,
 } from 'npm:lodash-es@^4.17.21'
 
 export { EventIterator } from 'npm:event-iterator@^2.0.0'
@@ -76,7 +77,11 @@ export * as lib0 from 'npm:lib0@^0.2.78'
 
 export * as ory from 'npm:@ory/client@1.2.6'
 
-export { createTRPCProxyClient, httpLink } from 'npm:@trpc/client@^10.38.5'
+export {
+  createTRPCProxyClient,
+  httpBatchLink,
+  type CreateTRPCProxyClient,
+} from 'npm:@trpc/client@^10.38.5'
 export { initTRPC } from 'npm:@trpc/server@^10.38.5'
 export {
   fetchRequestHandler,
@@ -84,3 +89,7 @@ export {
 } from 'npm:@trpc/server@^10.38.5/adapters/fetch'
 
 export { default as invariant } from 'tiny-invariant'
+
+export { LRUCache } from 'npm:lru-cache@^9.1.2'
+
+export { HashRing } from 'npm:ketama@^1.0.0'

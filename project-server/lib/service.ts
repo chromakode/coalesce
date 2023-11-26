@@ -16,12 +16,10 @@ import {
   Migration,
   CamelCasePlugin,
   ory,
-  createTRPCProxyClient,
-  httpLink,
 } from '../deps.ts'
 
 import { requireEnv } from './utils.ts'
-import { CollabRPCRouter } from '../collab/rpc.ts'
+import { CollabCluster } from './CollabCluster.ts'
 
 export interface DB {
   project: ProjectTable
@@ -132,16 +130,7 @@ export function initOryAdmin() {
   )
 }
 
-export function initCollab() {
-  const COLLAB_RPC_ENDPOINT = requireEnv('COLLAB_RPC_ENDPOINT')
-  return createTRPCProxyClient<CollabRPCRouter>({
-    links: [
-      httpLink({
-        url: COLLAB_RPC_ENDPOINT,
-        headers: (opts) => ({
-          'Coalesce-Project': opts.op.context.projectId as string,
-        }),
-      }),
-    ],
-  })
+export function initCollabCluster() {
+  const COLLAB_ENDPOINT = requireEnv('COLLAB_ENDPOINT')
+  return new CollabCluster(COLLAB_ENDPOINT)
 }

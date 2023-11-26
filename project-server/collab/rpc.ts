@@ -1,5 +1,5 @@
 import { SegmentModel, TrackInfoModel } from '@shared/schema'
-import { FetchCreateContextFnOptions, initTRPC, z } from '../deps.ts'
+import { initTRPC, z } from '../deps.ts'
 import {
   addWordsToEditor,
   removeTrackFromEditor,
@@ -7,12 +7,14 @@ import {
 } from './editorState.ts'
 import { getCollab } from './collab.ts'
 
-export const createContext = (opts: FetchCreateContextFnOptions) => ({
-  projectId: opts.req.headers.get('Coalesce-Project')!,
-  getCollab: async (projectId: string) => await getCollab(projectId),
+export const createContextForProject = (projectId: string) => () => ({
+  projectId,
+  getCollab: async () => await getCollab(projectId),
 })
 
-const t = initTRPC.context<typeof createContext>().create()
+const t = initTRPC
+  .context<ReturnType<typeof createContextForProject>>()
+  .create()
 
 export const router = t.router
 export const middleware = t.middleware
@@ -29,10 +31,10 @@ export const rpcRouter = router({
     .mutation(async (opts) => {
       const {
         input: { trackInfo, segments },
-        ctx: { projectId, getCollab },
+        ctx: { getCollab },
       } = opts
 
-      const collab = await getCollab(projectId)
+      const collab = await getCollab()
       await addWordsToEditor({
         editor: collab.getEditor(),
         trackInfo,
@@ -50,10 +52,10 @@ export const rpcRouter = router({
     .mutation(async (opts) => {
       const {
         input: { trackId, segments },
-        ctx: { projectId, getCollab },
+        ctx: { getCollab },
       } = opts
 
-      const collab = await getCollab(projectId)
+      const collab = await getCollab()
       await collab.getTranscribeBuffer().handleTrackWords({
         trackId,
         segments,
@@ -74,10 +76,10 @@ export const rpcRouter = router({
     .mutation(async (opts) => {
       const {
         input: { trackId, status },
-        ctx: { projectId, getCollab },
+        ctx: { getCollab },
       } = opts
 
-      const collab = await getCollab(projectId)
+      const collab = await getCollab()
       await collab.getTranscribeBuffer().handleTrackStatus({
         trackId,
         status,
@@ -93,10 +95,10 @@ export const rpcRouter = router({
     .mutation(async (opts) => {
       const {
         input: { trackId },
-        ctx: { projectId, getCollab },
+        ctx: { getCollab },
       } = opts
 
-      const collab = await getCollab(projectId)
+      const collab = await getCollab()
       await removeTrackFromEditor({
         editor: collab.getEditor(),
         trackId,
@@ -112,9 +114,9 @@ export const rpcRouter = router({
     .mutation(async (opts) => {
       const {
         input: { trackInfo },
-        ctx: { projectId, getCollab },
+        ctx: { getCollab },
       } = opts
-      const collab = await getCollab(projectId)
+      const collab = await getCollab()
       await updateSpeakerInEditor({
         editor: collab.getEditor(),
         trackInfo,

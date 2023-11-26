@@ -77,10 +77,9 @@ async function startWorker(job: AudioJob, rawJob: string) {
     )
   }
 
-  await collab.handleTranscribeStatus.mutate(
-    { trackId, status: 'running' },
-    { context: { projectId } },
-  )
+  await collab
+    .rpc(projectId)
+    .handleTranscribeStatus.mutate({ trackId, status: 'running' })
 }
 
 async function runWorkerSocket(
@@ -95,10 +94,9 @@ async function runWorkerSocket(
   const queueAddSegments = throttle(async () => {
     const segments = segmentQueue
     segmentQueue = []
-    await collab.handleTranscribeWords.mutate(
-      { trackId, segments },
-      { context: { projectId } },
-    )
+    await collab
+      .rpc(projectId)
+      .handleTranscribeWords.mutate({ trackId, segments })
   }, 5 * 1000)
 
   try {
@@ -127,10 +125,9 @@ async function runWorkerSocket(
         }
 
         if (update.status === 'complete' || update.status === 'failed') {
-          await collab.handleTranscribeStatus.mutate(
-            { trackId, status: update.status },
-            { context: { projectId } },
-          )
+          await collab
+            .rpc(projectId)
+            .handleTranscribeStatus.mutate({ trackId, status: update.status })
           await deleteJobKey(jobKey)
           ws.close()
           return

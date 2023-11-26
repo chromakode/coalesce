@@ -1,12 +1,7 @@
 // NOTE: All editors of a project must be connected to the same collab server
 // instance. A hash ring load balancer keyed by the Coalesce-Project (or
 // projectId query string for websockets) is recommended.
-import {
-  Application,
-  Middleware,
-  Router,
-  fetchRequestHandler,
-} from '../deps.ts'
+import { Application, Router, fetchRequestHandler } from '../deps.ts'
 import {
   generateShortId,
   iterSocket,
@@ -31,25 +26,7 @@ interface ContextState {
 
 const app = new Application<ContextState>()
 
-const readProjectId: Middleware = async (ctx, next) => {
-  const projectId =
-    ctx.request.url.searchParams.get('project') ??
-    ctx.request.headers.get('Coalesce-Project')
-
-  if (!projectId) {
-    ctx.response.status = 400
-    return
-  }
-
-  ctx.state.projectId = projectId
-  await next()
-}
-
-const router = new Router<ContextState>()
-  .get('/health', (ctx) => {
-    ctx.response.status = 200
-  })
-  .use(readProjectId)
+const projectRouter = new Router<ContextState>()
   .get('/ws', async (ctx) => {
     const { projectId } = ctx.state
 
@@ -69,8 +46,9 @@ const router = new Router<ContextState>()
     await collab.runCollabSocket(ws, clientMessages)
   })
   .all('/trpc/(.*)', async (ctx) => {
+    const { projectId } = ctx.state
     const res = await fetchRequestHandler({
-      endpoint: '/trpc',
+      endpoint: `/project/${projectId}/trpc`,
       req: new Request(ctx.request.url, {
         headers: ctx.request.headers,
         body:
@@ -80,12 +58,33 @@ const router = new Router<ContextState>()
         method: ctx.request.method,
       }),
       router: rpc.rpcRouter,
-      createContext: rpc.createContext,
+      createContext: rpc.createContextForProject(projectId),
     })
     ctx.response.status = res.status
     ctx.response.headers = res.headers
     ctx.response.body = res.body
   })
+
+const router = new Router()
+  .get('/health', (ctx) => {
+    ctx.response.status = 200
+  })
+  .use(
+    '/project/:projectId(\\w+)',
+    async (ctx, next) => {
+      const projectId = ctx.params.projectId
+
+      if (!projectId) {
+        ctx.response.status = 400
+        return
+      }
+
+      ctx.state.projectId = projectId
+      await next()
+    },
+    projectRouter.routes(),
+    projectRouter.allowedMethods(),
+  )
 
 app.use(router.routes())
 app.use(router.allowedMethods())
