@@ -76,11 +76,11 @@ const trackRouter = new Router<
     const body = await ctx.request.body({ type: 'json' }).value
     const fields = TrackFields.partial().parse(body)
     await updateTrack(ctx.state.project, ctx.state.track, fields)
-    ctx.response.status = 200
+    ctx.response.status = 204
   })
   .delete('/', async (ctx) => {
     await removeTrackFromProject(ctx.state.project, ctx.state.track)
-    ctx.response.status = 200
+    ctx.response.status = 204
   })
   .get(`/:chunk(\\d+\.flac)`, async (ctx) => {
     const { track, chunk } = ctx.params

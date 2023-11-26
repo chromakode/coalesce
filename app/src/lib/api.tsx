@@ -73,6 +73,9 @@ export class CoalesceAPIClient {
 
   fetchJSON = async (input: RequestInfo, init?: RequestInit) => {
     const resp = await this.fetch(input, init)
+    if (resp.status === 204) {
+      return null
+    }
     return await resp.json()
   }
 
