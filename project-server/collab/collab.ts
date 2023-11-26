@@ -160,6 +160,8 @@ class CollabProvider {
   async dispose() {
     this.disposed = true
 
+    await this._transcribeBuffer?.flushBuffer()
+
     this._disposeEditor?.()
 
     await this.saveAwareness()

@@ -35,7 +35,7 @@ export class TranscribeBuffer {
     return cursor
   }
 
-  async _flushBuffer() {
+  async flushBuffer() {
     const wordsToAdd = new Map<string, Word[]>()
 
     const earliestTime =
@@ -82,7 +82,7 @@ export class TranscribeBuffer {
       cursor.time = Infinity
     }
 
-    await this._flushBuffer()
+    await this.flushBuffer()
   }
 
   async handleTrackWords({
@@ -102,6 +102,6 @@ export class TranscribeBuffer {
       )
     }
 
-    await this._flushBuffer()
+    await this.flushBuffer()
   }
 }
