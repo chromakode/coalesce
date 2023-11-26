@@ -6,3 +6,5 @@ services:
       - ./shared:/app/shared
     ports:
       - '3000:3000'
+    environment:
+      - VITE_CHUNK_GET_CREDENTIALS=include

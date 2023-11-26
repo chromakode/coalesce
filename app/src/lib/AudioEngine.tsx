@@ -5,7 +5,7 @@ import { LRUCache } from 'lru-cache'
 import mitt from 'mitt'
 import { EditorOutputMixer, MixerState, RawOutputMixer } from './AudioMixer'
 import { AudioScheduler, AudioTask, SCHEDULER_BUFFER_S } from './AudioScheduler'
-import { CoalesceAPIClient, chunkURL } from './api'
+import { CHUNK_GET_CREDENTIALS, CoalesceAPIClient, chunkURL } from './api'
 import { emptyProject } from './project'
 
 export interface OffsetSoundLocation extends SoundLocation {
@@ -111,7 +111,9 @@ export default class AudioEngine {
 
   async fetchChunk(src: string): Promise<AudioBuffer> {
     console.log(`downloading ${src}...`)
-    const resp = await this.api.fetch(src, { credentials: 'include' })
+    const resp = await this.api.fetch(src, {
+      credentials: CHUNK_GET_CREDENTIALS,
+    })
     const ab = await resp.arrayBuffer()
     console.log(`decoding ${src}...`)
     const buffer = await this.ctx.decodeAudioData(ab)
