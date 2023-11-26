@@ -1,0 +1,113 @@
+environments:
+  default:
+    values:
+    - default.environment.yaml
+
+---
+
+repositories:
+  - name: docker
+    url: registry-1.docker.io
+    oci: true
+  - name: ory
+    url: https://k8s.ory.sh/helm/charts
+
+releases:
+  - name: envoy-gateway
+    namespace: envoy-gateway-system
+    chart: docker/envoyproxy/gateway-helm
+    version: v0.6.0
+
+  - name: redis
+    chart: docker/bitnamicharts/redis
+    version: 18.2.0
+    values:
+    - architecture: standalone
+      auth:
+        enabled: false
+
+  - name: postgres-kratos
+    chart: docker/bitnamicharts/postgresql
+    version: 13.2.1
+    values:
+    - architecture: standalone
+      auth:
+        postgresPassword: {{ .Values.kratos.postgres.password }}
+        database: {{ .Values.kratos.postgres.database }}
+
+  - name: postgres-coalesce
+    chart: docker/bitnamicharts/postgresql
+    version: 13.2.1
+    values:
+    - architecture: standalone
+      auth:
+        postgresPassword: {{ .Values.coalesce.postgres.password }}
+        database: {{ .Values.coalesce.postgres.database }}
+
+  - name: minio
+    chart: docker/bitnamicharts/minio
+    version: 12.8.19
+    values:
+    - auth:
+        rootUser: {{ .Values.minio.rootUser }}
+        rootPassword: {{ .Values.minio.rootPassword }}
+
+  - name: kratos
+    chart: ory/kratos
+    version: 0.37.0
+    values:
+    - kratos-values.yaml.gotmpl
+    needs:
+    - postgres-kratos
+
+  - name: kratos-selfservice-ui-node
+    chart: ory/kratos-selfservice-ui-node
+    version: 0.37.0
+    values:
+    - fullnameOverride: kratos-selfservice-ui-node
+      basePath: /
+      kratosPublicUrl: http://kratos-public
+      kratosBrowserUrl: "{{ .Values.urls.authBase }}/api"
+
+  - name: coalesce-api-server
+    chart: ./coalesce-api-server
+    version: latest
+    values:
+    - replicaCount: {{ .Values.coalesce.api.replicaCount }}
+      redisURL: {{ .Values.coalesce.redisURL }}
+      postgresURL: {{ .Values.coalesce.postgres.dsn }}
+      minioEndpoint: {{ .Values | get "coalesce.minioEndpoint" .Values.minio.endpoint }}
+      workerKey: {{ .Values.coalesce.workerKey }}
+      urls: {{ toYaml .Values.urls | nindent 10 }}
+      queues: {{ toYaml .Values.coalesce.queues | nindent 10 }}
+      endpoints: {{ toYaml .Values.coalesce.endpoints | nindent 10 }}
+    needs:
+    - redis
+    - minio
+    - postgres-kratos
+
+  - name: coalesce-collab-server
+    chart: ./coalesce-collab-server
+    version: latest
+    values:
+    - replicaCount: {{ .Values.coalesce.collab.replicaCount }}
+      redisURL: {{ .Values.coalesce.redisURL }}
+      postgresURL: {{ .Values.coalesce.postgres.dsn }}
+      minioEndpoint: {{ .Values | get "coalesce.minioEndpoint" .Values.minio.endpoint }}
+    needs:
+    - redis
+    - minio
+    - postgres-coalesce
+
+  - name: coalesce-audio-processor
+    chart: ./coalesce-audio-processor
+    version: latest
+    values:
+    - workerKey: {{ .Values.coalesce.workerKey }}
+      resources: {requests: {cpu: 24}}
+
+  - name: coalesce-backend-gateway
+    chart: ./coalesce-backend-gateway
+    version: latest
+    needs:
+    - envoy-gateway-system/envoy-gateway

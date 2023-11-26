@@ -1,0 +1,8 @@
+services:
+  app:
+    command: npm start -- --port 3000 --host --base /
+    volumes:
+      - ./app:/app/frontend
+      - ./shared:/app/shared
+    ports:
+      - '3000:3000'

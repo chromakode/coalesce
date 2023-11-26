@@ -1,0 +1,65 @@
+replicaCount: 1
+
+image:
+  repository: coalesce-project-server
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ''
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  {}
+
+securityContext:
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 80
+
+servePort: 3001
+
+redisURL: ''
+postgresURL: ''
+minioEndpoint: ''
+
+urls:
+  appOrigin: ''
+  workerProxyOrigin: ''
+  trackCDNHost: ''
+
+workerKey: ''
+
+queues:
+  audio:
+    inbox: ''
+    processing: ''
+
+endpoints:
+  collab: ''
+  kratos:
+    public: ''
+    admin: ''
+  worker:
+    job: ''
+    proxyOrigin: ''

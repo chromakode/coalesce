@@ -1,0 +1,49 @@
+kratos:
+  config:
+    dsn: {{ .Values.kratos.postgres.dsn }}
+    serve:
+      public:
+        base_url: {{ .Values.urls.authBase }}/api
+    secrets:
+      default: {{- toYaml .Values.kratos.secrets.default | nindent 8 }}
+      cookie: {{- toYaml .Values.kratos.secrets.cookie | nindent 8 }}
+      cipher: {{- toYaml .Values.kratos.secrets.cipher | nindent 8 }}
+    session:
+      cookie:
+        domain: "{{ .Values.urls.domain }}"
+    identity:
+      default_schema_id: default
+      schemas:
+        - id: default
+          url: file:///etc/config/identity.default.schema.json
+    courier:
+      smtp:
+        connection_uri: {{ .Values.kratos.smtp.connectionURI }}
+        from_name: {{ .Values.kratos.smtp.fromName }}
+        from_address: {{ .Values.kratos.smtp.fromAddress }}
+    selfservice:
+      default_browser_return_url: {{ .Values.urls.appOrigin }}/home
+      allowed_return_urls:
+      - {{ .Values.urls.appOrigin }}/home
+      flows:
+        error:
+          ui_url: {{ .Values.urls.authBase }}/error
+        settings:
+          ui_url: {{ .Values.urls.authBase }}/settings
+        recovery:
+          ui_url: {{ .Values.urls.authBase }}/recovery
+        verification:
+          ui_url: {{ .Values.urls.authBase }}/verification
+        login:
+          ui_url: {{ .Values.urls.authBase }}/login
+        registration:
+          ui_url: {{ .Values.urls.authBase }}/registration
+          enabled: true
+        logout:
+          after:
+            default_browser_return_url: {{ .Values.urls.appOrigin }}/home
+  automigration:
+    enabled: true
+  identitySchemas:
+    "identity.default.schema.json": |
+      {{- readFile "../config/kratos/identity.default.schema.json" | nindent 6 }}

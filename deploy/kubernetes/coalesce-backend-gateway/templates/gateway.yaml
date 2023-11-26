@@ -1,0 +1,38 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ include "coalesce-backend-gateway.fullname" . }}
+  labels: {{- include "coalesce-backend-gateway.labels" . | nindent 4 }}
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  apiVersion: gateway.networking.k8s.io/v1
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: gateway-config
+    namespace: envoy-gateway-system
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: gateway-config
+  namespace: envoy-gateway-system
+  labels: {{- include "coalesce-backend-gateway.labels" . | nindent 4 }}
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: NodePort
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "coalesce-backend-gateway.fullname" . }}
+  labels: {{- include "coalesce-backend-gateway.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: {{ include "coalesce-backend-gateway.fullname" . }}
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80

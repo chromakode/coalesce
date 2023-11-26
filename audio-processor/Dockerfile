@@ -7,12 +7,15 @@ RUN --mount=type=cache,target=/var/cache/apt \
 
 RUN python3.11 -m pip install poetry
 
+ENV XDG_CACHE_HOME=/var/cache
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+
 WORKDIR /app
 
 COPY poetry.lock pyproject.toml ./
 
-RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
-    --mount=type=cache,target=/root/.cache/pypoetry/artifacts \
+RUN --mount=type=cache,target=/var/cache/pypoetry/cache \
+    --mount=type=cache,target=/var/cache/pypoetry/artifacts \
     poetry install --no-root
 
 # Cache models
@@ -21,8 +24,8 @@ RUN poetry run python -c 'import faster_whisper; faster_whisper.download_model("
 
 COPY ./ ./
 
-RUN --mount=type=cache,target=/root/.cache/pypoetry/cache \
-    --mount=type=cache,target=/root/.cache/pypoetry/artifacts \
+RUN --mount=type=cache,target=/var/cache/pypoetry/cache \
+    --mount=type=cache,target=/var/cache/pypoetry/artifacts \
     poetry install --only-root
 
 CMD ["poetry", "run", "coalesce_http_worker"]

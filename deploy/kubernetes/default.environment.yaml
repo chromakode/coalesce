@@ -1,0 +1,53 @@
+urls:
+  domain: localhost
+  appOrigin: http://localhost:3000
+  chunkGetBase: http://localhost:3333/api
+  apiBase: http://localhost:3333/api
+  authBase: http://localhost:3333/auth
+  trackCDNHost:
+
+minio:
+  rootUser: root
+  rootPassword: change-me
+  endpoint: minio://root:change-me@minio:9000/coalesce
+
+kratos:
+  secrets:
+    default:
+      - change-me!change-me!change-me!change-me!
+    cookie:
+      - change-me!change-me!change-me!change-me!
+    cipher:
+     - change-me!change-me!change-me!ch # must be 32 characters long
+  postgres:
+    password: change-me
+    database: kratos
+    dsn: postgres://postgres:change-me@postgres-kratos-postgresql:5432/kratos
+  smtp:
+    connectionURI: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    fromName: Coalesce
+    fromAddress: test@example.com
+
+coalesce:
+  api:
+    replicaCount: 3
+  collab:
+    replicaCount: 3
+  workerKey: change-me
+  redisURL: redis://redis-master:6379
+  postgres:
+    password: change-me
+    database: coalesce
+    dsn: postgres://postgres:change-me@postgres-coalesce-postgresql:5432/coalesce
+  queues:
+    audio:
+      inbox: audio_jobs
+      processing:  audio_jobs_processing
+  endpoints:
+    collab: http://coalesce-collab-server:3002
+    kratos:
+      public: http://kratos-public
+      admin: http://kratos-admin
+    worker:
+      job: http://coalesce-audio-processor
+      proxyOrigin: http://coalesce-api-server

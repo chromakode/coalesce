@@ -1,0 +1,6 @@
+apiVersion: v2
+name: coalesce-audio-processor
+description: Coalesce audio processor worker
+type: application
+version: 0.0.1
+appVersion: '0.0.1'

@@ -1,0 +1,51 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "coalesce-backend-gateway.fullname" . }}
+  labels: {{- include "coalesce-backend-gateway.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ include "coalesce-backend-gateway.fullname" . }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth/api
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: ''
+      backendRefs:
+        - kind: Service
+          name: kratos-public
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: ''
+      backendRefs:
+        - kind: Service
+          name: kratos-selfservice-ui-node
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: ''
+      backendRefs:
+        - kind: Service
+          name: coalesce-api-server
+          port: 80
