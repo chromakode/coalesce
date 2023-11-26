@@ -52,15 +52,12 @@ export function getCollab(projectId: string) {
   return collab
 }
 
-Deno.addSignalListener('SIGTERM', async () => {
-  console.log('SIGTERM received. Saving live collabs before exiting...')
+export async function disposeCollabs() {
   for (const collabPromise of liveCollabs.values()) {
     const collab = await collabPromise
     await collab.dispose()
   }
-  console.log('Saved.')
-  Deno.exit()
-})
+}
 
 class CollabProvider {
   projectId: string

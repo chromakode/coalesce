@@ -8,7 +8,7 @@ import {
   requireEnv,
   socketReady,
 } from '../lib/utils.ts'
-import { getCollab } from './collab.ts'
+import { disposeCollabs, getCollab } from './collab.ts'
 import * as rpc from './rpc.ts'
 import { initMinio, initRedis } from '../lib/service.ts'
 
@@ -89,4 +89,14 @@ const router = new Router()
 app.use(router.routes())
 app.use(router.allowedMethods())
 
-await app.listen({ port: COLLAB_SERVER_PORT })
+const quitController = new AbortController()
+
+Deno.addSignalListener('SIGTERM', async () => {
+  console.log('SIGTERM received. Saving live collabs before exiting...')
+  quitController.abort()
+  await disposeCollabs()
+  console.log('Saved.')
+  Deno.exit()
+})
+
+await app.listen({ port: COLLAB_SERVER_PORT, signal: quitController.signal })
