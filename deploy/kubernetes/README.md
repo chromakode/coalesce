@@ -29,7 +29,7 @@ Install the following tools:
 
 ### Build the container images
 
-```
+```sh
 # Start in the top level directory of the repo.
 
 # Build docker images for the backend services:
@@ -42,7 +42,7 @@ docker tag coalesce-audio-processor coalesce-audio-processor:0.0.1
 
 ### Create the cluster
 
-```
+```sh
 cd deploy/kubernetes
 
 # First, create the kind cluster.
@@ -69,7 +69,7 @@ The Coalesce backend should now be running on port 3333.
 
 To test or develop against the cluster, the frontend can be started using `docker-compose` for convenience (and live-reloading):
 
-```
+```sh
 DOCKER_BUILDKIT=1 docker-compose --env-file docker-compose.env -f docker-compose.yml -f docker-compose.dev-k8s.yml up --build -d app
 ```
 
@@ -81,7 +81,7 @@ The [default Kubernetes CoreDNS config](https://kubernetes.io/docs/tasks/adminis
 
 Here's how to reduce the cache/TTL to 2 seconds:
 
-```
+```sh
 kubectl apply -f coredns-cache.yaml
 kubectl delete pod -n kube-system -l k8s-app=kube-dns
 ```
