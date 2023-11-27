@@ -18,7 +18,7 @@ kratos:
     cookie:
       - change-me!change-me!change-me!change-me!
     cipher:
-     - change-me!change-me!change-me!ch # must be 32 characters long
+      - change-me!change-me!change-me!ch # must be 32 characters long
   postgres:
     password: change-me
     database: kratos
@@ -42,7 +42,7 @@ coalesce:
   queues:
     audio:
       inbox: audio_jobs
-      processing:  audio_jobs_processing
+      processing: audio_jobs_processing
   endpoints:
     collab: http://coalesce-collab-server:3002
     kratos:
