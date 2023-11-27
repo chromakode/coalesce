@@ -1,1 +1,1 @@
-config/helm/**/*.yaml
+deploy/kubernetes/**/*.yaml
