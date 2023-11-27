@@ -48,11 +48,20 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: REDIS_URL
-              value: {{ .Values.redisURL }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-collab-server.fullname" . }}
+                  key: redisURL
             - name: POSTGRES_URL
-              value: {{ .Values.postgresURL }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-collab-server.fullname" . }}
+                  key: postgresURL
             - name: MINIO_ENDPOINT
-              value: {{ .Values.minioEndpoint }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-collab-server.fullname" . }}
+                  key: minioEndpoint
           livenessProbe:
             httpGet:
               path: /health

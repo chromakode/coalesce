@@ -42,11 +42,20 @@ spec:
               protocol: TCP
           env:
             - name: REDIS_URL
-              value: {{ .Values.redisURL }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-api-server.fullname" . }}
+                  key: redisURL
             - name: POSTGRES_URL
-              value: {{ .Values.postgresURL }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-api-server.fullname" . }}
+                  key: postgresURL
             - name: MINIO_ENDPOINT
-              value: {{ .Values.minioEndpoint }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-api-server.fullname" . }}
+                  key: minioEndpoint
             - name: PROJECT_SERVER_PORT
               value: {{ .Values.servePort | toString | quote }}
             - name: APP_ORIGIN
@@ -66,7 +75,10 @@ spec:
             - name: AUDIO_PROCESSING_QUEUE_NAME
               value: {{ .Values.queues.audio.processing }}
             - name: WORKER_KEY
-              value: {{ .Values.workerKey }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-api-server.fullname" . }}
+                  key: workerKey
             - name: TRACK_CDN_HOST
               value: {{ .Values.urls.trackCDNHost }}
           livenessProbe:

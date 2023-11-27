@@ -46,7 +46,10 @@ spec:
             - name: WORKER_PORT
               value: {{ .Values.workerPort | toString | quote }}
             - name: WORKER_KEY
-              value: {{ .Values.workerKey }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coalesce-audio-processor.fullname" . }}
+                  key: workerKey
             - name: OMP_NUM_THREADS
               valueFrom:
                 resourceFieldRef:
