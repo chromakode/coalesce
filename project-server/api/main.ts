@@ -87,7 +87,9 @@ const trackRouter = new Router<
     if (TRACK_CDN_HOST) {
       const signedURL = await getSignedTrackChunkURL(track, chunk)
       const trackURL = new URL(signedURL)
-      trackURL.host = TRACK_CDN_HOST
+      if (TRACK_CDN_HOST !== 'direct') {
+        trackURL.host = TRACK_CDN_HOST
+      }
       ctx.response.redirect(trackURL.toString())
       return
     }
