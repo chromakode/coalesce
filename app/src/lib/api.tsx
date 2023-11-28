@@ -6,7 +6,8 @@ import * as Y from 'yjs'
 
 export const API_BASE = import.meta.env.VITE_API_BASE
 export const CHUNK_GET_BASE = import.meta.env.VITE_CHUNK_GET_BASE
-export const CHUNK_GET_CREDENTIALS = import.meta.env.VITE_CHUNK_GET_CREDENTIALS
+export const CHUNK_GET_CREDENTIALS =
+  import.meta.env.VITE_CHUNK_GET_CREDENTIALS ?? 'include'
 
 export class UnexpectedServerError extends Error {}
 export class NeedsAuthError extends Error {}
