@@ -1,49 +1,94 @@
 kratos:
   config:
     dsn: {{ .Values.kratos.postgres.dsn }}
+
     serve:
       public:
         base_url: {{ .Values.urls.authBase }}/api
+
     secrets:
       default: {{- toYaml .Values.kratos.secrets.default | nindent 8 }}
       cookie: {{- toYaml .Values.kratos.secrets.cookie | nindent 8 }}
       cipher: {{- toYaml .Values.kratos.secrets.cipher | nindent 8 }}
+
     session:
       cookie:
         domain: "{{ .Values.urls.domain }}"
+
     identity:
       default_schema_id: default
       schemas:
         - id: default
           url: file:///etc/config/identity.default.schema.json
+
     courier:
       smtp:
         connection_uri: {{ .Values.kratos.smtp.connectionURI }}
         from_name: {{ .Values.kratos.smtp.fromName }}
         from_address: {{ .Values.kratos.smtp.fromAddress }}
+
     selfservice:
       default_browser_return_url: {{ .Values.urls.appOrigin }}/home
       allowed_return_urls:
       - {{ .Values.urls.appOrigin }}/home
+
+      methods:
+        password:
+          enabled: true
+
+        link:
+          enabled: true
+
       flows:
         error:
           ui_url: {{ .Values.urls.authBase }}/error
+
         settings:
           ui_url: {{ .Values.urls.authBase }}/settings
+          privileged_session_max_age: 15m
+          required_aal: highest_available
+
         recovery:
           ui_url: {{ .Values.urls.authBase }}/recovery
+          enabled: true
+          use: code
+
         verification:
           ui_url: {{ .Values.urls.authBase }}/verification
+          enabled: true
+          use: code
+
         login:
           ui_url: {{ .Values.urls.authBase }}/login
+          lifespan: 10m
+
         registration:
           ui_url: {{ .Values.urls.authBase }}/registration
-          enabled: true
+          enabled: {{ .Values.kratos.registrationEnabled }}
+          lifespan: 10m
+          after:
+            password:
+              hooks:
+                - hook: session
+
         logout:
           after:
             default_browser_return_url: {{ .Values.urls.appOrigin }}/home
+
+    ciphers:
+      algorithm: xchacha20-poly1305
+
+    hashers:
+      algorithm: bcrypt
+      bcrypt:
+        cost: 8
+
+    session:
+      lifespan: {{ .Values.kratos.sessionLifespan }}
+
   automigration:
     enabled: true
+
   identitySchemas:
     "identity.default.schema.json": |
       {{- readFile "../config/kratos/identity.default.schema.json" | nindent 6 }}

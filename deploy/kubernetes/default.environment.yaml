@@ -12,6 +12,8 @@ minio:
   endpoint: minio://root:change-me@minio:9000/coalesce
 
 kratos:
+  registrationEnabled: true
+  sessionLifespan: 8640h
   secrets:
     default:
       - change-me!change-me!change-me!change-me!
