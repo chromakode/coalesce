@@ -1,7 +1,6 @@
 urls:
   domain: localhost
   appOrigin: http://localhost:3000
-  chunkGetBase: http://localhost:3333/api
   apiBase: http://localhost:3333/api
   authBase: http://localhost:3333/auth
   trackCDNHost:
