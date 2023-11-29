@@ -14,6 +14,7 @@ kratos:
     session:
       cookie:
         domain: "{{ .Values.urls.domain }}"
+      lifespan: {{ .Values.kratos.sessionLifespan }}
 
     identity:
       default_schema_id: default
@@ -82,9 +83,6 @@ kratos:
       algorithm: bcrypt
       bcrypt:
         cost: 8
-
-    session:
-      lifespan: {{ .Values.kratos.sessionLifespan }}
 
   automigration:
     enabled: true
