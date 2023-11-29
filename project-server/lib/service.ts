@@ -90,7 +90,7 @@ export async function initMinio() {
     port: minioURL.port ? Number(minioURL.port) : undefined,
     accessKey: decodeURIComponent(minioURL.username),
     secretKey: decodeURIComponent(minioURL.password),
-    region: '',
+    region: minioURL.searchParams.get('region') ?? '',
     useSSL: minioURL.protocol === 'https:',
     pathStyle: minioURL.searchParams.get('useVHostStyleURLs') ? false : true,
   })
