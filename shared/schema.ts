@@ -82,6 +82,7 @@ export type ProjectResult = Selectable<ProjectTable>
 
 export const TrackFields = z.object({
   label: z.string().optional().nullable(),
+  audioMetadata: TrackAudioMetadataModel.nullable(),
 })
 export type TrackFields = z.infer<typeof TrackFields>
 export type TrackFieldsInput = z.input<typeof TrackFields>

@@ -18,6 +18,7 @@ export async function getBatchTrackInfo(
       'track.createdAt',
       'track.label',
       'track.originalFilename',
+      'track.audioMetadata',
       'projectTracks.color',
     ])
     .execute()
@@ -52,6 +53,7 @@ function projectQuery() {
         'track.createdAt',
         'track.label',
         'track.originalFilename',
+        'track.audioMetadata',
         'projectTracks.color',
       ])
       .as('info')})`.as('tracks'),

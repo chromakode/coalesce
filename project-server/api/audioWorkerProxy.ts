@@ -23,7 +23,7 @@ import {
   updateJobStatus,
 } from './worker.ts'
 import { redisClient, collab } from './main.ts'
-import { setTrackMetadata } from './store.ts'
+import { updateTrack } from './store.ts'
 import { iterSocket, socketReady } from '../lib/utils.ts'
 
 async function requestHTTPWorker(req: ProcessAudioRequest): Promise<Response> {
@@ -107,7 +107,7 @@ async function runWorkerSocket(
       // TODO: for reconnect reliability, ack received segments, have worker
       // replay non-acked segments on reconnect.
       if (msg.kind === 'metadata') {
-        await setTrackMetadata(projectId, trackId, msg.data)
+        await updateTrack(projectId, trackId, { audioMetadata: msg.data })
       } else if (msg.kind === 'segment') {
         const segment = msg.data
         segmentQueue.push(segment)

@@ -135,7 +135,13 @@ export default class AudioEngine {
 
   async makeBufferForLoc(loc: SoundLocation): Promise<SoundLocationWithBuffer> {
     const trackInfo = this.getTrackInfo(loc.source)
-    const { sampleRate, numberOfChannels, chunkLength } = trackInfo.audio
+    if (!trackInfo.audioMetadata) {
+      throw new Error(
+        `Track ${trackInfo.trackId} audio metadata not loaded yet`,
+      )
+    }
+    const { sampleRate, numberOfChannels, chunkLength } =
+      trackInfo.audioMetadata
 
     const buffer = new AudioBuffer({
       length: Math.ceil((loc.end - loc.start) * sampleRate),

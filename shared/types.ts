@@ -19,12 +19,8 @@ export type ProjectInfo = ProjectResult & {
 }
 
 export interface Project extends Omit<ProjectInfo, 'tracks'> {
-  tracks: Record<string, Track>
+  tracks: Record<string, TrackInfo>
   jobs: Record<string, JobInfo>
-}
-
-export interface Track extends TrackInfo {
-  audio: TrackAudioMetadata
 }
 
 export interface JobState extends Job {

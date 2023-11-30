@@ -6,13 +6,8 @@ import {
   streams,
 } from '../deps.ts'
 import { COALESCE_DEV_FLAGS } from './env.ts'
-import { Project, Track } from '@shared/types'
-import {
-  ProjectFields,
-  Segment,
-  TrackAudioMetadata,
-  TrackFields,
-} from '@shared/schema'
+import { Project } from '@shared/types'
+import { ProjectFields, Segment, TrackFields } from '@shared/schema'
 import { redisClient, minioClient, minioBucket, collab } from './main.ts'
 import { initRedis } from '../lib/service.ts'
 import { TRACK_COLOR_ORDER, USER_ROLE } from '@shared/constants'
@@ -95,15 +90,6 @@ export async function* watchProject(projectId: string) {
   }
 }
 
-export async function getTrackState(
-  projectId: string,
-  trackId: string,
-): Promise<Track> {
-  const trackInfo = await getTrackInfo(projectId, trackId)
-  const audio = await readJSON(storePath.trackAudioMetadata(trackId))
-  return { ...trackInfo, audio }
-}
-
 export async function getTrackWords(
   trackId: string,
 ): Promise<{ segments: Segment[] }> {
@@ -116,15 +102,8 @@ export async function getProjectState(projectId: string): Promise<Project> {
     getJobInfo(projectId),
   ])
 
-  const tracks: Record<string, Track> = {}
-  for (const [trackId, trackInfo] of Object.entries(info.tracks)) {
-    const audio = await readJSON(storePath.trackAudioMetadata(trackId))
-    tracks[trackId] = { ...trackInfo, audio }
-  }
-
   const state: Project = {
     ...info,
-    tracks,
     jobs,
   }
 
@@ -251,29 +230,10 @@ export async function updateTrack(
     }),
   )
 
-  const trackInfo = await getTrackInfo(projectId, trackId)
-  await collab.rpc(projectId).updateSpeaker.mutate({ trackInfo })
-}
-
-export async function setTrackMetadata(
-  projectId: string,
-  trackId: string,
-  metadata: TrackAudioMetadata,
-) {
-  await minioClient.putObject(
-    minioBucket,
-    storePath.trackAudioMetadata(trackId),
-    JSON.stringify(metadata),
-  )
-
-  await redisClient.publish(
-    `project:${projectId}`,
-    JSON.stringify({
-      type: 'track-updated',
-      trackId,
-      update: { audio: metadata },
-    }),
-  )
+  if ('label' in update) {
+    const trackInfo = await getTrackInfo(projectId, trackId)
+    await collab.rpc(projectId).updateSpeaker.mutate({ trackInfo })
+  }
 }
 
 export async function createTrack(
@@ -370,7 +330,7 @@ export async function createTrack(
     await collab.rpc(projectId).addWordsToTrack.mutate({ trackInfo, segments })
 
     // Send track state including audio data
-    const trackState = await getTrackState(projectId, trackId)
+    const trackState = await getTrackInfo(projectId, trackId)
     await redisClient.publish(
       `project:${projectId}`,
       JSON.stringify({
