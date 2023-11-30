@@ -2,7 +2,7 @@ services:
   audio-processor:
     command: poetry run python -m watchfiles coalesce_audio_processor.worker.http.main
     volumes:
-      - ./audio-processor:/app
+      - ./audio-processor/coalesce_audio_processor:/app/coalesce_audio_processor
 
   app:
     command: npm start -- --port 3000 --host
