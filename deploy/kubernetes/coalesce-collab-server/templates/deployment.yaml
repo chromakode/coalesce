@@ -40,6 +40,9 @@ spec:
             - name: http
               containerPort: {{ .Values.servePort }}
               protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.metricsPort }}
+              protocol: TCP
           env:
             - name: COLLAB_SERVER_PORT
               value: {{ .Values.servePort | toString | quote }}
