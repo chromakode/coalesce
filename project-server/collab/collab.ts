@@ -38,14 +38,12 @@ const clientsGauge = new prometheusClient.Gauge({
   help: 'Count of clients currently connected to this instance',
 })
 const loadDocHistogram = new prometheusClient.Histogram({
-  name: 'collab_load_doc_ms',
-  help: 'Duration spent fetching doc and awareness data (milliseconds)',
-  buckets: prometheusClient.exponentialBuckets(10, 2, 10),
+  name: 'collab_load_doc_s',
+  help: 'Duration spent fetching doc and awareness data (seconds)',
 })
 const saveDocHistogram = new prometheusClient.Histogram({
-  name: 'collab_store_doc_ms',
-  help: 'Duration spent storing doc (milliseconds)',
-  buckets: prometheusClient.exponentialBuckets(10, 2, 10),
+  name: 'collab_store_doc_s',
+  help: 'Duration spent storing doc (seconds)',
 })
 
 const liveCollabs = new Map<string, Promise<CollabProvider>>()
