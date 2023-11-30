@@ -15,6 +15,12 @@ http:// {
     reverse_proxy http://api-server:3001
   }
 
+  handle /metrics/collab {
+    reverse_proxy http://collab-server:9090 {
+      rewrite /metrics
+    }
+  }
+
   @app_route {
     path /home /project/*
   }

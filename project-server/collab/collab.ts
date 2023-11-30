@@ -7,6 +7,7 @@ import {
   LexicalEditor,
   EventIterator,
   redis,
+  prometheusClient,
 } from '../deps.ts'
 import {
   getAwarenessData,
@@ -31,6 +32,21 @@ enum msgType {
 }
 type TransactionOrigin = WebSocket | undefined
 type SendSink = (data: Uint8Array) => void | Promise<void>
+
+const clientsGauge = new prometheusClient.Gauge({
+  name: 'collab_clients',
+  help: 'Count of clients currently connected to this instance',
+})
+const loadDocHistogram = new prometheusClient.Histogram({
+  name: 'collab_load_doc_ms',
+  help: 'Duration spent fetching doc and awareness data (milliseconds)',
+  buckets: prometheusClient.exponentialBuckets(10, 2, 10),
+})
+const saveDocHistogram = new prometheusClient.Histogram({
+  name: 'collab_store_doc_ms',
+  help: 'Duration spent storing doc (milliseconds)',
+  buckets: prometheusClient.exponentialBuckets(10, 2, 10),
+})
 
 const liveCollabs = new Map<string, Promise<CollabProvider>>()
 
@@ -82,13 +98,14 @@ class CollabProvider {
   async load() {
     this._watchDoc()
 
-    const title = `Fetched project ${this.projectId}`
+    const title = `Loaded project ${this.projectId}`
     console.time(title)
+
+    const endTimer = loadDocHistogram.startTimer()
     const [awarenessData, storedDoc] = await Promise.all([
       getAwarenessData(this.projectId),
       coalesceCollabDoc(this.projectId),
     ])
-    console.timeEnd(title)
 
     const { editor, dispose } = editCollabDoc(this.projectId, this.doc)
     this._editor = editor
@@ -113,6 +130,9 @@ class CollabProvider {
         undefined,
       )
     }
+
+    endTimer()
+    console.timeEnd(title)
 
     this.doc.on('update', () => {
       this.queueSave()
@@ -175,11 +195,16 @@ class CollabProvider {
   async saveDoc() {
     const title = `Saved project ${this.projectId}`
     console.time(title)
+    const endTimer = saveDocHistogram.startTimer()
+
     const stateVector = Y.encodeStateVector(this.doc)
     const update = Y.encodeStateAsUpdateV2(this.doc, this.lastDocState)
     await coalesceCollabDoc(this.projectId, update)
     this.lastDocState = stateVector
+
+    endTimer()
     console.timeEnd(title)
+
     await redisClient.publish(
       `project-collab:${this.projectId}`,
       JSON.stringify({ type: 'save-doc', instanceId }),
@@ -249,6 +274,7 @@ class CollabProvider {
 
     clearTimeout(this._disposeTimeout)
     this.connectedSockets.add(ws)
+    clientsGauge.inc()
 
     async function sendEncoded(
       sinks: SendSink | SendSink[],
@@ -387,6 +413,7 @@ class CollabProvider {
       }
     } finally {
       this.connectedSockets.delete(ws)
+      clientsGauge.dec()
       this.queueDispose()
     }
   }

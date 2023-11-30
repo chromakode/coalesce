@@ -93,3 +93,5 @@ export { default as invariant } from 'tiny-invariant'
 export { LRUCache } from 'npm:lru-cache@^9.1.2'
 
 export { HashRing } from 'npm:ketama@^1.0.0'
+
+export { default as prometheusClient } from 'npm:prom-client@15.0.0'

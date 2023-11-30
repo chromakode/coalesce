@@ -43,6 +43,8 @@ spec:
           env:
             - name: COLLAB_SERVER_PORT
               value: {{ .Values.servePort | toString | quote }}
+            - name: METRICS_SERVER_PORT
+              value: {{ .Values.metricsPort | toString | quote }}
             - name: COLLAB_INSTANCE_ID
               valueFrom:
                 fieldRef:

@@ -11,6 +11,7 @@ import {
 import { disposeCollabs, getCollab } from './collab.ts'
 import * as rpc from './rpc.ts'
 import { initMinio, initRedis } from '../lib/service.ts'
+import { serveMetrics } from '../lib/metrics.ts'
 
 const COLLAB_SERVER_PORT = Number(requireEnv('COLLAB_SERVER_PORT'))
 
@@ -99,4 +100,7 @@ Deno.addSignalListener('SIGTERM', async () => {
   Deno.exit()
 })
 
-await app.listen({ port: COLLAB_SERVER_PORT, signal: quitController.signal })
+await Promise.all([
+  app.listen({ port: COLLAB_SERVER_PORT, signal: quitController.signal }),
+  serveMetrics(),
+])

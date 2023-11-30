@@ -38,6 +38,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
 
 servePort: 3002
+metricsPort: 9090
 
 redisURL: ''
 postgresURL: ''

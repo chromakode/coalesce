@@ -33,6 +33,7 @@
       "npm:pg": "npm:pg@8.11.1",
       "npm:pg@8.11.1": "npm:pg@8.11.1",
       "npm:pg@^8.11.1": "npm:pg@8.11.1",
+      "npm:prom-client@15.0.0": "npm:prom-client@15.0.0",
       "npm:redis@^4.6.7": "npm:redis@4.6.7_@redis+client@1.5.8",
       "npm:redlock@^5.0.0-beta.2": "npm:redlock@5.0.0-beta2",
       "npm:stream": "npm:stream@0.0.2",
@@ -122,6 +123,10 @@
           "lexical": "lexical@0.11.2",
           "yjs": "yjs@13.6.6"
         }
+      },
+      "@opentelemetry/api@1.7.0": {
+        "integrity": "sha512-AdY5wvN0P2vXBi3b29hxZgSFvdhdxPB9+f0B6s//P9Q8nibRWeA3cHm8UmLpio9ABigkVHJ5NMPk+Mz8VCCyrw==",
+        "dependencies": {}
       },
       "@ory/client@1.2.6": {
         "integrity": "sha512-/uNY/nG019fdIgm9KHvM2aPKMeR7YM9MO35EKO/0LxAyDeTcdAJ1TA0gY69RD6UqlhcJa5wighUjC8JcuS6fJw==",
@@ -246,6 +251,10 @@
       },
       "base64-js@1.5.1": {
         "integrity": "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==",
+        "dependencies": {}
+      },
+      "bintrees@1.0.2": {
+        "integrity": "sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==",
         "dependencies": {}
       },
       "block-stream2@2.1.0": {
@@ -792,6 +801,13 @@
         "integrity": "sha512-VdlZoocy5lCP0c/t66xAfclglEapXPCIVhqqJRncYpvbCgImF0w67aPKfbqUMr72tO2k5q0TdTZwCLjPTI6C9g==",
         "dependencies": {}
       },
+      "prom-client@15.0.0": {
+        "integrity": "sha512-UocpgIrKyA2TKLVZDSfm8rGkL13C19YrQBAiG3xo3aDFWcHedxRxI3z+cIcucoxpSO0h5lff5iv/SXoxyeopeA==",
+        "dependencies": {
+          "@opentelemetry/api": "@opentelemetry/api@1.7.0",
+          "tdigest": "tdigest@0.1.2"
+        }
+      },
       "prr@1.0.1": {
         "integrity": "sha512-yPw4Sng1gWghHQWj0B3ZggWUm4qVbPwPFcRG8KyxiU7J2OHFSoEHKS+EZ3fv5l1t9CyCiop6l/ZYeWbrgoQejw==",
         "dependencies": {}
@@ -879,6 +895,12 @@
       "strnum@1.0.5": {
         "integrity": "sha512-J8bbNyKKXl5qYcR36TIO8W3mVGVHrmmxsd5PAItGkmyzwJvybiw2IVq5nqd0i4LSNSkB/sx9VHllbfFdr9k1JA==",
         "dependencies": {}
+      },
+      "tdigest@0.1.2": {
+        "integrity": "sha512-+G0LLgjjo9BZX2MfdvPfH+MKLCrxlXSYec5DaPYP1fe6Iyhf0/fSmJ0bFiZ1F8BT6cGXl2LpltQptzjXKWEkKA==",
+        "dependencies": {
+          "bintrees": "bintrees@1.0.2"
+        }
       },
       "through2@4.0.2": {
         "integrity": "sha512-iOqSav00cVxEEICeD7TjLB1sueEL+81Wpzp2bY17uZjZN0pWZPuo4suZ/61VujxmqSGFfgOcNuTZ85QJwNZQpw==",
