@@ -37,6 +37,10 @@ const clientsGauge = new prometheusClient.Gauge({
   name: 'collab_clients',
   help: 'Count of clients currently connected to this instance',
 })
+const docsGauge = new prometheusClient.Gauge({
+  name: 'collab_docs',
+  help: 'Count of docs currently loaded in this instance',
+})
 const loadDocHistogram = new prometheusClient.Histogram({
   name: 'collab_load_doc_s',
   help: 'Duration spent fetching doc and awareness data (seconds)',
@@ -136,6 +140,7 @@ class CollabProvider {
       this.queueSave()
     })
 
+    docsGauge.inc()
     console.log('Loaded project', this.projectId)
   }
 
@@ -239,6 +244,7 @@ class CollabProvider {
 
     liveCollabs.delete(this.projectId)
 
+    docsGauge.dec()
     console.log('Disposed project', this.projectId)
   }
 
