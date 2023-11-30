@@ -34,11 +34,11 @@ type TransactionOrigin = WebSocket | undefined
 type SendSink = (data: Uint8Array) => void | Promise<void>
 
 const clientsGauge = new prometheusClient.Gauge({
-  name: 'collab_clients',
+  name: 'collab_client_count',
   help: 'Count of clients currently connected to this instance',
 })
 const docsGauge = new prometheusClient.Gauge({
-  name: 'collab_docs',
+  name: 'collab_doc_count',
   help: 'Count of docs currently loaded in this instance',
 })
 const loadDocHistogram = new prometheusClient.Histogram({
