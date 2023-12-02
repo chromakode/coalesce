@@ -33,26 +33,26 @@ import { redisClient, collab } from './main.ts'
 import { updateTrack } from './store.ts'
 import { iterSocket, socketReady } from '../lib/utils.ts'
 
-const transcribeHistogram = new prometheusClient.Histogram({
-  name: 'transcribe_s',
-  help: 'Duration spent transcribing audio (seconds)',
+const audioProcessHistogram = new prometheusClient.Histogram({
+  name: 'audio_process_s',
+  help: 'Duration spent processing audio (seconds)',
   buckets: exponentialBuckets(10, 1.25, 20),
 })
-const transcribeFailureCounter = new prometheusClient.Counter({
-  name: 'transcribe_failure_count',
-  help: 'Triggered by transcribe errors',
+const audioProcessFailureCounter = new prometheusClient.Counter({
+  name: 'audio_process_failure_count',
+  help: 'Triggered by audio processing errors',
 })
 new prometheusClient.Gauge({
-  name: 'transcribe_queue_size',
-  help: 'Count of tracks waiting in the transcribe job queue',
+  name: 'audio_process_queue_size',
+  help: 'Count of tracks waiting in the audio job queue',
   async collect() {
     const queueSize = await redisClient.llen(AUDIO_QUEUE_NAME)
     this.set(queueSize)
   },
 })
-const transcribeRunningCountGauge = new prometheusClient.Gauge({
-  name: 'transcribe_running_count',
-  help: 'Count of running transcribe processes',
+const audioProcessRunningCountGauge = new prometheusClient.Gauge({
+  name: 'audio_process_running_count',
+  help: 'Count of running audio processes',
 })
 
 async function requestHTTPWorker(req: ProcessAudioRequest): Promise<Response> {
@@ -128,8 +128,8 @@ async function runWorkerSocket(
       .handleTranscribeWords.mutate({ trackId, segments })
   }, 5 * 1000)
 
-  transcribeRunningCountGauge.inc()
-  const endTimer = transcribeHistogram.startTimer()
+  audioProcessRunningCountGauge.inc()
+  const endTimer = audioProcessHistogram.startTimer()
 
   try {
     for await (const ev of iterSocket(ws)) {
@@ -170,10 +170,10 @@ async function runWorkerSocket(
     }
   } catch (err) {
     console.error('Error handling worker socket:', err, job)
-    transcribeFailureCounter.inc()
+    audioProcessFailureCounter.inc()
   } finally {
     endTimer()
-    transcribeRunningCountGauge.dec()
+    audioProcessRunningCountGauge.dec()
   }
 }
 
