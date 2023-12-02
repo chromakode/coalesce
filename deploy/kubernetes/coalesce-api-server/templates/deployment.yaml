@@ -40,6 +40,9 @@ spec:
             - name: http
               containerPort: {{ .Values.servePort }}
               protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.metricsPort }}
+              protocol: TCP
           env:
             - name: REDIS_URL
               valueFrom:
@@ -58,6 +61,8 @@ spec:
                   key: minioEndpoint
             - name: PROJECT_SERVER_PORT
               value: {{ .Values.servePort | toString | quote }}
+            - name: METRICS_SERVER_PORT
+              value: {{ .Values.metricsPort | toString | quote }}
             - name: APP_ORIGIN
               value: {{ .Values.urls.appOrigin }}
             - name: COLLAB_ENDPOINT

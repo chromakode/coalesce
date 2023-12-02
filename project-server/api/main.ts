@@ -25,6 +25,7 @@ import {
 import { consumeAudioJobs, workerProxyRouter } from './audioWorkerProxy.ts'
 import { socketReady } from '../lib/utils.ts'
 import { SessionInfo } from '@shared/types'
+import { serveMetrics } from '../lib/metrics.ts'
 
 export const redisClient = await initRedis()
 export const { minioClient, minioBucket } = await initMinio()
@@ -261,5 +262,6 @@ app.use(workerProxyRouter.allowedMethods())
 
 await Promise.all([
   app.listen({ port: PROJECT_SERVER_PORT }),
+  serveMetrics(),
   consumeAudioJobs(),
 ])
