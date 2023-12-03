@@ -10,11 +10,11 @@ export {
   Router,
   isHttpError,
   createHttpError,
-} from 'https://deno.land/x/oak@v12.5.0/mod.ts'
+} from 'https://deno.land/x/oak@v12.6.1/mod.ts'
 export type {
   Middleware,
   BodyStream,
-} from 'https://deno.land/x/oak@v12.5.0/mod.ts'
+} from 'https://deno.land/x/oak@v12.6.1/mod.ts'
 
 export * as redis from 'https://deno.land/x/redis@v0.31.0/mod.ts'
 
