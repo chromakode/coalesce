@@ -50,7 +50,15 @@ export async function initPostgres(): Promise<ProjectDB> {
   const POSTGRES_URL = requireEnv('POSTGRES_URL')
 
   const dialect = new PostgresDialect({
-    pool: new pg.Pool({ connectionString: POSTGRES_URL }),
+    pool: new pg.Pool({
+      connectionString: POSTGRES_URL,
+      // Work around https://github.com/denoland/deno/issues/20293
+      ssl: POSTGRES_URL.includes('sslmode=verify-full')
+        ? {
+            host: new URL(POSTGRES_URL).hostname,
+          }
+        : undefined,
+    }),
   })
 
   const db = new Kysely<DB>({ dialect, plugins: [new CamelCasePlugin()] })
