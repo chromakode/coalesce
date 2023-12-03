@@ -49,16 +49,18 @@ export type ProjectDB = Kysely<DB>
 export async function initPostgres(): Promise<ProjectDB> {
   const POSTGRES_URL = requireEnv('POSTGRES_URL')
 
+  // Work around https://github.com/denoland/deno/issues/20293
+  let connectionString = POSTGRES_URL
+  let ssl
+  const connectionURL = new URL(POSTGRES_URL)
+  if (connectionURL.searchParams.get('sslmode') === 'verify-full') {
+    connectionURL.searchParams.delete('sslmode')
+    connectionString = connectionURL.toString()
+    ssl = { host: new URL(POSTGRES_URL).hostname }
+  }
+
   const dialect = new PostgresDialect({
-    pool: new pg.Pool({
-      connectionString: POSTGRES_URL,
-      // Work around https://github.com/denoland/deno/issues/20293
-      ssl: POSTGRES_URL.includes('sslmode=verify-full')
-        ? {
-            host: new URL(POSTGRES_URL).hostname,
-          }
-        : undefined,
-    }),
+    pool: new pg.Pool({ connectionString, ssl }),
   })
 
   const db = new Kysely<DB>({ dialect, plugins: [new CamelCasePlugin()] })
